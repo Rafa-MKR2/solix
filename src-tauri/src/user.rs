@@ -16,6 +16,27 @@ pub struct UserInfo {
     pub home_dir: String,
 }
 
+pub fn parse_passwd_line(line: &str) -> Option<(String, String, String, String, String)> {
+    let parts: Vec<&str> = line.split(':').collect();
+    if parts.len() >= 7 {
+        let gecos = parts[4].trim();
+        let full_name = gecos.split(',').next().unwrap_or(gecos).to_string();
+        let shell = Path::new(parts[6])
+            .file_name()
+            .map(|f| f.to_string_lossy().to_string())
+            .unwrap_or_else(|| parts[6].to_string());
+        Some((
+            parts[0].to_string(),
+            full_name,
+            parts[5].to_string(),
+            shell,
+            parts[2].to_string(),
+        ))
+    } else {
+        None
+    }
+}
+
 fn get_username() -> String {
     std::env::var("USER")
         .or_else(|_| std::env::var("LOGNAME"))
@@ -26,12 +47,9 @@ fn get_full_name(username: &str) -> String {
     if let Ok(content) = std::fs::read_to_string("/etc/passwd") {
         for line in content.lines() {
             if line.starts_with(&format!("{}:", username)) {
-                let parts: Vec<&str> = line.split(':').collect();
-                if parts.len() > 4 {
-                    let gecos = parts[4].trim();
-                    let name = gecos.split(',').next().unwrap_or(gecos);
+                if let Some((_, name, _, _, _)) = parse_passwd_line(line) {
                     if !name.is_empty() {
-                        return name.to_string();
+                        return name;
                     }
                 }
             }
@@ -44,9 +62,8 @@ fn get_home_dir(username: &str) -> String {
     if let Ok(content) = std::fs::read_to_string("/etc/passwd") {
         for line in content.lines() {
             if line.starts_with(&format!("{}:", username)) {
-                let parts: Vec<&str> = line.split(':').collect();
-                if parts.len() > 5 {
-                    return parts[5].to_string();
+                if let Some((_, _, home, _, _)) = parse_passwd_line(line) {
+                    return home;
                 }
             }
         }
@@ -58,12 +75,8 @@ fn get_shell(username: &str) -> String {
     if let Ok(content) = std::fs::read_to_string("/etc/passwd") {
         for line in content.lines() {
             if line.starts_with(&format!("{}:", username)) {
-                let parts: Vec<&str> = line.split(':').collect();
-                if parts.len() > 6 && !parts[6].is_empty() {
-                    return Path::new(parts[6])
-                        .file_name()
-                        .map(|f| f.to_string_lossy().to_string())
-                        .unwrap_or_else(|| parts[6].to_string());
+                if let Some((_, _, _, shell, _)) = parse_passwd_line(line) {
+                    return shell;
                 }
             }
         }
@@ -92,9 +105,8 @@ fn is_admin(username: &str) -> bool {
     if let Ok(content) = std::fs::read_to_string("/etc/passwd") {
         for line in content.lines() {
             if line.starts_with(&format!("{}:", username)) {
-                let parts: Vec<&str> = line.split(':').collect();
-                if parts.len() > 2 {
-                    if parts[2] == "0" {
+                if let Some((_, _, _, _, uid)) = parse_passwd_line(line) {
+                    if uid == "0" {
                         return true;
                     }
                 }
@@ -182,3 +194,65 @@ pub fn get_user_info() -> UserInfo {
         username,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_passwd_line_full() {
+        let line = "rafael:x:1000:1000:Rafael Do Carmo Costa:/home/rafael:/bin/bash";
+        let result = parse_passwd_line(line);
+        assert!(result.is_some());
+        let (user, name, home, shell, uid) = result.unwrap();
+        assert_eq!(user, "rafael");
+        assert_eq!(name, "Rafael Do Carmo Costa");
+        assert_eq!(home, "/home/rafael");
+        assert_eq!(shell, "bash");
+        assert_eq!(uid, "1000");
+    }
+
+    #[test]
+    fn test_parse_passwd_line_root() {
+        let line = "root:x:0:0:root:/root:/bin/zsh";
+        let (user, name, home, shell, uid) = parse_passwd_line(line).unwrap();
+        assert_eq!(user, "root");
+        assert_eq!(name, "root");
+        assert_eq!(home, "/root");
+        assert_eq!(shell, "zsh");
+        assert_eq!(uid, "0");
+    }
+
+    #[test]
+    fn test_parse_passwd_line_gecos_with_comma() {
+        let line = "user:x:1001:1001:Last,First,Title,Office,Phone:/home/user:/bin/sh";
+        let (_, name, _, _, _) = parse_passwd_line(line).unwrap();
+        assert_eq!(name, "Last");
+    }
+
+    #[test]
+    fn test_parse_passwd_line_short() {
+        assert!(parse_passwd_line("short:line").is_none());
+    }
+
+    #[test]
+    fn test_parse_passwd_line_empty() {
+        assert!(parse_passwd_line("").is_none());
+    }
+
+    #[test]
+    fn test_user_info_struct() {
+        let u = UserInfo {
+            username: "test".into(),
+            full_name: "Test User".into(),
+            is_admin: true,
+            avatar_base64: None,
+            shell: "/bin/bash".into(),
+            home_dir: "/home/test".into(),
+        };
+        assert_eq!(u.username, "test");
+        assert!(u.is_admin);
+        assert_eq!(u.shell, "/bin/bash");
+    }
+}
+

@@ -69,3 +69,32 @@ pub async fn detect_executables(names: &[&str]) -> Vec<ExecutableStatus> {
 
     results
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_executable_status_struct() {
+        let s = ExecutableStatus {
+            name: "git".into(),
+            available: true,
+            executable: Some("/usr/bin/git".into()),
+        };
+        assert_eq!(s.name, "git");
+        assert!(s.available);
+        assert_eq!(s.executable.unwrap(), "/usr/bin/git");
+    }
+
+    #[test]
+    fn test_executable_status_not_found() {
+        let s = ExecutableStatus {
+            name: "nonexistent".into(),
+            available: false,
+            executable: None,
+        };
+        assert!(!s.available);
+        assert!(s.executable.is_none());
+    }
+}
+

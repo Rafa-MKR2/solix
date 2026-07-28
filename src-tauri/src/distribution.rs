@@ -113,3 +113,133 @@ pub async fn detect_linux_distribution() -> Option<LinuxDistribution> {
         package_manager,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_os_release_minimal() {
+        let content = "ID=arch\nVERSION_ID=rolling\n";
+        let map = parse_os_release(content);
+        assert_eq!(map.get("ID").unwrap(), "arch");
+        assert_eq!(map.get("VERSION_ID").unwrap(), "rolling");
+    }
+
+    #[test]
+    fn test_parse_os_release_full() {
+        let content = r#"NAME="Ubuntu"
+VERSION="22.04.3 LTS (Jammy Jellyfish)"
+ID=ubuntu
+ID_LIKE=debian
+VERSION_ID="22.04"
+PRETTY_NAME="Ubuntu 22.04.3 LTS"
+"#;
+        let map = parse_os_release(content);
+        assert_eq!(map.get("NAME").unwrap(), "Ubuntu");
+        assert_eq!(map.get("ID").unwrap(), "ubuntu");
+        assert_eq!(map.get("ID_LIKE").unwrap(), "debian");
+        assert_eq!(map.get("VERSION_ID").unwrap(), "22.04");
+    }
+
+    #[test]
+    fn test_parse_os_release_skips_comments_and_empty() {
+        let content = "# comment\n\nID=test\n";
+        let map = parse_os_release(content);
+        assert_eq!(map.len(), 1);
+        assert_eq!(map.get("ID").unwrap(), "test");
+    }
+
+    #[test]
+    fn test_parse_os_release_empty() {
+        let map = parse_os_release("");
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn test_unquote_double() {
+        assert_eq!(unquote("\"Ubuntu\""), "Ubuntu");
+    }
+
+    #[test]
+    fn test_unquote_single() {
+        assert_eq!(unquote("'Ubuntu'"), "Ubuntu");
+    }
+
+    #[test]
+    fn test_unquote_no_quotes() {
+        assert_eq!(unquote("arch"), "arch");
+    }
+
+    #[test]
+    fn test_unquote_empty() {
+        assert_eq!(unquote(""), "");
+    }
+
+    #[test]
+    fn test_unquote_just_quotes() {
+        assert_eq!(unquote("\"\""), "");
+    }
+
+    #[test]
+    fn test_find_mapping_direct() {
+        let (family, pm) = find_mapping("arch", "");
+        assert_eq!(family, "arch");
+        assert_eq!(pm, "pacman");
+    }
+
+    #[test]
+    fn test_find_mapping_via_id_like() {
+        let (family, pm) = find_mapping("pop", "ubuntu");
+        assert_eq!(family, "debian");
+        assert_eq!(pm, "apt");
+    }
+
+    #[test]
+    fn test_find_mapping_opensuse_id_like() {
+        let (family, pm) = find_mapping("suse", "opensuse");
+        // Will hit opensuse branch first
+        assert_eq!(family, "opensuse");
+        assert_eq!(pm, "zypper");
+    }
+
+    #[test]
+    fn test_find_mapping_unknown() {
+        let (family, pm) = find_mapping("nonexistent", "");
+        assert_eq!(family, "unknown");
+        assert_eq!(pm, "unknown");
+    }
+
+    #[test]
+    fn test_find_mapping_all_known() {
+        let known = [
+            ("arch", "arch", "pacman"),
+            ("garuda", "arch", "pacman"),
+            ("manjaro", "arch", "pacman"),
+            ("ubuntu", "debian", "apt"),
+            ("debian", "debian", "apt"),
+            ("fedora", "fedora", "dnf"),
+            ("opensuse", "opensuse", "zypper"),
+        ];
+        for (id, fam, pm) in &known {
+            let (family, pkg) = find_mapping(id, "");
+            assert_eq!(&family, fam, "Family mismatch for {id}");
+            assert_eq!(&pkg, pm, "PM mismatch for {id}");
+        }
+    }
+
+    #[test]
+    fn test_linux_distribution_struct() {
+        let d = LinuxDistribution {
+            id: "test".into(),
+            name: "Test OS".into(),
+            version: "1.0".into(),
+            family: "unix".into(),
+            package_manager: "test-pm".into(),
+        };
+        assert_eq!(d.id, "test");
+        assert_eq!(d.name, "Test OS");
+        assert_eq!(d.package_manager, "test-pm");
+    }
+}
+

@@ -678,6 +678,15 @@ body {
   color: #ccc;
 }
 
+.btn-report {
+  margin-left: auto;
+}
+
+.btn-report:hover {
+  background: #442222 !important;
+  color: #e88 !important;
+}
+
 .btn-cancel {
   background: #442222;
   color: #e88;

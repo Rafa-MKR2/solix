@@ -322,3 +322,67 @@ pub fn get_processes() -> Vec<ProcessInfo> {
     result.truncate(60);
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_username_for_uid_root() {
+        assert_eq!(get_username_for_uid(0), "root");
+    }
+
+    #[test]
+    fn test_state_mapping() {
+        let cases = [
+            ('R', "Exec"),
+            ('S', "Sleep"),
+            ('D', "Disk"),
+            ('Z', "Zomb"),
+            ('T', "Stop"),
+            ('t', "Stop"),
+            ('I', "Idle"),
+            ('X', "X"),
+        ];
+        for (ch, expected) in &cases {
+            let state = match ch {
+                'R' => "Exec".to_string(),
+                'S' => "Sleep".to_string(),
+                'D' => "Disk".to_string(),
+                'Z' => "Zomb".to_string(),
+                'T' | 't' => "Stop".to_string(),
+                'I' => "Idle".to_string(),
+                _ => ch.to_string(),
+            };
+            assert_eq!(state, *expected, "State mapping for '{}' failed", ch);
+        }
+    }
+
+    #[test]
+    fn test_get_system_stats_struct() {
+        let s = SystemStats { cpu_percent: 42.5, temperature: 68.0, memory_percent: 55.0 };
+        assert!((s.cpu_percent - 42.5).abs() < 0.01);
+        assert!((s.temperature - 68.0).abs() < 0.01);
+        assert!((s.memory_percent - 55.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_process_info_struct() {
+        let p = ProcessInfo {
+            pid: 1234,
+            name: "test".into(),
+            cpu_percent: 10.5,
+            mem_percent: 2.5,
+            mem_kb: 10240,
+            state: "Sleep".into(),
+            user: "user".into(),
+            cmd: "/usr/bin/test".into(),
+        };
+        assert_eq!(p.pid, 1234);
+        assert_eq!(p.name, "test");
+        assert_eq!(p.state, "Sleep");
+    }
+
+}
+
+

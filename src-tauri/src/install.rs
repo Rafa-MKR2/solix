@@ -331,3 +331,79 @@ pub async fn update_system(password: &str) -> Result<InstallResult, String> {
     CANCEL_FLAG.store(false, Ordering::SeqCst);
     Ok(result)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_package_name_known() {
+        assert_eq!(get_package_name("node"), "nodejs");
+        assert_eq!(get_package_name("python3"), "python3");
+        assert_eq!(get_package_name("heroic"), "heroic-games-launcher");
+        assert_eq!(get_package_name("telegram"), "telegram-desktop");
+        assert_eq!(get_package_name("steam"), "steam");
+    }
+
+    #[test]
+    fn test_get_package_name_fallback() {
+        assert_eq!(get_package_name("unknown-tool"), "unknown-tool");
+    }
+
+    #[test]
+    fn test_get_package_name_all_mapped() {
+        let tools = ["git", "node", "python3", "gcc", "make", "java", "code", "gh", "rust", "go",
+            "dbeaver", "curl", "wget", "firefox", "chromium", "brave", "docker", "steam", "lutris",
+            "wine", "heroic", "prismlauncher", "vlc", "gimp", "obs-studio", "kdenlive", "audacity",
+            "flameshot", "inkscape", "krita", "libreoffice", "onlyoffice", "obsidian", "discord",
+            "telegram", "zoom", "p7zip", "timeshift", "vim", "htop", "fastfetch", "flatpak",
+            "gnome-tweaks", "keepassxc", "gufw", "openssh", "pavucontrol", "qbittorrent",
+            "thunderbird", "docker-compose", "virtualbox", "gamemode", "mangohud", "hydra",
+            "blender", "handbrake", "mpv", "ffmpeg", "arc-gtk-theme", "papirus-icon-theme",
+            "materia-gtk-theme", "gtk-theme-windows10", "fluent-gtk-theme"];
+        for t in &tools {
+            let result = get_package_name(t);
+            assert!(!result.is_empty(), "Package name for '{}' is empty", t);
+        }
+    }
+
+    #[test]
+    fn test_get_command_prefixes_all_present() {
+        let prefixes = get_command_prefixes();
+        for pm in &["pacman", "apt", "dnf", "zypper"] {
+            let (install, remove) = prefixes.get(pm).expect("Missing prefix for {pm}");
+            // pacman uses -S, others use "install"
+            if *pm == "pacman" {
+                assert!(install.contains("-S"), "{pm} install cmd missing");
+            } else {
+                assert!(install.contains("install"), "{pm} install cmd missing 'install'");
+            }
+            assert!(remove.contains("remove") || remove.contains("-R"), "{pm} remove cmd wrong");
+        }
+    }
+
+    #[test]
+    fn test_get_update_command_all() {
+        assert!(get_update_command("pacman").contains("pacman -Syu"));
+        assert!(get_update_command("apt").contains("apt update"));
+        assert!(get_update_command("dnf").contains("dnf upgrade"));
+        assert!(get_update_command("zypper").contains("zypper update"));
+        assert!(get_update_command("unknown").contains("unknown-package-manager"));
+    }
+
+    #[test]
+    fn test_install_result_struct() {
+        let r = InstallResult {
+            tool_name: "test".into(),
+            command: "echo ok".into(),
+            success: true,
+            cancelled: false,
+            output: Some("ok".into()),
+            error: None,
+        };
+        assert!(r.success);
+        assert!(!r.cancelled);
+        assert_eq!(r.tool_name, "test");
+    }
+}
+

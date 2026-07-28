@@ -317,3 +317,70 @@ pub fn test_speed_inner() -> SpeedTestResult {
 
     SpeedTestResult { mbps: 0.0, formatted: "Indispon\u{ed}vel".to_string() }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_speed_zero() {
+        let (mbps, fmt) = format_speed(0.0);
+        assert_eq!(mbps, 0.0);
+        assert_eq!(fmt, "0 Kbps");
+    }
+
+    #[test]
+    fn test_format_speed_100kbps() {
+        let (mbps, fmt) = format_speed(12_500.0); // 100 Kbps
+        assert!((mbps - 0.1).abs() < 0.01);
+        assert_eq!(fmt, "100 Kbps");
+    }
+
+    #[test]
+    fn test_format_speed_1mbps() {
+        let (mbps, fmt) = format_speed(125_000.0); // 1 Mbps
+        assert!((mbps - 1.0).abs() < 0.01);
+        assert_eq!(fmt, "1.0 Mbps");
+    }
+
+    #[test]
+    fn test_format_speed_10mbps() {
+        let (mbps, fmt) = format_speed(1_250_000.0); // 10 Mbps
+        assert!((mbps - 10.0).abs() < 0.01);
+        assert_eq!(fmt, "10 Mbps");
+    }
+
+    #[test]
+    fn test_format_speed_100mbps() {
+        let (mbps, fmt) = format_speed(12_500_000.0);
+        assert!((mbps - 100.0).abs() < 0.01);
+        assert_eq!(fmt, "100 Mbps");
+    }
+
+    #[test]
+    fn test_format_speed_1000mbps() {
+        let (mbps, fmt) = format_speed(125_000_000.0);
+        assert!((mbps - 1000.0).abs() < 0.01);
+        assert_eq!(fmt, "1000 Mbps");
+    }
+
+    #[test]
+    fn test_speed_test_result_struct() {
+        let r = SpeedTestResult { mbps: 50.5, formatted: "50.5 Mbps".into() };
+        assert_eq!(r.mbps, 50.5);
+        assert_eq!(r.formatted, "50.5 Mbps");
+    }
+
+    #[test]
+    fn test_external_network_info_struct() {
+        let info = ExternalNetworkInfo {
+            external_ip: "8.8.8.8".into(),
+            isp: "Google".into(),
+            city: "Mountain View".into(),
+            region: "CA".into(),
+        };
+        assert_eq!(info.external_ip, "8.8.8.8");
+        assert_eq!(info.isp, "Google");
+    }
+}
+

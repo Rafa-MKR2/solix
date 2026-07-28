@@ -157,3 +157,75 @@ pub async fn detect_development_tools() -> Vec<DevelopmentToolStatus> {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_category_labels() -> [(&'static str, &'static str); 9] {
+        [
+            ("desenvolvimento", "🛠️ Desenvolvimento"),
+            ("internet", "🌐 Internet"),
+            ("container", "📦 Container"),
+            ("jogos", "🎮 Jogos"),
+            ("midia", "🎵 Mídia"),
+            ("escritorio", "📄 Escritório"),
+            ("comunicacao", "💬 Comunicação"),
+            ("utilitarios", "🔧 Utilitários"),
+            ("temas", "🎨 Temas"),
+        ]
+    }
+
+    #[test]
+    fn test_get_development_tools_count() {
+        let tools = get_development_tools();
+        assert!(tools.len() >= 55, "Expected >= 55 tools, got {}", tools.len());
+    }
+
+    #[test]
+    fn test_get_development_tools_no_duplicates() {
+        let tools = get_development_tools();
+        let mut names = std::collections::HashSet::new();
+        for tool in &tools {
+            assert!(names.insert(&tool.name), "Duplicate: {}", tool.name);
+        }
+    }
+
+    #[test]
+    fn test_get_development_tools_valid_categories() {
+        let tools = get_development_tools();
+        let valid: std::collections::HashSet<&str> =
+            get_category_labels().iter().map(|(c, _)| *c).collect();
+        for tool in &tools {
+            assert!(valid.contains(tool.category.as_str()),
+                "Invalid category '{}' for '{}'", tool.category, tool.name);
+        }
+    }
+
+    #[test]
+    fn test_base64_encode_empty() {
+        assert_eq!(base64_encode(b""), "");
+    }
+
+    #[test]
+    fn test_base64_encode_1_byte() { assert_eq!(base64_encode(b"M"), "TQ=="); }
+    #[test]
+    fn test_base64_encode_2_bytes() { assert_eq!(base64_encode(b"Ma"), "TWE="); }
+    #[test]
+    fn test_base64_encode_3_bytes() { assert_eq!(base64_encode(b"Man"), "TWFu"); }
+    #[test]
+    fn test_base64_encode_hello() { assert_eq!(base64_encode(b"Hello World!"), "SGVsbG8gV29ybGQh"); }
+
+    #[test]
+    fn test_category_labels_count() {
+        assert_eq!(get_category_labels().len(), 9);
+    }
+
+    #[test]
+    fn test_all_tools_have_descriptions() {
+        for tool in &get_development_tools() {
+            assert!(!tool.description.is_empty(), "{} has no description", tool.name);
+        }
+    }
+}
+

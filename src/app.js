@@ -613,6 +613,52 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+async function reportProblem() {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  const btn = document.getElementById('report-btn');
+  if (btn) btn.textContent = '⏳ Coletando...';
+  try {
+    const info = await invoke('get_report_info');
+    const outputLog = document.getElementById('output-log');
+    const logText = outputLog?.textContent?.trim() || '(vazio)';
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const report = [
+      '📋 Relatório do Solix — v' + info.app_version,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      '',
+      '🖥️ Sistema',
+      '  Distribuição: ' + info.distro_name,
+      '  Versão: ' + info.distro_version,
+      '  Kernel: ' + info.kernel,
+      '  Gerenciador: ' + info.package_manager,
+      '',
+      '📊 Desempenho',
+      '  CPU: ' + Math.round(info.cpu_percent) + '%',
+      '  RAM: ' + Math.round(info.memory_percent) + '%',
+      '  Temperatura: ' + Math.round(info.temperature) + '°C',
+      '',
+      '📜 Última operação:',
+      logText,
+      '',
+      '🕐 Gerado em: ' + now,
+    ].join('\n');
+    const body = encodeURIComponent('## Descrição do problema\n\n' +
+      '(Descreva aqui o que aconteceu)\n\n' +
+      '---\n' +
+      '```\n' + report + '\n```');
+    window.open('https://github.com/Rafa-MKR2/solix/issues/new?body=' + body, '_blank');
+    if (btn) btn.textContent = '✅ Aberto!';
+    setTimeout(() => {
+      if (btn) btn.textContent = '🐛 Reportar Problema';
+    }, 3000);
+  } catch (e) {
+    console.error('reportProblem failed:', e);
+    showToast('error', 'Erro ao gerar relatório.');
+    if (btn) btn.textContent = '🐛 Reportar Problema';
+  }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
@@ -658,6 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cleanup-btn')?.addEventListener('click', () => {
     showPasswordModal({ type: 'cleanup' });
   });
+  document.getElementById('report-btn')?.addEventListener('click', reportProblem);
 const SPEEDO_LENGTH = 367.6;
 let speedoAnimFrame = null;
 

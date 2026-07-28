@@ -128,6 +128,40 @@ async fn get_system_stats() -> Result<stats::SystemStats, String> {
     Ok(stats)
 }
 
+#[derive(Debug, Serialize)]
+pub struct ReportInfo {
+    pub app_version: String,
+    pub distro_name: String,
+    pub distro_version: String,
+    pub kernel: String,
+    pub package_manager: String,
+    pub cpu_percent: f64,
+    pub memory_percent: f64,
+    pub temperature: f64,
+}
+
+#[tauri::command]
+async fn get_report_info() -> Result<ReportInfo, String> {
+    let distro = distribution::detect_linux_distribution().await;
+    let hardware = tokio::task::spawn_blocking(|| system_info::get_system_hardware())
+        .await
+        .map_err(|_| "Erro ao carregar hardware".to_string())?;
+    let stats = tokio::task::spawn_blocking(|| stats::get_system_stats())
+        .await
+        .map_err(|_| "Erro ao carregar stats".to_string())?;
+
+    Ok(ReportInfo {
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+        distro_name: distro.as_ref().map(|d| d.name.clone()).unwrap_or_default(),
+        distro_version: distro.as_ref().map(|d| d.version.clone()).unwrap_or_default(),
+        kernel: hardware.kernel,
+        package_manager: distro.as_ref().map(|d| d.package_manager.clone()).unwrap_or_default(),
+        cpu_percent: stats.cpu_percent,
+        memory_percent: stats.memory_percent,
+        temperature: stats.temperature,
+    })
+}
+
 #[tauri::command]
 async fn get_processes() -> Result<Vec<stats::ProcessInfo>, String> {
     let list = tokio::task::spawn_blocking(|| stats::get_processes())
@@ -155,6 +189,7 @@ pub fn run() {
     test_speed,
     get_external_info,
     get_processes,
+    get_report_info,
 ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));

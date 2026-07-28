@@ -160,3 +160,46 @@ pub async fn cleanup_system(password: &str) -> Result<install::InstallResult, St
         error: if success { None } else { pm_result.error },
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_battery_info_present() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 75,
+            status: "Charging".into(),
+            time_remaining: "1:30".into(),
+        };
+        assert!(b.present);
+        assert_eq!(b.percentage, 75);
+        assert_eq!(b.status, "Charging");
+    }
+
+    #[test]
+    fn test_battery_info_not_present() {
+        let b = BatteryInfo {
+            present: false,
+            percentage: 0,
+            status: String::new(),
+            time_remaining: String::new(),
+        };
+        assert!(!b.present);
+        assert_eq!(b.percentage, 0);
+    }
+
+    #[test]
+    fn test_battery_info_discharging() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 50,
+            status: "Discharging".into(),
+            time_remaining: "2:00".into(),
+        };
+        assert_eq!(b.status, "Discharging");
+        assert_eq!(b.time_remaining, "2:00");
+    }
+}
+
