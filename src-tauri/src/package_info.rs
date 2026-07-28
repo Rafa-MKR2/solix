@@ -299,7 +299,7 @@ fn query_info(pm: &str, pkg: &str, installed: bool) -> (String, String, String) 
 pub async fn get_package_info(tool_name: &str) -> Result<PackageDetail, String> {
     let package_name = install::get_package_name(tool_name).to_string();
     let distro = distribution::detect_linux_distribution().await
-        .ok_or_else(|| "Unable to detect distribution".to_string())?;
+        .ok_or_else(|| "Não foi possível detectar a distribuição".to_string())?;
     let pm = &distro.package_manager;
 
     let installed = is_installed(pm, &package_name);

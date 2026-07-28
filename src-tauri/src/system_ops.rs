@@ -16,23 +16,67 @@ pub struct BatteryInfo {
     pub time_remaining: String,
 }
 
-pub fn get_battery_info() -> BatteryInfo {
-    let bat = "/sys/class/power_supply/BAT0";
-    if !std::path::Path::new(bat).exists() {
-        return BatteryInfo { present: false, percentage: 0, status: String::new(), time_remaining: String::new() };
+fn find_battery_path() -> Option<std::path::PathBuf> {
+    let dir = std::path::Path::new("/sys/class/power_supply/");
+    let entries = std::fs::read_dir(dir).ok()?;
+    for entry in entries.flatten() {
+        let type_path = entry.path().join("type");
+        if let Ok(type_str) = std::fs::read_to_string(&type_path) {
+            if type_str.trim() == "Battery" {
+                return Some(entry.path());
+            }
+        }
     }
-    let capacity = std::fs::read_to_string(format!("{bat}/capacity")).unwrap_or_default();
-    let status = std::fs::read_to_string(format!("{bat}/status")).unwrap_or_default();
+    None
+}
+
+fn get_battery_time_remaining() -> String {
+    // Try acpi first
+    if let Ok(out) = Command::new("acpi").arg("-b").output() {
+        let text = String::from_utf8_lossy(&out.stdout);
+        if let Some(last) = text.split(',').last() {
+            let t = last.trim();
+            if t != "until charged" && !t.starts_with("rate information") && !t.is_empty() {
+                return t.to_string();
+            }
+        }
+    }
+    // Fallback: upower
+    if let Ok(out) = Command::new("upower").args(["-e"]).output() {
+        let devices = String::from_utf8_lossy(&out.stdout);
+        for line in devices.lines() {
+            if line.contains("battery") || line.contains("BAT") {
+                if let Ok(info) = Command::new("upower").args(["-i", line.trim()]).output() {
+                    let info_text = String::from_utf8_lossy(&info.stdout);
+                    for line in info_text.lines() {
+                        if line.trim().starts_with("time to empty") || line.trim().starts_with("time to full") {
+                            let t = line.split(':').nth(1).unwrap_or("").trim();
+                            if !t.is_empty() {
+                                return t.to_string();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    String::new()
+}
+
+pub fn get_battery_info() -> BatteryInfo {
+    let bat_path = match find_battery_path() {
+        Some(p) => p,
+        None => return BatteryInfo { present: false, percentage: 0, status: String::new(), time_remaining: String::new() },
+    };
+    let capacity = std::fs::read_to_string(bat_path.join("capacity")).unwrap_or_default();
+    let status = std::fs::read_to_string(bat_path.join("status")).unwrap_or_default();
     let pct = capacity.trim().parse::<u8>().unwrap_or(0);
-    let st = status.trim().to_string();
-    let time = Command::new("acpi")
-        .output().ok()
-        .and_then(|o| {
-            let t = String::from_utf8_lossy(&o.stdout).to_string();
-            t.split(',').last().map(|s| s.trim().to_string())
-        })
-        .unwrap_or_default();
-    BatteryInfo { present: true, percentage: pct, status: st, time_remaining: time }
+    BatteryInfo {
+        present: true,
+        percentage: pct,
+        status: status.trim().to_string(),
+        time_remaining: get_battery_time_remaining(),
+    }
 }
 
 pub async fn enable_zram(password: &str) -> Result<install::InstallResult, String> {

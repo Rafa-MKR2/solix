@@ -656,37 +656,199 @@ body {
   color: #ccc;
 }
 
-/* Network Grid */
-.network-grid {
+/* Rede Layout */
+.rede-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: 240px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.rede-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rede-cards .section-title {
+  margin: 0 0 0.3rem;
 }
 
 .network-item {
   background: #18182e;
   border-radius: 8px;
-  padding: 0.8rem 1rem;
+  padding: 0.65rem 0.8rem;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.6rem;
 }
 
 .network-icon {
-  font-size: 1.5rem;
-  width: 2rem;
+  font-size: 1.2rem;
+  width: 1.6rem;
   text-align: center;
 }
 
 .network-label {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: #666;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .network-value {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #ccc;
+}
+
+.network-sub {
+  font-size: 0.65rem;
+  color: #777;
+  margin-top: 0.05rem;
+}
+
+/* Speedometer */
+.rede-speedo {
+  display: flex;
+  flex-direction: column;
+}
+
+.rede-speedo .section-title {
+  margin: 0 0 0.3rem;
+}
+
+.speedo-wrapper {
+  background: #18182e;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.speedo-svg {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+}
+
+#speedo-needle {
+  transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#speedo-fill {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.speedo-btn-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.btn-speedtest {
+  background: #00d4aa;
+  color: #0a0a1a;
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+  width: 100%;
+  max-width: 220px;
+}
+
+.btn-speedtest:hover {
+  background: #00e8ba;
+  box-shadow: 0 0 20px #00d4aa44;
+  transform: scale(1.02);
+}
+
+.btn-speedtest:active {
+  transform: scale(0.97);
+}
+
+.btn-speedtest.measuring {
+  background: #e8c547;
+  color: #1a1a0a;
+  animation: speedoPulse 0.6s ease infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes speedoPulse {
+  from { box-shadow: 0 0 5px #e8c54766; }
+  to { box-shadow: 0 0 25px #e8c547aa; }
+}
+
+.speedo-ping-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#speed-result {
+  font-size: 0.8rem;
+  color: #00d4aa;
+  text-align: center;
+}
+
+#speed-result.pulse {
+  animation: pulseGlow 0.4s ease 3;
+}
+
+.btn-ping-small {
+  background: #222244;
+  color: #aaa;
+  border: none;
+  padding: 0.3rem 0.5rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.15s;
+}
+
+.btn-ping-small:hover {
+  background: #2a2a55;
+  color: #ccc;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { text-shadow: 0 0 2px #00d4aa44; }
+  50% { text-shadow: 0 0 10px #00d4aa88; }
+}
+
+.speedo-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #222244;
+}
+
+.speedo-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.speedo-info-label {
+  font-size: 0.6rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.speedo-info-val {
+  font-size: 0.8rem;
+  color: #bbb;
+  word-break: break-all;
 }
 
 /* Collapsible (output) */
@@ -910,6 +1072,116 @@ body {
   font-size: 0.8rem;
 }
 
+/* Process Table */
+.process-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.process-search-row .search-bar {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.process-count {
+  font-size: 0.75rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.process-table-wrap {
+  background: #18182e;
+  border-radius: 8px;
+  border: 1px solid #222244;
+  overflow-x: auto;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+#process-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+#process-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+#process-table th {
+  background: #1e1e38;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #2a2a44;
+  white-space: nowrap;
+}
+
+#process-table th:hover {
+  color: #aaa;
+}
+
+#process-table th.sorted {
+  color: #00d4aa;
+}
+
+#process-table th.sorted::after {
+  content: ' ▲';
+  font-size: 0.6rem;
+}
+
+#process-table th.sorted.desc::after {
+  content: ' ▼';
+}
+
+#process-table td {
+  padding: 0.3rem 0.6rem;
+  border-bottom: 1px solid #1e1e30;
+  color: #bbb;
+  white-space: nowrap;
+}
+
+#process-table tr:hover td {
+  background: #1e1e38;
+}
+
+#process-table td.process-state {
+  font-size: 0.7rem;
+}
+
+#process-table td.process-state.Exec {
+  color: #4ae0a0;
+}
+
+#process-table td.process-state.Sleep {
+  color: #888;
+}
+
+#process-table td.process-state.Disk {
+  color: #e8a040;
+}
+
+#process-table td.process-state.Zomb {
+  color: #e84a4a;
+}
+
+#process-table td.process-state.Stop {
+  color: #e8c547;
+}
+
+#process-table td.process-state.Idle {
+  color: #666;
+}
+
 /* Hint text */
 .hint {
   color: #777;
@@ -928,7 +1200,7 @@ body {
   .tools-grid {
     grid-template-columns: 1fr;
   }
-  .network-grid {
+  .rede-layout {
     grid-template-columns: 1fr;
   }
   .stats-gauges {

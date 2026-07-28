@@ -2,7 +2,6 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -114,12 +113,12 @@ pub fn get_package_name(tool_name: &str) -> &str {
 async fn get_distro_and_prefix() -> Result<(distribution::LinuxDistribution, (&'static str, &'static str)), String> {
     let distro = distribution::detect_linux_distribution()
         .await
-        .ok_or_else(|| "Unable to detect Linux distribution".to_string())?;
-
-    let prefixes = get_command_prefixes();
-    let prefix = prefixes
-        .get(distro.package_manager.as_str())
-        .ok_or_else(|| format!("Unsupported package manager: {}", distro.package_manager))?;
+        .ok_or_else(|| "Não foi possível detectar a distribuição Linux".to_string())?;
+ 
+     let prefixes = get_command_prefixes();
+     let prefix = prefixes
+         .get(distro.package_manager.as_str())
+         .ok_or_else(|| format!("Gerenciador de pacotes não suportado: {}", distro.package_manager))?;
 
     Ok((distro, *prefix))
 }
@@ -127,7 +126,7 @@ async fn get_distro_and_prefix() -> Result<(distribution::LinuxDistribution, (&'
 pub async fn get_install_command(tool_name: &str) -> Result<InstallCommandResult, String> {
     let tools = tool::get_development_tools();
     let tool = tools.iter().find(|t| t.name == tool_name)
-        .ok_or_else(|| format!("Unknown tool: {}", tool_name))?;
+        .ok_or_else(|| format!("Ferramenta desconhecida: {}", tool_name))?;
     let (distro, (install_prefix, _)) = get_distro_and_prefix().await?;
     Ok(InstallCommandResult {
         tool_name: tool.name.clone(),
@@ -186,7 +185,7 @@ pub async fn run_command(password: &str, tool_name: &str, command: &str) -> Inst
                     InstallResult {
                         tool_name: tool_name.to_string(),
                         command: command.to_string(),
-                        success: cancelled || success,
+                        success: success && !cancelled,
                         cancelled,
                         output: Some(output_text),
                         error: error_text,
@@ -221,16 +220,16 @@ pub async fn verify_password(password: &str) -> Result<(), String> {
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to spawn sudo: {}", e))?;
-
-    if let Some(mut stdin) = child.stdin.take() {
-        use tokio::io::AsyncWriteExt;
-        let input = format!("{}\n", password);
-        stdin.write_all(input.as_bytes()).await.map_err(|e| format!("Failed to write password: {}", e))?;
-        stdin.shutdown().await.map_err(|e| format!("Failed to close stdin: {}", e))?;
-    }
-
-    let output = child.wait_with_output().await.map_err(|e| format!("Failed to wait for sudo: {}", e))?;
+        .map_err(|e| format!("Erro ao executar sudo: {}", e))?;
+ 
+     if let Some(mut stdin) = child.stdin.take() {
+         use tokio::io::AsyncWriteExt;
+         let input = format!("{}\n", password);
+         stdin.write_all(input.as_bytes()).await.map_err(|e| format!("Erro ao enviar senha: {}", e))?;
+         stdin.shutdown().await.map_err(|e| format!("Erro ao fechar entrada: {}", e))?;
+     }
+ 
+     let output = child.wait_with_output().await.map_err(|e| format!("Erro ao aguardar sudo: {}", e))?;
 
     if output.status.success() {
         Ok(())

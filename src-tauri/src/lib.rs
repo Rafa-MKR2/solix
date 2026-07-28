@@ -33,10 +33,10 @@ async fn get_system_info() -> Result<SystemInfo, String> {
     let tools = tool::detect_development_tools().await;
     let hardware = tokio::task::spawn_blocking(|| system_info::get_system_hardware())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| "Erro ao carregar informações de hardware".to_string())?;
     let user = tokio::task::spawn_blocking(|| user::get_user_info())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| "Erro ao carregar informações do usuário".to_string())?;
 
     Ok(SystemInfo {
         distribution: distro,
@@ -77,7 +77,7 @@ async fn cancel_operation() -> Result<(), String> {
 async fn get_battery() -> Result<system_ops::BatteryInfo, String> {
     let info = tokio::task::spawn_blocking(|| system_ops::get_battery_info())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| "Erro ao carregar informações da bateria".to_string())?;
     Ok(info)
 }
 
@@ -100,16 +100,40 @@ async fn get_package_info(tool_name: String) -> Result<package_info::PackageDeta
 async fn get_connectivity() -> Result<network::ConnectivityInfo, String> {
     let info = tokio::task::spawn_blocking(|| network::get_connectivity())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| "Erro ao carregar informações de rede".to_string())?;
     Ok(info)
+}
+
+#[tauri::command]
+async fn get_external_info() -> Result<network::ExternalNetworkInfo, String> {
+    let info = tokio::task::spawn_blocking(|| network::get_external_info())
+        .await
+        .map_err(|_| "Erro ao obter informações externas".to_string())?;
+    Ok(info)
+}
+
+#[tauri::command]
+async fn test_speed() -> Result<network::SpeedTestResult, String> {
+    let result = tokio::task::spawn_blocking(|| network::test_speed_inner())
+        .await
+        .map_err(|_| "Erro ao testar velocidade".to_string())?;
+    Ok(result)
 }
 
 #[tauri::command]
 async fn get_system_stats() -> Result<stats::SystemStats, String> {
     let stats = tokio::task::spawn_blocking(|| stats::get_system_stats())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| "Erro ao carregar estatísticas do sistema".to_string())?;
     Ok(stats)
+}
+
+#[tauri::command]
+async fn get_processes() -> Result<Vec<stats::ProcessInfo>, String> {
+    let list = tokio::task::spawn_blocking(|| stats::get_processes())
+        .await
+        .map_err(|_| "Erro ao carregar lista de processos".to_string())?;
+    Ok(list)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -126,9 +150,12 @@ pub fn run() {
             get_connectivity,
             get_battery,
             enable_zram,
-            cleanup_system,
-            get_package_info,
-        ])
+    cleanup_system,
+    get_package_info,
+    test_speed,
+    get_external_info,
+    get_processes,
+])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));
 }

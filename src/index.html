@@ -138,6 +138,27 @@
         </div>
       </div>
       <div class="hint" style="margin-top:1rem">Os dados são atualizados automaticamente a cada 3 segundos.</div>
+
+      <h2 class="section-title" style="margin-top:1.5rem">🧩 Processos</h2>
+      <div class="process-search-row">
+        <input type="text" id="process-search" class="search-bar" placeholder="🔍 Buscar processo..." />
+        <span id="process-count" class="process-count"></span>
+      </div>
+      <div class="process-table-wrap">
+        <table id="process-table">
+          <thead>
+            <tr>
+              <th data-sort="pid">PID</th>
+              <th data-sort="name">Nome</th>
+              <th data-sort="cpu_percent" class="sorted asc">CPU%</th>
+              <th data-sort="mem_percent">MEM%</th>
+              <th data-sort="state">Estado</th>
+              <th data-sort="user">Usuário</th>
+            </tr>
+          </thead>
+          <tbody id="process-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="page" id="page-discos">
@@ -169,34 +190,117 @@
     </div>
 
     <div class="page" id="page-rede">
-      <h2 class="section-title">🌐 Rede & Conexão</h2>
-      <div class="network-grid">
-        <div class="network-item">
-          <div class="network-icon" id="net-internet-icon">🌐</div>
-          <div>
-            <div class="network-label">Internet</div>
-            <div class="network-value" id="net-internet">Verificando...</div>
+      <div class="rede-layout">
+        <div class="rede-cards">
+          <h2 class="section-title">🌐 Conexões</h2>
+          <div class="network-item">
+            <div class="network-icon" id="net-internet-icon">🌐</div>
+            <div>
+              <div class="network-label">Internet</div>
+              <div class="network-value" id="net-internet">Verificando...</div>
+              <div class="network-sub" id="net-ping"></div>
+            </div>
+          </div>
+          <div class="network-item">
+            <div class="network-icon" id="net-ethernet-icon">🔌</div>
+            <div>
+              <div class="network-label">Ethernet</div>
+              <div class="network-value" id="net-ethernet">Verificando...</div>
+              <div class="network-sub" id="net-ip"></div>
+            </div>
+          </div>
+          <div class="network-item">
+            <div class="network-icon" id="net-wifi-icon">📶</div>
+            <div>
+              <div class="network-label">Wi-Fi</div>
+              <div class="network-value" id="net-wifi">Verificando...</div>
+              <div class="network-sub" id="net-wifi-signal"></div>
+            </div>
+          </div>
+          <div class="network-item">
+            <div class="network-icon" id="net-bluetooth-icon">🔵</div>
+            <div>
+              <div class="network-label">Bluetooth</div>
+              <div class="network-value" id="net-bluetooth">Verificando...</div>
+            </div>
+          </div>
+          <div class="network-item">
+            <div class="network-icon" id="net-battery-icon">🔋</div>
+            <div>
+              <div class="network-label">Bateria</div>
+              <div class="network-value" id="net-battery">Verificando...</div>
+            </div>
           </div>
         </div>
-        <div class="network-item">
-          <div class="network-icon" id="net-bluetooth-icon">🔵</div>
-          <div>
-            <div class="network-label">Bluetooth</div>
-            <div class="network-value" id="net-bluetooth">Verificando...</div>
-          </div>
-        </div>
-        <div class="network-item">
-          <div class="network-icon" id="net-wifi-icon">📶</div>
-          <div>
-            <div class="network-label">WiFi</div>
-            <div class="network-value" id="net-wifi">Verificando...</div>
-          </div>
-        </div>
-        <div class="network-item">
-          <div class="network-icon" id="net-battery-icon">🔋</div>
-          <div>
-            <div class="network-label">Bateria</div>
-            <div class="network-value" id="net-battery">Verificando...</div>
+        <div class="rede-speedo">
+          <h2 class="section-title">🚀 Velocímetro</h2>
+          <div class="speedo-wrapper">
+            <svg viewBox="0 0 240 210" class="speedo-svg">
+              <defs>
+                <linearGradient id="speedo-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#e84a4a" />
+                  <stop offset="30%" stop-color="#e8c547" />
+                  <stop offset="60%" stop-color="#00d4aa" />
+                  <stop offset="100%" stop-color="#00d4aa" />
+                </linearGradient>
+              </defs>
+              <path d="M 64.9 202.1 A 78 78 0 1 1 175.1 202.1"
+                    fill="none" stroke="#1a1a30" stroke-width="14" stroke-linecap="round" />
+              <path d="M 64.9 202.1 A 78 78 0 1 1 175.1 202.1"
+                    fill="none" stroke="url(#speedo-grad)" stroke-width="14" stroke-linecap="round"
+                    stroke-dasharray="367.6" stroke-dashoffset="367.6" id="speedo-fill" />
+              <g id="speedo-needle" transform="rotate(135, 120, 147)">
+                <line x1="120" y1="147" x2="120" y2="73" stroke="#00d4aa" stroke-width="2.5" />
+                <circle cx="120" cy="73" r="4" fill="#00d4aa" />
+                <circle cx="120" cy="147" r="8" fill="#0f0f1a" stroke="#00d4aa" stroke-width="2" />
+                <circle cx="120" cy="147" r="3" fill="#00d4aa" />
+              </g>
+              <text x="120" y="140" id="speedo-value" text-anchor="middle" font-size="24" font-weight="700" fill="#eee">0</text>
+              <text x="120" y="160" id="speedo-unit" text-anchor="middle" font-size="9" fill="#666">Mbps</text>
+              <!-- Ticks -->
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#444" stroke-width="1.5" transform="rotate(135, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#444" stroke-width="1.5" transform="rotate(162, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#666" stroke-width="2" transform="rotate(189, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#444" stroke-width="1.5" transform="rotate(216, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#444" stroke-width="1.5" transform="rotate(243, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#666" stroke-width="2" transform="rotate(270, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#444" stroke-width="1.5" transform="rotate(297, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#444" stroke-width="1.5" transform="rotate(324, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#666" stroke-width="2" transform="rotate(351, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#444" stroke-width="1.5" transform="rotate(378, 120, 147)" />
+              <line x1="68.5" y1="153" x2="74.5" y2="155" stroke="#444" stroke-width="1.5" transform="rotate(405, 120, 147)" />
+              <!-- Labels -->
+              <text x="43" y="185" font-size="8" fill="#555" text-anchor="middle">0</text>
+              <text x="66" y="113" font-size="8" fill="#555" text-anchor="middle">200</text>
+              <text x="120" y="87" font-size="8" fill="#555" text-anchor="middle">500</text>
+              <text x="174" y="113" font-size="8" fill="#555" text-anchor="middle">800</text>
+              <text x="197" y="185" font-size="8" fill="#555" text-anchor="middle">1000</text>
+            </svg>
+            <div class="speedo-btn-area">
+              <button id="test-speed-btn" class="btn-speedtest">🚀 Testar Velocidade</button>
+              <div class="speedo-ping-row">
+                <span id="speed-result"></span>
+                <button id="test-ping-btn" class="btn-ping-small" title="Testar Ping">📡</button>
+              </div>
+            </div>
+            <div class="speedo-info-grid" id="speedo-info">
+              <div class="speedo-info-item">
+                <span class="speedo-info-label">IP Externo</span>
+                <span class="speedo-info-val" id="info-external-ip">—</span>
+              </div>
+              <div class="speedo-info-item">
+                <span class="speedo-info-label">Provedor</span>
+                <span class="speedo-info-val" id="info-isp">—</span>
+              </div>
+              <div class="speedo-info-item">
+                <span class="speedo-info-label">Localização</span>
+                <span class="speedo-info-val" id="info-location">—</span>
+              </div>
+              <div class="speedo-info-item">
+                <span class="speedo-info-label">Latência</span>
+                <span class="speedo-info-val" id="info-ping-display">—</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

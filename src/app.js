@@ -8,6 +8,9 @@ let removedTools = new Set();
 let pendingAction = null;
 let cachedPassword = '';
 let systemDistro = '';
+let processList = [];
+let processSortField = 'cpu_percent';
+let processSortAsc = false;
 
 function getInvoke() {
   return window.__TAURI_INTERNALS__?.invoke || null;
@@ -72,7 +75,9 @@ async function pollStats() {
     setGauge('gauge-cpu-home', 'gauge-cpu-home-value', s.cpu_percent, `${Math.round(s.cpu_percent)}%`);
     setGauge('gauge-ram-home', 'gauge-ram-home-value', s.memory_percent, `${Math.round(s.memory_percent)}%`);
     setGauge('gauge-temp-home', 'gauge-temp-home-value', s.temperature, `${Math.round(s.temperature)}°`);
-  } catch (_) {}
+  } catch (e) {
+    console.error('pollStats failed:', e);
+  }
 }
 
 function setText(id, text) {
@@ -124,7 +129,8 @@ async function loadSystemInfo() {
     toolStatuses = info.tools || [];
     renderTools(toolStatuses);
   } catch (err) {
-    console.error(err);
+    console.error('loadSystemInfo failed:', err);
+    showToast('error', 'Erro ao carregar informações do sistema.');
   }
 }
 
@@ -141,8 +147,8 @@ function renderDisks(disks) {
     card.className = 'disk-card';
     card.innerHTML = `
       <div class="disk-header">
-        <span class="disk-name">${d.name}</span>
-        <span class="disk-size">${d.total} · ${d.mount_point}</span>
+        <span class="disk-name">${d.filesystem} (${d.mount_point})</span>
+        <span class="disk-size">${d.total}</span>
       </div>
       <div class="disk-bar-bg"><div class="disk-bar-fill ${getBarColor(d.percent_used)}" style="width:${Math.min(d.percent_used, 100)}%"></div></div>
       <div class="disk-details"><span>${d.available} livres</span><span>${Math.round(d.percent_used)}% usado</span></div>
@@ -312,7 +318,7 @@ async function confirmPassword() {
   if (!invoke) return;
   try {
     const result = await invoke('install_tools', { toolNames: ['__verify__'], password });
-    if (result && result[0] && result[0].failed) {
+    if (result && result[0] && !result[0].success) {
       if (error) error.classList.remove('hidden');
       return;
     }
@@ -322,6 +328,9 @@ async function confirmPassword() {
       if (error) error.classList.remove('hidden');
       return;
     }
+    console.error('confirmPassword error:', e);
+    showToast('error', 'Erro ao verificar senha. Tente novamente.');
+    return;
   }
   cachedPassword = password;
   document.getElementById('password-overlay').classList.add('hidden');
@@ -362,7 +371,8 @@ async function executePending() {
     if (outputLog) {
       if (Array.isArray(result)) {
         outputLog.textContent = result.map(r => {
-          const name = r.tool_name || r.name || 'desconhecido';
+          const name = r.tool_name || 'desconhecido';
+          if (r.cancelled) return `${name}: cancelado`;
           if (!r.success) {
             let err = r.error || '';
             if (err.includes('db.lck') || err.includes('não foi possível travar')) {
@@ -427,7 +437,8 @@ async function showPasswordModal(action) {
         await invoke('install_tools', { toolNames: ['__verify__'], password: cachedPassword });
         executePending();
         return;
-      } catch (_) {
+      } catch (e) {
+        console.error('cached password verification failed:', e);
         cachedPassword = '';
       }
     }
@@ -467,34 +478,139 @@ async function loadConnectivity() {
     const c = await invoke('get_connectivity');
     const internet = document.getElementById('net-internet');
     const internetIcon = document.getElementById('net-internet-icon');
+    const pingEl = document.getElementById('net-ping');
+    const ethernet = document.getElementById('net-ethernet');
+    const ethernetIcon = document.getElementById('net-ethernet-icon');
+    const ipEl = document.getElementById('net-ip');
     const bluetooth = document.getElementById('net-bluetooth');
     const bluetoothIcon = document.getElementById('net-bluetooth-icon');
     const wifi = document.getElementById('net-wifi');
     const wifiIcon = document.getElementById('net-wifi-icon');
+    const wifiSignal = document.getElementById('net-wifi-signal');
     if (internet) {
       internet.textContent = c.internet ? 'Conectado ✓' : 'Desconectado ✗';
       internet.style.color = c.internet ? '#4ae0a0' : '#e88';
     }
     if (internetIcon) internetIcon.textContent = c.internet ? '🌐' : '🚫';
+    if (pingEl) {
+      pingEl.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : '';
+      pingEl.style.color = c.ping_latency_ms > 0 && c.ping_latency_ms < 100 ? '#4ae0a0' : c.ping_latency_ms >= 100 ? '#e8a040' : '';
+    }
+    if (ethernet) {
+      ethernet.textContent = c.ethernet ? 'Conectado ✓' : 'Desconectado ✗';
+      ethernet.style.color = c.ethernet ? '#4ae0a0' : '#666';
+    }
+    if (ethernetIcon) ethernetIcon.textContent = c.ethernet ? '🔌' : '🔌';
+    if (ipEl) ipEl.textContent = c.ip_address || '';
     if (bluetooth) {
-      bluetooth.textContent = c.bluetooth || 'N/A';
+      bluetooth.textContent = c.bluetooth ? 'Ativo ✓' : 'Inativo ✗';
+      bluetooth.style.color = c.bluetooth ? '#4ae0a0' : '#666';
     }
-    if (bluetoothIcon) bluetoothIcon.textContent = c.bluetooth === 'Ativo' ? '🔵' : '⚫';
+    if (bluetoothIcon) bluetoothIcon.textContent = c.bluetooth ? '🔵' : '⚫';
     if (wifi) {
-      const bars = ['⬜', '🟢', '🟢🟢', '🟢🟢🟢'];
-      wifi.textContent = c.wifi_ssid ? `${c.wifi_ssid} ${bars[c.wifi_signal > 75 ? 3 : c.wifi_signal > 50 ? 2 : c.wifi_signal > 25 ? 1 : 0] || ''}` : 'N/A';
+      if (c.wifi_ssid) {
+        wifi.textContent = c.wifi_ssid;
+        wifi.style.color = '#4ae0a0';
+      } else if (c.wifi_present) {
+        wifi.textContent = 'Desconectado';
+        wifi.style.color = '#e8a040';
+      } else {
+        wifi.textContent = 'N/A';
+        wifi.style.color = '#666';
+      }
     }
-    if (wifiIcon) wifiIcon.textContent = c.wifi_ssid ? '📶' : '📵';
+    if (wifiIcon) wifiIcon.textContent = c.wifi_ssid ? '📶' : c.wifi_present ? '📡' : '📵';
+    if (wifiSignal) {
+      if (c.wifi_ssid && c.wifi_signal > 0) {
+        wifiSignal.textContent = `${c.wifi_signal}%`;
+        wifiSignal.style.color = c.wifi_signal > 60 ? '#4ae0a0' : c.wifi_signal > 30 ? '#e8a040' : '#e88';
+      } else if (c.wifi_ssid) {
+        wifiSignal.textContent = 'conectado';
+        wifiSignal.style.color = '#4ae0a0';
+      } else {
+        wifiSignal.textContent = '';
+      }
+    }
     const bat = document.getElementById('net-battery');
     const batIcon = document.getElementById('net-battery-icon');
-    if (bat && c.battery) {
-      bat.textContent = c.battery.charging ? `🔌 ${c.battery.percent}%` : `${c.battery.percent}% (${c.battery.time || 'N/A'})`;
-    } else if (bat) {
+    if (bat) {
       const invite = await invoke('get_battery');
-      if (bat) bat.textContent = invite.percent > 0 ? (invite.charging ? `🔌 ${invite.percent}% (${invite.time || 'N/A'})` : `${invite.percent}% (${invite.time || 'N/A'})`) : 'Sem bateria';
-      if (batIcon) batIcon.textContent = invite.percent > 0 ? (invite.charging ? '🔌' : '🔋') : '🔌';
+      if (invite.present && invite.percentage > 0) {
+        const charging = invite.status === 'Charging';
+        bat.textContent = charging ? `🔌 ${invite.percentage}% (${invite.time_remaining || 'N/A'})` : `${invite.percentage}% (${invite.time_remaining || 'N/A'})`;
+        bat.style.color = '#4ae0a0';
+        if (batIcon) batIcon.textContent = charging ? '🔌' : '🔋';
+      } else {
+        bat.textContent = 'Sem bateria';
+        bat.style.color = '#666';
+        if (batIcon) batIcon.textContent = '🔌';
+      }
     }
-  } catch (_) {}
+  } catch (e) {
+    console.error('loadConnectivity failed:', e);
+  }
+}
+
+async function loadProcesses() {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  try {
+    const list = await invoke('get_processes');
+    processList = list;
+    renderProcesses();
+  } catch (e) {
+    console.error('loadProcesses failed:', e);
+  }
+}
+
+function renderProcesses() {
+  const tbody = document.getElementById('process-tbody');
+  const count = document.getElementById('process-count');
+  if (!tbody) return;
+
+  const query = (document.getElementById('process-search')?.value || '').toLowerCase().trim();
+  let filtered = processList;
+  if (query) {
+    filtered = filtered.filter(p => p.name.toLowerCase().includes(query) || p.pid.toString().includes(query) || p.user.toLowerCase().includes(query));
+  }
+
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp = 0;
+    if (processSortField === 'pid') cmp = a.pid - b.pid;
+    else if (processSortField === 'cpu_percent') cmp = a.cpu_percent - b.cpu_percent;
+    else if (processSortField === 'mem_percent') cmp = a.mem_percent - b.mem_percent;
+    else if (processSortField === 'name') cmp = a.name.localeCompare(b.name);
+    else if (processSortField === 'state') cmp = a.state.localeCompare(b.state);
+    else if (processSortField === 'user') cmp = a.user.localeCompare(b.user);
+    return processSortAsc ? cmp : -cmp;
+  });
+
+  if (count) count.textContent = `${sorted.length} processos`;
+
+  tbody.innerHTML = sorted.map(p => {
+    const memDisplay = p.mem_percent > 0.1 ? `${p.mem_percent.toFixed(1)}%` : '<0.1%';
+    return `<tr>
+      <td>${p.pid}</td>
+      <td>${escapeHtml(p.name)}</td>
+      <td>${p.cpu_percent.toFixed(1)}%</td>
+      <td>${memDisplay}</td>
+      <td class="process-state ${p.state}">${p.state}</td>
+      <td>${p.user}</td>
+    </tr>`;
+  }).join('');
+
+  // Update sort indicators
+  document.querySelectorAll('#process-table th').forEach(th => {
+    const field = th.dataset.sort;
+    th.classList.toggle('sorted', field === processSortField);
+    th.classList.toggle('desc', field === processSortField && !processSortAsc);
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 // Event listeners
@@ -542,10 +658,164 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cleanup-btn')?.addEventListener('click', () => {
     showPasswordModal({ type: 'cleanup' });
   });
+const SPEEDO_LENGTH = 367.6;
+let speedoAnimFrame = null;
+
+function setSpeedometer(mbps) {
+  const maxSpeed = 1000;
+  const pct = Math.min(Math.max(mbps / maxSpeed, 0), 1);
+  const angle = 135 + pct * 270;
+  const needle = document.getElementById('speedo-needle');
+  const fill = document.getElementById('speedo-fill');
+  const value = document.getElementById('speedo-value');
+  const unit = document.getElementById('speedo-unit');
+  if (needle) needle.style.transform = `rotate(${angle}, 120, 147)`;
+  if (fill) fill.style.strokeDashoffset = SPEEDO_LENGTH * (1 - pct);
+  if (value) value.textContent = mbps >= 10 ? Math.round(mbps) : mbps.toFixed(1);
+  if (unit) unit.textContent = mbps >= 1 ? 'Mbps' : 'Kbps';
+}
+
+function animateSpeedometerReach(targetMbps) {
+  const needle = document.getElementById('speedo-needle');
+  const fill = document.getElementById('speedo-fill');
+  if (!needle || !fill) return;
+
+  // Phase 1: accelerate from 0 to 80% of target in 2s
+  // Phase 2: decelerate and settle at target with bounce
+  const maxSpeed = 1000;
+  if (speedoAnimFrame) cancelAnimationFrame(speedoAnimFrame);
+
+  const startTime = performance.now();
+  const climbDuration = 2200;
+  const startAngle = 135;
+  const sweep = 270;
+  const targetPct = Math.min(Math.max(targetMbps / maxSpeed, 0), 1);
+  const targetAngle = startAngle + targetPct * sweep;
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const p = Math.min(elapsed / climbDuration, 1);
+
+    let angle;
+    if (p < 0.7) {
+      // Ease-in: accelerate toward slightly above target
+      const t = p / 0.7;
+      const overshoot = Math.min(targetPct + 0.08, 1);
+      const eased = t * t * (3 - 2 * t);
+      angle = startAngle + eased * (startAngle + overshoot * sweep - startAngle);
+    } else {
+      // Ease-out: bounce back and settle on target
+      const t = (p - 0.7) / 0.3;
+      const bounce1 = 1 + 0.04 * Math.sin(t * Math.PI * 3) * (1 - t);
+      angle = startAngle + targetPct * bounce1 * sweep;
+    }
+
+    needle.style.transition = 'none';
+    needle.style.transform = `rotate(${angle}, 120, 147)`;
+    fill.style.transition = 'none';
+    const pct = (angle - startAngle) / sweep;
+    fill.style.strokeDashoffset = SPEEDO_LENGTH * (1 - pct);
+
+    if (p < 1) {
+      speedoAnimFrame = requestAnimationFrame(step);
+    } else {
+      needle.style.transition = '';
+      fill.style.transition = '';
+      // Final snap to exact value
+      needle.style.transform = `rotate(${targetAngle}, 120, 147)`;
+      fill.style.strokeDashoffset = SPEEDO_LENGTH * (1 - targetPct);
+    }
+  }
+
+  speedoAnimFrame = requestAnimationFrame(step);
+}
+
+async function loadExternalInfo() {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  try {
+    const info = await invoke('get_external_info');
+    const ipEl = document.getElementById('info-external-ip');
+    const ispEl = document.getElementById('info-isp');
+    const locEl = document.getElementById('info-location');
+    if (ipEl) ipEl.textContent = info.external_ip || '—';
+    if (ispEl) {
+      const org = info.isp || '';
+      ispEl.textContent = org.replace(/^AS\d+\s*/, '') || '—';
+    }
+    if (locEl) {
+      const parts = [info.city, info.region].filter(Boolean);
+      locEl.textContent = parts.join(', ') || '—';
+    }
+  } catch (_) {}
+
+  // Also update ping
+  try {
+    const c = await invoke('get_connectivity');
+    const pingEl = document.getElementById('info-ping-display');
+    if (pingEl) {
+      pingEl.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : '—';
+      pingEl.style.color = c.ping_latency_ms > 0 && c.ping_latency_ms < 100 ? '#4ae0a0' : c.ping_latency_ms >= 100 ? '#e8a040' : '';
+    }
+  } catch (_) {}
+}
+
+document.getElementById('test-ping-btn')?.addEventListener('click', async () => {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  const btn = document.getElementById('test-ping-btn');
+  if (btn) btn.textContent = '⏳';
+  const speedResult = document.getElementById('speed-result');
+  try {
+    const c = await invoke('get_connectivity');
+    if (speedResult) speedResult.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : 'Sem resposta';
+    if (speedResult) speedResult.className = 'pulse';
+    setTimeout(() => { if (speedResult) speedResult.className = ''; }, 2000);
+  } catch (_) {
+    if (speedResult) speedResult.textContent = 'Falhou';
+  }
+  if (btn) btn.textContent = '📡';
+});
+
+document.getElementById('test-speed-btn')?.addEventListener('click', async () => {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  const btn = document.getElementById('test-speed-btn');
+  const speedResult = document.getElementById('speed-result');
+  if (btn) { btn.classList.add('measuring'); btn.textContent = '⏳ Medindo...'; }
+  if (speedResult) speedResult.textContent = 'Testando...';
+  setSpeedometer(0);
+  setTimeout(() => {
+    // Start climbing animation while test runs
+    animateSpeedometerReach(700);
+  }, 200);
+  try {
+    const result = await invoke('test_speed');
+      if (speedResult) {
+        speedResult.textContent = `Download: ${result.formatted}`;
+        speedResult.className = 'pulse';
+        setTimeout(() => { if (speedResult) speedResult.className = ''; }, 2000);
+      }
+      animateSpeedometerReach(result.mbps);
+      // Update ping after speed test
+      try {
+        const c = await invoke('get_connectivity');
+        const pingEl = document.getElementById('info-ping-display');
+        if (pingEl) {
+          pingEl.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : '—';
+          pingEl.style.color = c.ping_latency_ms > 0 && c.ping_latency_ms < 100 ? '#4ae0a0' : c.ping_latency_ms >= 100 ? '#e8a040' : '';
+        }
+      } catch (_) {}
+  } catch (_) {
+    if (speedResult) speedResult.textContent = 'Falhou';
+  }
+  if (btn) { btn.classList.remove('measuring'); btn.textContent = '🚀 Testar Velocidade'; }
+});
+
   document.getElementById('cancel-btn')?.addEventListener('click', async () => {
     const invoke = getInvoke();
     if (invoke) {
-      try { await invoke('cancel_operation'); } catch (_) {}
+      try { await invoke('cancel_operation'); } catch (e) { console.error('cancel failed:', e); }
     }
   });
 
@@ -570,7 +840,10 @@ document.addEventListener('DOMContentLoaded', () => {
         icon.style.display = 'inline-block';
       }
       document.getElementById('info-overlay').classList.remove('hidden');
-    } catch (_) {}
+    } catch (e) {
+      console.error('get_package_info failed:', e);
+      showToast('error', `Erro ao buscar informações de ${toolName}.`);
+    }
   });
   document.getElementById('info-close')?.addEventListener('click', () => {
     document.getElementById('info-overlay').classList.add('hidden');
@@ -590,6 +863,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   loadConnectivity();
+  loadExternalInfo();
+  loadProcesses();
   setInterval(pollStats, 3000);
   setInterval(loadConnectivity, 10000);
+  setInterval(loadProcesses, 3000);
+
+  // Process sort
+  document.querySelectorAll('#process-table th').forEach(th => {
+    th.addEventListener('click', () => {
+      const field = th.dataset.sort;
+      if (!field) return;
+      if (processSortField === field) processSortAsc = !processSortAsc;
+      else { processSortField = field; processSortAsc = true; }
+      renderProcesses();
+    });
+  });
+
+  // Process search
+  document.getElementById('process-search')?.addEventListener('input', renderProcesses);
 });
