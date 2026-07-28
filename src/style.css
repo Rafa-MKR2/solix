@@ -647,6 +647,147 @@ body {
   gap: 0.2rem;
 }
 
+/* Disk Action Buttons */
+.disk-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #222244;
+}
+
+.disk-btn {
+  background: #222244;
+  border: 1px solid #2a2a44;
+  color: #999;
+  padding: 0.25rem 0.55rem;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.disk-btn:hover {
+  background: #2a2a55;
+  color: #ccc;
+  border-color: #3a3a66;
+}
+
+.disk-btn-open:hover {
+  background: #1a2a3a;
+  border-color: #00d4aa44;
+  color: #4ae0a0;
+}
+
+.disk-btn-analyze:hover {
+  background: #2a2a1a;
+  border-color: #e8c54744;
+  color: #e8c547;
+}
+
+.disk-btn-partitions:hover {
+  background: #1a2a2a;
+  border-color: #4a9eff44;
+  color: #4a9eff;
+}
+
+/* Disk Analysis Modal */
+.disk-analysis-modal {
+  background: #18182e;
+  border: 1px solid #2a2a44;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.disk-analysis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #222244;
+}
+
+.disk-analysis-header h3 {
+  font-size: 0.95rem;
+  color: #eee;
+  margin: 0;
+}
+
+.disk-analysis-body {
+  padding: 1rem 1.2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.disk-analysis-loading {
+  color: #888;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.disk-analysis-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.3rem 0.6rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #1e1e30;
+  align-items: center;
+}
+
+.disk-analysis-item:last-child {
+  border-bottom: none;
+}
+
+.disk-analysis-path {
+  font-size: 0.8rem;
+  color: #ccc;
+  word-break: break-all;
+}
+
+.disk-analysis-size {
+  font-size: 0.8rem;
+  color: #e8c547;
+  font-weight: 600;
+  font-family: monospace;
+  text-align: right;
+}
+
+.disk-analysis-bar-bg {
+  grid-column: 1 / -1;
+  height: 4px;
+  background: #222244;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.disk-analysis-bar-fill {
+  height: 100%;
+  background: #00d4aa;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.disk-partitions-output {
+  background: #0a0a18;
+  border: 1px solid #222244;
+  border-radius: 6px;
+  padding: 0.8rem;
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: #aaa;
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
 /* Search Bar */
 .search-bar {
   width: 100%;
@@ -1148,6 +1289,70 @@ body {
   transition: max-height 0.3s ease, opacity 0.25s ease;
   max-height: 99999px;
   opacity: 1;
+}
+
+/* Help Tooltips */
+.help-tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #555;
+  cursor: help;
+  transition: color 0.2s;
+  vertical-align: middle;
+  line-height: 1;
+  margin-left: 0.15rem;
+  position: relative;
+  user-select: none;
+}
+
+.help-tip-sm {
+  font-size: 0.6rem;
+}
+
+.help-tip:hover {
+  color: #4ae0a0;
+}
+
+/* Tooltip popup */
+.help-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: #1e1e3a;
+  border: 1px solid #3a3a66;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  max-width: 300px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #ccc;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: tooltipFadeIn 0.2s ease;
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.help-tooltip::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 16px;
+  width: 10px;
+  height: 10px;
+  background: #1e1e3a;
+  border-left: 1px solid #3a3a66;
+  border-top: 1px solid #3a3a66;
+  transform: rotate(45deg);
+}
+
+.help-tooltip.bottom::after {
+  top: auto;
+  bottom: -6px;
+  transform: rotate(225deg);
 }
 
 .collapse-content.closed {

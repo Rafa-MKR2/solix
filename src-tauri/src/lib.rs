@@ -17,6 +17,12 @@ mod user;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
+pub struct DiskUsageItem {
+    pub path: String,
+    pub size: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct UpdateInfo {
     pub has_update: bool,
     pub latest_version: String,
@@ -255,6 +261,71 @@ async fn get_home_stats() -> Result<stats::HomeStats, String> {
 }
 
 #[tauri::command]
+async fn open_file_manager(path: String) -> Result<(), String> {
+    let dir = if path.is_empty() { "/".to_string() } else { path };
+    tokio::process::Command::new("xdg-open")
+        .arg(&dir)
+        .output()
+        .await
+        .map_err(|e| format!("Erro ao abrir gerenciador de arquivos: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn analyze_disk_usage(mount_point: String) -> Result<Vec<DiskUsageItem>, String> {
+    let path = mount_point.trim_end_matches('/');
+    let output = tokio::process::Command::new("sh")
+        .arg("-c")
+        .arg(format!(
+            "du -sh \"{}/\"* 2>/dev/null | sort -rh | head -15",
+            path
+        ))
+        .output()
+        .await
+        .map_err(|e| format!("Erro ao analisar disco: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let items: Vec<DiskUsageItem> = stdout
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if line.is_empty() {
+                return None;
+            }
+            let parts: Vec<&str> = line.splitn(2, '\t').collect();
+            if parts.len() < 2 {
+                return None;
+            }
+            Some(DiskUsageItem {
+                size: parts[0].to_string(),
+                path: parts[1].to_string(),
+            })
+        })
+        .collect();
+
+    Ok(items)
+}
+
+#[tauri::command]
+async fn get_partition_table(device: String) -> Result<String, String> {
+    // Pega o device base removendo números + sufixo 'p' (ex: /dev/sda1 → /dev/sda, /dev/nvme0n1p2 → /dev/nvme0n1)
+    let base = device
+        .trim_end_matches(|c: char| c.is_ascii_digit())
+        .trim_end_matches('p');
+    let output = tokio::process::Command::new("lsblk")
+        .args(["-o", "NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT", &base])
+        .output()
+        .await
+        .map_err(|e| format!("Erro ao obter tabela de partições: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    if stdout.trim().is_empty() {
+        return Err("Nenhuma informação de partição encontrada.".to_string());
+    }
+    Ok(stdout.trim().to_string())
+}
+
+#[tauri::command]
 async fn get_processes() -> Result<Vec<stats::ProcessInfo>, String> {
     let list = tokio::task::spawn_blocking(|| stats::get_processes())
         .await
@@ -284,6 +355,9 @@ pub fn run() {
     get_report_info,
     get_home_stats,
     check_update,
+    open_file_manager,
+    analyze_disk_usage,
+    get_partition_table,
 ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));

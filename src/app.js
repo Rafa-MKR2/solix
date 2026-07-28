@@ -173,10 +173,132 @@ function renderDisks(disks) {
         <span class="disk-used">📝 ${d.used} usados</span>
         <span class="disk-free">📦 ${d.available} livres</span>
       </div>
+      <div class="disk-actions">
+        <button class="disk-btn disk-btn-open" data-mount="${d.mount_point}">📂 Abrir <span class="help-tip" data-help="disco-abrir">ⓘ</span></button>
+        <button class="disk-btn disk-btn-analyze" data-mount="${d.mount_point}">🔍 Analisar <span class="help-tip" data-help="disco-analisar">ⓘ</span></button>
+        <button class="disk-btn disk-btn-partitions" data-device="${d.filesystem}">📋 Partições <span class="help-tip" data-help="disco-particoes">ⓘ</span></button>
+      </div>
     `;
     container.appendChild(card);
+
+    // Eventos dos botoes
+    card.querySelector('.disk-btn-open').addEventListener('click', () => {
+      handleOpenFileManager(d.mount_point);
+    });
+    card.querySelector('.disk-btn-analyze').addEventListener('click', () => {
+      handleAnalyzeDisk(d.mount_point);
+    });
+    card.querySelector('.disk-btn-partitions').addEventListener('click', () => {
+      handleShowPartitions(d.filesystem);
+    });
+
+    // Ativar tooltips nos botoes de disco (criados dinamicamente)
+    card.querySelectorAll('.help-tip').forEach(el => {
+      const key = el.dataset.help;
+      const text = helpTexts[key];
+      if (!text) return;
+      let hideTimer = null;
+      let isVisible = false;
+      el.addEventListener('mouseenter', () => {
+        if (hideTimer) clearTimeout(hideTimer);
+        showHelpTooltip(text, el);
+        isVisible = true;
+      });
+      el.addEventListener('mouseleave', () => {
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => { hideHelpTooltip(); isVisible = false; }, 200);
+      });
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isVisible) { hideHelpTooltip(); isVisible = false; }
+        else { showHelpTooltip(text, el); isVisible = true; }
+      });
+    });
   }
 }
+
+// ─── Disk Actions ───
+
+async function handleOpenFileManager(mountPoint) {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  try {
+    await invoke('open_file_manager', { path: mountPoint });
+  } catch (e) {
+    console.error('open_file_manager failed:', e);
+    showToast('error', 'Erro ao abrir gerenciador de arquivos.');
+  }
+}
+
+async function handleAnalyzeDisk(mountPoint) {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  const modal = document.getElementById('disk-analysis-overlay');
+  const list = document.getElementById('disk-analysis-list');
+  const title = document.getElementById('disk-analysis-title');
+  if (!modal || !list) return;
+  if (title) title.textContent = `🔍 Analisando ${mountPoint}...`;
+  list.innerHTML = '<div class="disk-analysis-loading">⏳ Escaneando pastas...</div>';
+  modal.classList.remove('hidden');
+  try {
+    const items = await invoke('analyze_disk_usage', { mountPoint });
+    if (title) title.textContent = `📂 ${mountPoint} — Pastas mais pesadas`;
+    if (items.length === 0) {
+      list.innerHTML = '<div class="hint">Nenhum resultado encontrado.</div>';
+      return;
+    }
+    const maxSize = items.reduce((m, i) => {
+      const v = parseFloat(i.size);
+      return v > m ? v : m;
+    }, 0);
+    list.innerHTML = items.map(item => {
+      const sizeVal = parseFloat(item.size) || 0;
+      const pct = maxSize > 0 ? (sizeVal / maxSize) * 100 : 0;
+      return `
+        <div class="disk-analysis-item">
+          <div class="disk-analysis-path">${item.path}</div>
+          <div class="disk-analysis-size">${item.size}</div>
+          <div class="disk-analysis-bar-bg">
+            <div class="disk-analysis-bar-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    console.error('analyze_disk_usage failed:', e);
+    list.innerHTML = '<div class="hint" style="color:#e88">❌ Erro ao analisar disco.</div>';
+  }
+}
+
+async function handleShowPartitions(device) {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  const modal = document.getElementById('disk-analysis-overlay');
+  const list = document.getElementById('disk-analysis-list');
+  const title = document.getElementById('disk-analysis-title');
+  if (!modal || !list) return;
+  if (title) title.textContent = `📋 Partições de ${device}`;
+  list.innerHTML = '<div class="disk-analysis-loading">⏳ Carregando...</div>';
+  modal.classList.remove('hidden');
+  try {
+    const output = await invoke('get_partition_table', { device });
+    list.innerHTML = `<pre class="disk-partitions-output">${escapeHtml(output)}</pre>`;
+  } catch (e) {
+    console.error('get_partition_table failed:', e);
+    list.innerHTML = `<div class="hint" style="color:#e88">❌ ${e}</div>`;
+  }
+}
+
+document.getElementById('disk-analysis-close')?.addEventListener('click', () => {
+  document.getElementById('disk-analysis-overlay')?.classList.add('hidden');
+});
+document.getElementById('disk-analysis-overlay')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) {
+    e.currentTarget.classList.add('hidden');
+  }
+});
+
+// ─── ───
 
 function getBarColor(pct) {
   if (pct < 50) return 'green';
@@ -747,9 +869,130 @@ async function reportProblem() {
   }
 }
 
+// ─── Help Tooltips ───
+
+const helpTexts = {
+  'section-distribuicao': 'Aqui você vê qual versão do Linux está usando. É como saber o modelo e a versão do sistema operacional do seu computador.',
+  'section-hardware': 'Informações sobre as peças físicas do seu computador: processador, memória, placa de vídeo e outros componentes. Tudo que está dentro do gabinete!',
+  'section-visao-geral': 'Um resumo rápido do estado do seu sistema: quantos programas estão instalados, se há atualizações disponíveis e como estão os recursos do computador.',
+  'section-desempenho': 'Mostra em tempo real o desempenho do seu computador: uso do processador, memória e temperatura. Os gráficos são atualizados automaticamente a cada 3 segundos.',
+  'section-processos': 'Lista de todos os programas e serviços rodando no seu computador agora. Se algo estiver lento, você pode identificar qual programa está consumindo muitos recursos.',
+  'section-discos': 'Seus discos e partições. Mostra quanto espaço está ocupado e livre, o tipo de cada disco (ext4, btrfs, NTFS), e permite abrir pastas ou analisar o uso.',
+  'section-ferramentas': 'Lista de programas úteis que você pode instalar com um clique. Basta selecionar os que deseja e clicar em "Instalar Selecionadas".',
+  'section-rede': 'Informações sobre sua conexão com a internet, Wi-Fi, Bluetooth e bateria do notebook. Tudo que conecta seu computador ao mundo.',
+  'cpu': 'O processador, ou "cérebro" do computador. Ele executa todos os cálculos. Quanto maior a porcentagem, mais ele está trabalhando. Entre 0-30% é uso normal.',
+  'ram': 'A memória RAM é a memória de trabalho do computador. Os programas ficam nela enquanto estão abertos. Se ficar muito cheia (acima de 90%), o sistema pode ficar lento.',
+  'temp': 'A temperatura do processador. Entre 30°C e 70°C é normal. Acima de 80°C merece atenção — pode ser hora de limpar o cooler ou trocar a pasta térmica.',
+  'nucleos': 'Os núcleos do processador. Imagine cada núcleo como um "trabalhador": quanto mais núcleos, mais tarefas o computador consegue realizar ao mesmo tempo.',
+  'kernel': 'O núcleo do Linux, a parte mais fundamental do sistema operacional. É como o "motor" do seu computador — essencial para tudo funcionar.',
+  'gpu': 'Placa de vídeo (GPU). Responsável por mostrar imagens na tela. Importante para jogos, vídeos, edição de imagem e para o sistema ficar bonito e fluido.',
+  'uptime': 'Há quanto tempo o computador está ligado sem desligar ou reiniciar. Se estiver com muitos dias ligado, uma reinicializada pode ajudar o desempenho.',
+  'pacotes': 'Quantidade total de programas instalados no seu sistema. Isso inclui navegador, editor de texto, jogos e também componentes internos que fazem tudo funcionar.',
+  'atualizacoes': 'Novas versões dos seus programas disponíveis para instalar. Manter tudo atualizado é importante para a segurança e para ter as últimas melhorias e correções.',
+  'carga': 'Média de processos esperando o processador. São 3 números: do último minuto, dos últimos 5 e dos últimos 15 minutos. Números baixos = sistema tranquilo e rápido.',
+  'swap': 'Uma área do disco que o sistema usa como "memória extra" quando a RAM está cheia. É mais lenta que a RAM, mas evita que o computador trave quando falta memória.',
+  'servicos': 'Programas essenciais rodando em segundo plano, como som, rede, impressão e atualizações. Eles fazem tudo funcionar sem você precisar se preocupar.',
+  'zram': 'Técnica que compacta parte da memória RAM para evitar lentidão quando o computador está com pouca memória. Recomendado para máquinas com 4GB ou menos de RAM.',
+  'limpeza': 'Remove arquivos temporários, cache de programas e pacotes antigos. Libera espaço no disco e ajuda o sistema a ficar mais leve. É seguro fazer de vez em quando!',
+  'atualizar-sistema': 'Baixa e instala as últimas atualizações de segurança e melhorias para todos os seus programas. Recomendado fazer sempre que aparecerem atualizações disponíveis.',
+  'reportar': 'Se algo não funcionar como esperado, este botão gera um relatório automático do seu sistema e abre uma página para você reportar o problema no GitHub.',
+  'speedtest': 'Testa a velocidade da sua internet baixando um arquivo de teste. O resultado mostra quantos Megabits por segundo (Mbps) sua conexão consegue baixar.',
+  'disco-abrir': 'Abre o gerenciador de arquivos do seu sistema na pasta deste disco, para você ver e organizar seus arquivos e pastas.',
+  'disco-analisar': 'Escaneia as pastas mais pesadas deste disco, mostrando o que está ocupando mais espaço. Útil para encontrar arquivos grandes e liberar espaço.',
+  'disco-particoes': 'Mostra a tabela de partições do disco, com informações detalhadas: nome, tamanho, tipo e onde está montada cada partição.',
+}
+
+let helpTooltipEl = null;
+
+function showHelpTooltip(text, targetEl) {
+  hideHelpTooltip();
+  const el = document.createElement('div');
+  el.className = 'help-tooltip';
+  el.textContent = text;
+  document.body.appendChild(el);
+  helpTooltipEl = el;
+
+  requestAnimationFrame(() => {
+    const rect = targetEl.getBoundingClientRect();
+    const tipRect = el.getBoundingClientRect();
+    let left = rect.left + rect.width / 2 - tipRect.width / 2;
+    let top = rect.bottom + 8;
+
+    // Keep within viewport
+    if (left < 10) left = 10;
+    if (left + tipRect.width > window.innerWidth - 10) {
+      left = window.innerWidth - tipRect.width - 10;
+    }
+    if (top + tipRect.height > window.innerHeight - 10) {
+      top = rect.top - tipRect.height - 8;
+      el.classList.add('bottom');
+    }
+
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+  });
+}
+
+function hideHelpTooltip() {
+  if (helpTooltipEl) {
+    helpTooltipEl.remove();
+    helpTooltipEl = null;
+  }
+}
+
+function setupHelpTooltips() {
+  document.querySelectorAll('.help-tip').forEach(el => {
+    const key = el.dataset.help;
+    const text = helpTexts[key];
+    if (!text) return;
+
+    let hideTimer = null;
+    let isVisible = false;
+
+    function show() {
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+      showHelpTooltip(text, el);
+      isVisible = true;
+    }
+
+    function scheduleHide() {
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        hideHelpTooltip();
+        isVisible = false;
+      }, 200);
+    }
+
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('mouseleave', scheduleHide);
+
+    // The tooltip itself keeps alive when hovered
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isVisible) {
+        hideHelpTooltip();
+        isVisible = false;
+      } else {
+        show();
+      }
+    });
+  });
+
+  // Hide tooltip on scroll or click outside
+  document.addEventListener('scroll', hideHelpTooltip, true);
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.help-tip')) {
+      hideHelpTooltip();
+    }
+  });
+}
+
+// ─── ───
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
+  setupHelpTooltips();
   loadSystemInfo();
 
   document.getElementById('password-input').addEventListener('keydown', (e) => {
