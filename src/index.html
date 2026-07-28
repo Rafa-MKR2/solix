@@ -49,17 +49,46 @@
 
   <main id="content">
     <div class="page active" id="page-sistema">
-      <section id="user-card" class="user-card hidden">
-        <div class="user-avatar" id="user-avatar"><div class="avatar-placeholder" id="avatar-placeholder">?</div></div>
-        <div class="user-details">
-          <div class="user-name" id="user-name">—</div>
-          <div class="user-username" id="user-username">@—</div>
-          <div class="user-meta">
-            <span class="user-badge" id="user-admin-badge" style="display:none">👑 Administrador</span>
-            <span class="user-badge badge-shell" id="user-shell">—</span>
+      <div class="profile-row">
+        <section id="user-card" class="user-card hidden">
+          <div class="user-avatar" id="user-avatar"><div class="avatar-placeholder" id="avatar-placeholder">?</div></div>
+          <div class="user-details">
+            <div class="user-name" id="user-name">—</div>
+            <div class="user-username" id="user-username">@—</div>
+            <div class="user-meta">
+              <span class="user-badge" id="user-admin-badge" style="display:none">👑 Administrador</span>
+              <span class="user-badge badge-shell" id="user-shell">—</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="home-gauges" id="home-gauges">
+          <div class="hgauge">
+            <svg class="hgauge-svg" viewBox="0 0 80 80">
+              <circle class="hgauge-bg" cx="40" cy="40" r="32" />
+              <circle class="hgauge-fill" id="gauge-cpu-home" cx="40" cy="40" r="32" />
+              <text class="hgauge-label" x="40" y="36">CPU</text>
+              <text class="hgauge-value" id="gauge-cpu-home-value" x="40" y="54">0%</text>
+            </svg>
+          </div>
+          <div class="hgauge">
+            <svg class="hgauge-svg" viewBox="0 0 80 80">
+              <circle class="hgauge-bg" cx="40" cy="40" r="32" />
+              <circle class="hgauge-fill" id="gauge-ram-home" cx="40" cy="40" r="32" />
+              <text class="hgauge-label" x="40" y="36">RAM</text>
+              <text class="hgauge-value" id="gauge-ram-home-value" x="40" y="54">0%</text>
+            </svg>
+          </div>
+          <div class="hgauge">
+            <svg class="hgauge-svg" viewBox="0 0 80 80">
+              <circle class="hgauge-bg" cx="40" cy="40" r="32" />
+              <circle class="hgauge-fill" id="gauge-temp-home" cx="40" cy="40" r="32" />
+              <text class="hgauge-label" x="40" y="36">Temp</text>
+              <text class="hgauge-value" id="gauge-temp-home-value" x="40" y="54">0°</text>
+            </svg>
           </div>
         </div>
-      </section>
+      </div>
 
       <h2 class="section-title">📋 Distribuição</h2>
       <div class="info-grid">
@@ -67,34 +96,6 @@
         <div class="info-item"><span class="label">Versão</span><span id="distro-version" class="value">—</span></div>
         <div class="info-item"><span class="label">Família</span><span id="distro-family" class="value">—</span></div>
         <div class="info-item"><span class="label">Gerenciador</span><span id="distro-pm" class="value">—</span></div>
-      </div>
-
-      <h2 class="section-title">📊 Desempenho</h2>
-      <div class="stats-gauges">
-        <div class="gauge-card">
-          <svg class="gauge" viewBox="0 0 120 120">
-            <circle class="gauge-bg" cx="60" cy="60" r="50" />
-            <circle class="gauge-fill" id="gauge-cpu-home" cx="60" cy="60" r="50" />
-            <text class="gauge-label" x="60" y="52">CPU</text>
-            <text class="gauge-value" id="gauge-cpu-home-value" x="60" y="74">0%</text>
-          </svg>
-        </div>
-        <div class="gauge-card">
-          <svg class="gauge" viewBox="0 0 120 120">
-            <circle class="gauge-bg" cx="60" cy="60" r="50" />
-            <circle class="gauge-fill" id="gauge-ram-home" cx="60" cy="60" r="50" />
-            <text class="gauge-label" x="60" y="52">RAM</text>
-            <text class="gauge-value" id="gauge-ram-home-value" x="60" y="74">0%</text>
-          </svg>
-        </div>
-        <div class="gauge-card">
-          <svg class="gauge" viewBox="0 0 120 120">
-            <circle class="gauge-bg" cx="60" cy="60" r="50" />
-            <circle class="gauge-fill" id="gauge-temp-home" cx="60" cy="60" r="50" />
-            <text class="gauge-label" x="60" y="52">Temp.</text>
-            <text class="gauge-value" id="gauge-temp-home-value" x="60" y="74">0°</text>
-          </svg>
-        </div>
       </div>
 
       <h2 class="section-title">💻 Hardware</h2>

@@ -189,6 +189,66 @@ body {
   margin-top: 0;
 }
 
+/* Profile row with user card + home gauges */
+.profile-row {
+  display: flex;
+  gap: 0.8rem;
+  align-items: stretch;
+}
+
+.profile-row .user-card {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.home-gauges {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  background: #18182e;
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+}
+
+.hgauge {
+  width: 60px;
+  text-align: center;
+}
+
+.hgauge-svg {
+  width: 100%;
+  height: auto;
+}
+
+.hgauge-bg {
+  fill: none;
+  stroke: #222244;
+  stroke-width: 6;
+}
+
+.hgauge-fill {
+  fill: none;
+  stroke: #00d4aa;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 40px 40px;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.hgauge-label {
+  fill: #888;
+  font-size: 7px;
+  text-anchor: middle;
+}
+
+.hgauge-value {
+  fill: #eee;
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
 /* User Card */
 .user-card {
   display: flex;
@@ -1205,5 +1265,11 @@ body {
   }
   .stats-gauges {
     gap: 1rem;
+  }
+  .profile-row {
+    flex-direction: column;
+  }
+  .home-gauges {
+    justify-content: center;
   }
 }
