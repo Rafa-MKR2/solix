@@ -361,7 +361,19 @@ async function executePending() {
     }
     if (outputLog) {
       if (Array.isArray(result)) {
-        outputLog.textContent = result.map(r => `${r.name}: ${r.success ? 'ok' : 'falhou: ' + (r.error || '')}`).join('\n');
+        outputLog.textContent = result.map(r => {
+          const name = r.tool_name || r.name || 'desconhecido';
+          if (!r.success) {
+            let err = r.error || '';
+            if (err.includes('db.lck') || err.includes('não foi possível travar')) {
+              err = 'Outro gerenciador de pacotes está em execução (Pamac, Discover, terminal). Feche-o e tente novamente.';
+            } else if (err.includes('não foi possível')) {
+              err = 'Erro ao acessar o gerenciador de pacotes. Tente novamente.';
+            }
+            return `${name}: falhou — ${err}`;
+          }
+          return `${name}: ok`;
+        }).join('\n');
       } else if (result) {
         outputLog.textContent = result.output || result.message || JSON.stringify(result, null, 2);
       }
@@ -382,8 +394,15 @@ async function executePending() {
       if (removeBtn) removeBtn.style.display = 'none';
     }
   } catch (err) {
-    if (outputLog) outputLog.textContent = `Erro: ${err}`;
-    showToast('error', 'Erro na operação');
+    const msg = (err + '').toLowerCase();
+    let friendly = 'Erro na operação.';
+    if (msg.includes('db.lck') || msg.includes('não foi possível travar')) {
+      friendly = 'Outro gerenciador de pacotes está em execução. Feche o Pamac/Discover/terminal e tente novamente.';
+    } else if (msg.includes('password') || msg.includes('senha')) {
+      friendly = 'Senha incorreta. Tente novamente.';
+    }
+    if (outputLog) outputLog.textContent = friendly;
+    showToast('error', friendly);
   } finally {
     isOperating = false;
     pendingAction = null;
