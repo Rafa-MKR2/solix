@@ -1,0 +1,258 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (c) 2025 Rafa-MKR2 -->
+<!-- GitHub: https://github.com/Rafa-MKR2 -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solix</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
+  <nav id="sidebar" class="sidebar hidden">
+    <div class="sidebar-header">
+      <img src="icon.png" class="sidebar-logo" alt="" />
+      <span class="sidebar-title">Solix</span>
+    </div>
+    <div class="sidebar-items">
+      <div class="nav-item active" data-page="sistema">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Sistema</span>
+      </div>
+      <div class="nav-item" data-page="desempenho">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Desempenho</span>
+      </div>
+      <div class="nav-item" data-page="discos">
+        <span class="nav-icon">💾</span>
+        <span class="nav-label">Discos</span>
+      </div>
+      <div class="nav-item" data-page="ferramentas">
+        <span class="nav-icon">🛠️</span>
+        <span class="nav-label">Ferramentas</span>
+      </div>
+      <div class="nav-item" data-page="rede">
+        <span class="nav-icon">🌐</span>
+        <span class="nav-label">Rede</span>
+      </div>
+    </div>
+  </nav>
+
+  <header id="topbar">
+    <button id="hamburger" class="hamburger" aria-label="Menu">&#9776;</button>
+    <img src="icon.png" class="topbar-logo" alt="" />
+    <span class="topbar-title">Solix</span>
+    <span id="pm-badge" class="pm-badge"></span>
+  </header>
+
+  <main id="content">
+    <div class="page active" id="page-sistema">
+      <section id="user-card" class="user-card hidden">
+        <div class="user-avatar" id="user-avatar"><div class="avatar-placeholder" id="avatar-placeholder">?</div></div>
+        <div class="user-details">
+          <div class="user-name" id="user-name">—</div>
+          <div class="user-username" id="user-username">@—</div>
+          <div class="user-meta">
+            <span class="user-badge" id="user-admin-badge" style="display:none">👑 Administrador</span>
+            <span class="user-badge badge-shell" id="user-shell">—</span>
+          </div>
+        </div>
+      </section>
+
+      <h2 class="section-title">📋 Distribuição</h2>
+      <div class="info-grid">
+        <div class="info-item"><span class="label">Distribuição</span><span id="distro-name" class="value">—</span></div>
+        <div class="info-item"><span class="label">Versão</span><span id="distro-version" class="value">—</span></div>
+        <div class="info-item"><span class="label">Família</span><span id="distro-family" class="value">—</span></div>
+        <div class="info-item"><span class="label">Gerenciador</span><span id="distro-pm" class="value">—</span></div>
+      </div>
+
+      <h2 class="section-title">📊 Desempenho</h2>
+      <div class="stats-gauges">
+        <div class="gauge-card">
+          <svg class="gauge" viewBox="0 0 120 120">
+            <circle class="gauge-bg" cx="60" cy="60" r="50" />
+            <circle class="gauge-fill" id="gauge-cpu-home" cx="60" cy="60" r="50" />
+            <text class="gauge-label" x="60" y="52">CPU</text>
+            <text class="gauge-value" id="gauge-cpu-home-value" x="60" y="74">0%</text>
+          </svg>
+        </div>
+        <div class="gauge-card">
+          <svg class="gauge" viewBox="0 0 120 120">
+            <circle class="gauge-bg" cx="60" cy="60" r="50" />
+            <circle class="gauge-fill" id="gauge-ram-home" cx="60" cy="60" r="50" />
+            <text class="gauge-label" x="60" y="52">RAM</text>
+            <text class="gauge-value" id="gauge-ram-home-value" x="60" y="74">0%</text>
+          </svg>
+        </div>
+        <div class="gauge-card">
+          <svg class="gauge" viewBox="0 0 120 120">
+            <circle class="gauge-bg" cx="60" cy="60" r="50" />
+            <circle class="gauge-fill" id="gauge-temp-home" cx="60" cy="60" r="50" />
+            <text class="gauge-label" x="60" y="52">Temp.</text>
+            <text class="gauge-value" id="gauge-temp-home-value" x="60" y="74">0°</text>
+          </svg>
+        </div>
+      </div>
+
+      <h2 class="section-title">💻 Hardware</h2>
+      <div class="info-grid">
+        <div class="info-item"><span class="label">CPU</span><span id="hw-cpu" class="value">—</span></div>
+        <div class="info-item"><span class="label">Núcleos</span><span id="hw-cores" class="value">—</span></div>
+        <div class="info-item"><span class="label">Memória</span><span id="hw-mem" class="value">—</span></div>
+        <div class="info-item"><span class="label">Em uso</span><span id="hw-mem-used" class="value">—</span></div>
+        <div class="info-item"><span class="label">Placa de Vídeo</span><span id="hw-gpu" class="value">—</span></div>
+        <div class="info-item"><span class="label">Kernel</span><span id="hw-kernel" class="value">—</span></div>
+        <div class="info-item"><span class="label">Ativo há</span><span id="hw-uptime" class="value">—</span></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-desempenho">
+      <h2 class="section-title">📊 Desempenho</h2>
+      <div class="stats-gauges">
+        <div class="gauge-card">
+          <svg class="gauge" viewBox="0 0 120 120">
+            <circle class="gauge-bg" cx="60" cy="60" r="50" />
+            <circle class="gauge-fill" id="gauge-cpu" cx="60" cy="60" r="50" />
+            <text class="gauge-label" x="60" y="52">CPU</text>
+            <text class="gauge-value" id="gauge-cpu-value" x="60" y="74">0%</text>
+          </svg>
+        </div>
+        <div class="gauge-card">
+          <svg class="gauge" viewBox="0 0 120 120">
+            <circle class="gauge-bg" cx="60" cy="60" r="50" />
+            <circle class="gauge-fill" id="gauge-ram" cx="60" cy="60" r="50" />
+            <text class="gauge-label" x="60" y="52">RAM</text>
+            <text class="gauge-value" id="gauge-ram-value" x="60" y="74">0%</text>
+          </svg>
+        </div>
+        <div class="gauge-card">
+          <svg class="gauge" viewBox="0 0 120 120">
+            <circle class="gauge-bg" cx="60" cy="60" r="50" />
+            <circle class="gauge-fill" id="gauge-temp" cx="60" cy="60" r="50" />
+            <text class="gauge-label" x="60" y="52">Temperatura</text>
+            <text class="gauge-value" id="gauge-temp-value" x="60" y="74">0°</text>
+          </svg>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:1rem">Os dados são atualizados automaticamente a cada 3 segundos.</div>
+    </div>
+
+    <div class="page" id="page-discos">
+      <h2 class="section-title">💾 Discos</h2>
+      <div id="disks-list"></div>
+    </div>
+
+    <div class="page" id="page-ferramentas">
+      <div class="tools-actions">
+        <button id="update-btn" class="btn-tertiary">🔄 Atualizar Sistema</button>
+        <button id="zram-btn" class="btn-tertiary">⚡ Ativar ZRAM</button>
+        <button id="cleanup-btn" class="btn-tertiary">🧹 Limpeza</button>
+      </div>
+      <div style="height:0.5rem"></div>
+      <input type="text" id="search-input" class="search-bar" placeholder="🔍 Buscar ferramenta..." />
+      <div id="tools-list" class="tools-grid"></div>
+      <div id="action-section">
+        <div class="btn-group">
+          <button id="install-btn" class="btn-primary" disabled>⚡ Instalar Selecionadas</button>
+          <button id="remove-btn" class="btn-secondary" style="display:none">🗑️ Remover</button>
+        </div>
+        <p id="selected-count" class="counter">Nenhuma ferramenta selecionada</p>
+      </div>
+      <section id="output-section" class="collapsible hidden">
+        <h2 class="section-header" data-target="output-log">📜 Saída <span class="collapse-arrow">▼</span></h2>
+        <pre id="output-log" class="collapse-content"></pre>
+        <button id="cancel-btn" class="btn-cancel hidden">✖ Cancelar</button>
+      </section>
+    </div>
+
+    <div class="page" id="page-rede">
+      <h2 class="section-title">🌐 Rede & Conexão</h2>
+      <div class="network-grid">
+        <div class="network-item">
+          <div class="network-icon" id="net-internet-icon">🌐</div>
+          <div>
+            <div class="network-label">Internet</div>
+            <div class="network-value" id="net-internet">Verificando...</div>
+          </div>
+        </div>
+        <div class="network-item">
+          <div class="network-icon" id="net-bluetooth-icon">🔵</div>
+          <div>
+            <div class="network-label">Bluetooth</div>
+            <div class="network-value" id="net-bluetooth">Verificando...</div>
+          </div>
+        </div>
+        <div class="network-item">
+          <div class="network-icon" id="net-wifi-icon">📶</div>
+          <div>
+            <div class="network-label">WiFi</div>
+            <div class="network-value" id="net-wifi">Verificando...</div>
+          </div>
+        </div>
+        <div class="network-item">
+          <div class="network-icon" id="net-battery-icon">🔋</div>
+          <div>
+            <div class="network-label">Bateria</div>
+            <div class="network-value" id="net-battery">Verificando...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="info-overlay" class="overlay hidden">
+    <div class="info-modal">
+      <div class="info-modal-header">
+        <img id="info-icon" class="info-icon" src="" alt="" onerror="this.style.display='none'" />
+        <h3 id="info-name"></h3>
+        <span class="info-close-btn" id="info-close-btn">&times;</span>
+      </div>
+      <div class="info-modal-body">
+        <div class="info-row"><span class="info-label">Pacote</span><span class="info-val" id="info-package"></span></div>
+        <div class="info-row"><span class="info-label">Descrição</span><span class="info-val" id="info-desc"></span></div>
+        <div class="info-row"><span class="info-label">Versão</span><span class="info-val" id="info-version"></span></div>
+        <div class="info-row"><span class="info-label">Tamanho</span><span class="info-val" id="info-size"></span></div>
+        <div class="info-row"><span class="info-label">Status</span><span class="info-val" id="info-status"></span></div>
+      </div>
+      <div class="info-modal-footer">
+        <button id="info-close" class="btn-pw-confirm">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirm-overlay" class="overlay hidden">
+    <div class="password-modal">
+      <h3>⚠️ Atualizar Sistema</h3>
+      <p>Tem certeza que deseja atualizar todo o sistema? Isso pode levar alguns minutos e requer conexão com a internet.</p>
+      <div class="password-actions">
+        <button id="confirm-btn-no" class="btn-pw-cancel">Cancelar</button>
+        <button id="confirm-btn-yes" class="btn-pw-confirm">Sim, atualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="password-overlay" class="overlay hidden">
+    <div class="password-modal">
+      <h3>🔒 Senha do Sistema</h3>
+      <p>Para instalar ou remover programas, o Linux precisa da sua senha de administrador.</p>
+      <input type="password" id="password-input" placeholder="Digite sua senha" autocomplete="off" />
+      <div class="password-actions">
+        <button id="password-cancel" class="btn-pw-cancel">Cancelar</button>
+        <button id="password-confirm" class="btn-pw-confirm">Confirmar</button>
+      </div>
+      <p id="password-error" class="password-error hidden">Senha incorreta. Tente novamente.</p>
+    </div>
+  </div>
+
+  <div id="completion-toast">
+    <div class="toast-icon">✅</div>
+    <div class="toast-title">Concluído!</div>
+    <div class="toast-sub" id="toast-message">Tudo pronto</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
