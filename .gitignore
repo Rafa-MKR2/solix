@@ -1,0 +1,14 @@
+# Rust / Tauri
+src-tauri/target/
+
+# Node.js (legacy)
+node_modules/
+dist/
+coverage/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db

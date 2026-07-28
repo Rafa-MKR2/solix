@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2025 Rafa-MKR2
+# GitHub: https://github.com/Rafa-MKR2
+
+[Desktop Entry]
+Name=Solix
+Comment=Configure seu Linux de forma simples e rápida
+Exec=/usr/local/bin/solix
+Icon=solix
+Terminal=false
+Type=Application
+Categories=Utility;System;
+StartupWMClass=solix
