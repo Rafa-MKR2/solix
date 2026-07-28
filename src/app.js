@@ -145,13 +145,34 @@ function renderDisks(disks) {
   for (const d of disks) {
     const card = document.createElement('div');
     card.className = 'disk-card';
+
+    // Extrai nome amigável do dispositivo (ex: /dev/sda1 → sda1)
+    const deviceName = d.filesystem.split('/').pop();
+    // Ícone conforme o tipo
+    const typeIcon = d.fstype === 'ntfs' ? '🪟' : d.fstype === 'vfat' ? '💾' : d.fstype === 'btrfs' ? '🌳' : '💽';
+
     card.innerHTML = `
-      <div class="disk-header">
-        <span class="disk-name">${d.filesystem} (${d.mount_point})</span>
-        <span class="disk-size">${d.total}</span>
+      <div class="disk-card-top">
+        <div class="disk-card-info">
+          <div class="disk-device-row">
+            <span class="disk-device-icon">${typeIcon}</span>
+            <span class="disk-device-name">${deviceName || d.filesystem}</span>
+          </div>
+          <div class="disk-meta">
+            <span class="disk-fstype">${d.fstype}</span>
+            <span class="disk-mount">${d.mount_point}</span>
+          </div>
+        </div>
+        <div class="disk-capacity">
+          <span class="disk-total">${d.total}</span>
+          <span class="disk-percent">${Math.round(d.percent_used)}%</span>
+        </div>
       </div>
       <div class="disk-bar-bg"><div class="disk-bar-fill ${getBarColor(d.percent_used)}" style="width:${Math.min(d.percent_used, 100)}%"></div></div>
-      <div class="disk-details"><span>${d.available} livres</span><span>${Math.round(d.percent_used)}% usado</span></div>
+      <div class="disk-details">
+        <span class="disk-used">📝 ${d.used} usados</span>
+        <span class="disk-free">📦 ${d.available} livres</span>
+      </div>
     `;
     container.appendChild(card);
   }

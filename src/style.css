@@ -236,6 +236,90 @@ body {
   transition: stroke-dashoffset 0.5s ease;
 }
 
+/* Hardware Groups */
+.hw-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.hw-group {
+  background: linear-gradient(145deg, #1a1a32 0%, #18182e 100%);
+  border: 1px solid #252545;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.hw-group:hover {
+  border-color: #00d4aa44;
+}
+
+.hw-group-header {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0.9rem 0.3rem;
+  border-bottom: 1px solid #222244;
+}
+
+.hw-group-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.hw-group-body-3col {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.hw-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-right: 1px solid #222244;
+}
+
+.hw-group-body > .hw-item:last-child {
+  border-right: none;
+}
+
+.hw-group-body-3col > .hw-item:nth-child(3) {
+  border-right: none;
+}
+
+.hw-item-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.hw-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.hw-item-label {
+  font-size: 0.6rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hw-item-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ddd;
+  word-break: break-all;
+  line-height: 1.2;
+}
+
 .hgauge-label {
   fill: #888;
   font-size: 10px;
@@ -446,38 +530,102 @@ body {
 
 /* Disk Cards */
 .disk-card {
-  background: #18182e;
-  border-radius: 8px;
-  padding: 0.8rem 1rem;
+  background: linear-gradient(145deg, #1a1a32 0%, #18182e 100%);
+  border: 1px solid #252545;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
   margin-bottom: 0.6rem;
+  transition: border-color 0.2s, transform 0.2s;
 }
 
-.disk-header {
+.disk-card:hover {
+  border-color: #00d4aa44;
+  transform: translateY(-1px);
+}
+
+.disk-card-top {
   display: flex;
   justify-content: space-between;
-  font-size: 0.85rem;
-  margin-bottom: 0.3rem;
+  align-items: flex-start;
+  margin-bottom: 0.4rem;
 }
 
-.disk-name {
+.disk-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.disk-device-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.disk-device-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.disk-device-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #eee;
+  font-family: monospace;
+}
+
+.disk-meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.disk-fstype {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4ae0a0;
+  background: #00d4aa18;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
   font-weight: 600;
+}
+
+.disk-mount {
+  font-size: 0.7rem;
+  color: #666;
+}
+
+.disk-capacity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.disk-total {
+  font-size: 0.9rem;
+  font-weight: 700;
   color: #ccc;
 }
 
-.disk-size {
+.disk-percent {
+  font-size: 0.7rem;
   color: #888;
 }
 
 .disk-bar-bg {
-  height: 6px;
+  height: 8px;
   background: #222244;
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
+  margin-bottom: 0.3rem;
 }
 
 .disk-bar-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: width 0.5s ease;
 }
 
@@ -489,9 +637,14 @@ body {
 .disk-details {
   display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #777;
-  margin-top: 0.3rem;
+}
+
+.disk-used, .disk-free {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
 }
 
 /* Search Bar */
@@ -1387,5 +1540,8 @@ body {
   }
   .home-gauges {
     justify-content: center;
+  }
+  .hw-group-body {
+    grid-template-columns: 1fr;
   }
 }

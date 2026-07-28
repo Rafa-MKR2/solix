@@ -14,6 +14,7 @@ pub struct DiskInfo {
     pub available: String,
     pub percent_used: f64,
     pub filesystem: String,
+    pub fstype: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -39,8 +40,10 @@ fn get_disks() -> Vec<DiskInfo> {
     let mut disks = Vec::new();
 
     if Path::new("/usr/bin/df").exists() {
+        // df -hT: formato legível + tipo do filesystem (ext4, btrfs, ntfs, etc.)
+        // Colunas: source, type, size, used, avail, use%, mount
         if let Ok(out) = std::process::Command::new("df")
-            .args(["-h", "--output=source,target,size,used,avail,pcent"])
+            .args(["-hT"])
             .output()
         {
             let stdout = String::from_utf8_lossy(&out.stdout);
@@ -48,36 +51,17 @@ fn get_disks() -> Vec<DiskInfo> {
                 let line = line.trim();
                 if line.is_empty() { continue; }
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() < 6 { continue; }
+                if parts.len() < 7 { continue; }
 
                 let filesystem = parts[0];
+                let fstype = parts[1].to_string();
+
                 // Skip virtual filesystems
-                if filesystem.starts_with("tmpfs")
-                    || filesystem.starts_with("devtmpfs")
-                    || filesystem.starts_with("sysfs")
-                    || filesystem.starts_with("proc")
-                    || filesystem.starts_with("cgroup")
-                    || filesystem.starts_with("devpts")
-                    || filesystem.starts_with("securityfs")
-                    || filesystem.starts_with("pstore")
-                    || filesystem.starts_with("bpf")
-                    || filesystem.starts_with("efivarfs")
-                    || filesystem.starts_with("none")
-                    || filesystem.starts_with("overlay")
-                    || filesystem.starts_with("shm")
-                    || filesystem.starts_with("hugetlbfs")
-                    || filesystem.starts_with("mqueue")
-                    || filesystem.starts_with("debugfs")
-                    || filesystem.starts_with("tracefs")
-                    || filesystem.starts_with("configfs")
-                    || filesystem.starts_with("fusectl")
-                    || filesystem.starts_with("sunrpc")
-                    || filesystem.starts_with("nsfs")
-                {
+                if is_virtual_fs(&fstype) {
                     continue;
                 }
 
-                let mount = parts[1];
+                let mount = parts[6];
                 let total = parts[2].to_string();
                 let used = parts[3].to_string();
                 let avail = parts[4].to_string();
@@ -91,12 +75,25 @@ fn get_disks() -> Vec<DiskInfo> {
                     available: avail,
                     percent_used: percent,
                     filesystem: filesystem.to_string(),
+                    fstype,
                 });
             }
         }
     }
 
     disks
+}
+
+fn is_virtual_fs(fstype: &str) -> bool {
+    matches!(fstype,
+        "tmpfs" | "devtmpfs" | "sysfs" | "proc"
+        | "cgroup" | "cgroup2" | "devpts"
+        | "securityfs" | "pstore" | "bpf"
+        | "efivarfs" | "overlay" | "hugetlbfs"
+        | "mqueue" | "debugfs" | "tracefs"
+        | "configfs" | "fusectl" | "sunrpc"
+        | "nsfs"
+    )
 }
 
 fn get_gpu_info() -> String {
@@ -258,7 +255,8 @@ mod tests {
             used: "50 GB".into(),
             available: "50 GB".into(),
             percent_used: 50.0,
-            filesystem: "ext4".into(),
+            filesystem: "/dev/sda1".into(),
+            fstype: "ext4".into(),
         };
         assert_eq!(d.mount_point, "/");
         assert_eq!(d.percent_used, 50.0);

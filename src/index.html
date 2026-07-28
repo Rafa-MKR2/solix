@@ -104,14 +104,71 @@
       </div>
 
       <h2 class="section-title">💻 Hardware</h2>
-      <div class="info-grid">
-        <div class="info-item"><span class="label">CPU</span><span id="hw-cpu" class="value">—</span></div>
-        <div class="info-item"><span class="label">Núcleos</span><span id="hw-cores" class="value">—</span></div>
-        <div class="info-item"><span class="label">Memória</span><span id="hw-mem" class="value">—</span></div>
-        <div class="info-item"><span class="label">Em uso</span><span id="hw-mem-used" class="value">—</span></div>
-        <div class="info-item"><span class="label">Placa de Vídeo</span><span id="hw-gpu" class="value">—</span></div>
-        <div class="info-item"><span class="label">Kernel</span><span id="hw-kernel" class="value">—</span></div>
-        <div class="info-item"><span class="label">Ativo há</span><span id="hw-uptime" class="value">—</span></div>
+      <div class="hw-groups">
+        <div class="hw-group">
+          <div class="hw-group-header">🖥️ Processador</div>
+          <div class="hw-group-body">
+            <div class="hw-item">
+              <span class="hw-item-icon">🖥️</span>
+              <div class="hw-item-text">
+                <span class="hw-item-label">CPU</span>
+                <span class="hw-item-value" id="hw-cpu">—</span>
+              </div>
+            </div>
+            <div class="hw-item">
+              <span class="hw-item-icon">🧠</span>
+              <div class="hw-item-text">
+                <span class="hw-item-label">Núcleos</span>
+                <span class="hw-item-value" id="hw-cores">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hw-group">
+          <div class="hw-group-header">💾 Memória RAM</div>
+          <div class="hw-group-body">
+            <div class="hw-item">
+              <span class="hw-item-icon">💾</span>
+              <div class="hw-item-text">
+                <span class="hw-item-label">Total</span>
+                <span class="hw-item-value" id="hw-mem">—</span>
+              </div>
+            </div>
+            <div class="hw-item">
+              <span class="hw-item-icon">📊</span>
+              <div class="hw-item-text">
+                <span class="hw-item-label">Em uso</span>
+                <span class="hw-item-value" id="hw-mem-used">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hw-group">
+          <div class="hw-group-header">⚙️ Sistema</div>
+          <div class="hw-group-body hw-group-body-3col">
+            <div class="hw-item">
+              <span class="hw-item-icon">🎮</span>
+              <div class="hw-item-text">
+                <span class="hw-item-label">GPU</span>
+                <span class="hw-item-value" id="hw-gpu">—</span>
+              </div>
+            </div>
+            <div class="hw-item">
+              <span class="hw-item-icon">🐧</span>
+              <div class="hw-item-text">
+                <span class="hw-item-label">Kernel</span>
+                <span class="hw-item-value" id="hw-kernel">—</span>
+              </div>
+            </div>
+            <div class="hw-item">
+              <span class="hw-item-icon">⏱️</span>
+              <div class="hw-item-text">
+                <span class="hw-item-label">Ativo há</span>
+                <span class="hw-item-value" id="hw-uptime">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <h2 class="section-title">📊 Visão Geral</h2>
