@@ -613,6 +613,73 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+let updateUrl = '';
+
+async function checkForUpdate() {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  try {
+    const info = await invoke('check_update');
+    if (info.has_update) {
+      const banner = document.getElementById('update-banner');
+      const versionEl = document.getElementById('update-version');
+      if (versionEl) versionEl.textContent = info.latest_version;
+      if (banner) banner.classList.remove('hidden');
+      updateUrl = info.download_url;
+    }
+  } catch (e) {
+    // Silently fail — não é crítico
+    console.error('checkUpdate failed:', e);
+  }
+}
+
+function handleUpdateClick() {
+  if (updateUrl) {
+    window.open(updateUrl, '_blank');
+  }
+}
+
+async function loadHomeStats() {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  try {
+    const h = await invoke('get_home_stats');
+    const packagesEl = document.getElementById('stat-packages');
+    const updatesEl = document.getElementById('stat-updates');
+    const updatesSub = document.getElementById('stat-updates-sub');
+    const loadEl = document.getElementById('stat-load');
+    const swapEl = document.getElementById('stat-swap');
+    const swapSub = document.getElementById('stat-swap-sub');
+    const servicesEl = document.getElementById('stat-services');
+
+    if (packagesEl) packagesEl.textContent = h.packages_formatted;
+    if (updatesEl) {
+      if (h.updates_available > 0) {
+        updatesEl.textContent = h.updates_formatted;
+        updatesEl.style.color = '#e8c547';
+        if (updatesSub) updatesSub.textContent = 'disponíveis';
+      } else {
+        updatesEl.textContent = '✓';
+        updatesEl.style.color = '#4ae0a0';
+        if (updatesSub) updatesSub.textContent = 'sistema atualizado';
+      }
+    }
+    if (loadEl) loadEl.textContent = h.load_average;
+    if (swapEl) {
+      if (h.swap_percent > 0) {
+        swapEl.textContent = `${h.swap_used} / ${h.swap_total}`;
+        if (swapSub) swapSub.textContent = `${Math.round(h.swap_percent)}% usada`;
+      } else {
+        swapEl.textContent = '—';
+        if (swapSub) swapSub.textContent = 'sem swap ativo';
+      }
+    }
+    if (servicesEl) servicesEl.textContent = h.services_active;
+  } catch (e) {
+    console.error('loadHomeStats failed:', e);
+  }
+}
+
 async function reportProblem() {
   const invoke = getInvoke();
   if (!invoke) return;
@@ -705,6 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showPasswordModal({ type: 'cleanup' });
   });
   document.getElementById('report-btn')?.addEventListener('click', reportProblem);
+  document.getElementById('update-banner')?.addEventListener('click', handleUpdateClick);
 const SPEEDO_LENGTH = 367.6;
 let speedoAnimFrame = null;
 
@@ -912,9 +980,12 @@ document.getElementById('test-speed-btn')?.addEventListener('click', async () =>
   loadConnectivity();
   loadExternalInfo();
   loadProcesses();
+  loadHomeStats();
+  checkForUpdate();
   setInterval(pollStats, 3000);
   setInterval(loadConnectivity, 10000);
   setInterval(loadProcesses, 3000);
+  setInterval(loadHomeStats, 30000);
 
   // Process sort
   document.querySelectorAll('#process-table th').forEach(th => {

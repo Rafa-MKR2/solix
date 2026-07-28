@@ -17,6 +17,90 @@ mod user;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
+pub struct UpdateInfo {
+    pub has_update: bool,
+    pub latest_version: String,
+    pub current_version: String,
+    pub download_url: String,
+}
+
+#[tauri::command]
+async fn check_update() -> Result<UpdateInfo, String> {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    let url = "https://api.github.com/repos/Rafa-MKR2/solix/releases/latest";
+
+    let output = tokio::process::Command::new("sh")
+        .arg("-c")
+        .arg(format!(
+            "curl -s --max-time 5 -H 'Accept: application/vnd.github.v3+json' '{}'",
+            url
+        ))
+        .output()
+        .await
+        .map_err(|e| format!("Erro ao verificar atualização: {}", e))?;
+
+    if !output.status.success() {
+        return Ok(UpdateInfo {
+            has_update: false,
+            latest_version: current.clone(),
+            current_version: current,
+            download_url: String::new(),
+        });
+    }
+
+    let body = String::from_utf8_lossy(&output.stdout);
+
+    // Parse tag_name from JSON response
+    let latest = body
+        .lines()
+        .find_map(|line| {
+            let trimmed = line.trim();
+            if let Some(val) = trimmed.strip_prefix("\"tag_name\":") {
+                let v = val.trim().trim_matches(',').trim_matches('"').to_string();
+                Some(v.strip_prefix('v').or_else(|| v.strip_prefix('V')).unwrap_or(&v).to_string())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_default();
+
+    // Extract html_url for the release page
+    let download_url = body
+        .lines()
+        .find_map(|line| {
+            let trimmed = line.trim();
+            if let Some(val) = trimmed.strip_prefix("\"html_url\":") {
+                let v = val.trim().trim_matches(',').trim_matches('"').to_string();
+                Some(v)
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| "https://github.com/Rafa-MKR2/solix/releases".to_string());
+
+    fn semver_compare(a: &str, b: &str) -> bool {
+        let a_parts: Vec<u64> = a.split('.').filter_map(|s| s.parse().ok()).collect();
+        let b_parts: Vec<u64> = b.split('.').filter_map(|s| s.parse().ok()).collect();
+        for i in 0..a_parts.len().max(b_parts.len()) {
+            let av = a_parts.get(i).copied().unwrap_or(0);
+            let bv = b_parts.get(i).copied().unwrap_or(0);
+            if av != bv {
+                return av > bv;
+            }
+        }
+        false
+    }
+    let has_update = !latest.is_empty() && semver_compare(&latest, &current);
+
+    Ok(UpdateInfo {
+        has_update,
+        latest_version: if latest.is_empty() { current.clone() } else { latest },
+        current_version: current,
+        download_url,
+    })
+}
+
+#[derive(Debug, Serialize)]
 pub struct SystemInfo {
     pub distribution: Option<distribution::LinuxDistribution>,
     pub package_managers: Vec<executable::ExecutableStatus>,
@@ -163,6 +247,14 @@ async fn get_report_info() -> Result<ReportInfo, String> {
 }
 
 #[tauri::command]
+async fn get_home_stats() -> Result<stats::HomeStats, String> {
+    let h = tokio::task::spawn_blocking(|| stats::get_home_stats())
+        .await
+        .map_err(|_| "Erro ao carregar estatísticas".to_string())?;
+    Ok(h)
+}
+
+#[tauri::command]
 async fn get_processes() -> Result<Vec<stats::ProcessInfo>, String> {
     let list = tokio::task::spawn_blocking(|| stats::get_processes())
         .await
@@ -190,6 +282,8 @@ pub fn run() {
     get_external_info,
     get_processes,
     get_report_info,
+    get_home_stats,
+    check_update,
 ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));

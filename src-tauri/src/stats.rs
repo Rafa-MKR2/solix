@@ -246,6 +246,175 @@ fn get_username_for_uid(uid: u32) -> String {
     uid.to_string()
 }
 
+#[derive(Debug, Serialize)]
+pub struct HomeStats {
+    pub packages_installed: u64,
+    pub packages_formatted: String,
+    pub updates_available: u64,
+    pub updates_formatted: String,
+    pub load_average: String,
+    pub swap_used: String,
+    pub swap_total: String,
+    pub swap_percent: f64,
+    pub services_active: u64,
+}
+
+fn run_cmd(args: &[&str]) -> Option<String> {
+    std::process::Command::new(args[0])
+        .args(&args[1..])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout).ok()
+            } else {
+                None
+            }
+        })
+}
+
+fn count_packages() -> (u64, String) {
+    // Arch
+    if let Some(out) = run_cmd(&["pacman", "-Q", "--noconfirm"]) {
+        let count = out.lines().filter(|l| !l.is_empty()).count() as u64;
+        let fmt = if count >= 1000 {
+            format!("{:.1}k", count as f64 / 1000.0)
+        } else {
+            count.to_string()
+        };
+        return (count, fmt);
+    }
+    // Debian/Ubuntu
+    if let Some(out) = run_cmd(&["dpkg", "--list"]) {
+        let count = out.lines().filter(|l| l.starts_with("ii")).count() as u64;
+        let fmt = if count >= 1000 {
+            format!("{:.1}k", count as f64 / 1000.0)
+        } else {
+            count.to_string()
+        };
+        return (count, fmt);
+    }
+    // Fedora/openSUSE
+    if let Some(out) = run_cmd(&["rpm", "-qa"]) {
+        let count = out.lines().filter(|l| !l.is_empty()).count() as u64;
+        let fmt = if count >= 1000 {
+            format!("{:.1}k", count as f64 / 1000.0)
+        } else {
+            count.to_string()
+        };
+        return (count, fmt);
+    }
+    (0, "—".to_string())
+}
+
+fn count_updates() -> (u64, String) {
+    // Arch
+    if let Some(out) = run_cmd(&["pacman", "-Qu", "--noconfirm"]) {
+        let count = out.lines().filter(|l| !l.is_empty() && !l.contains("There is nothing to do")).count() as u64;
+        return (count, if count == 0 { "Em dia".into() } else { format!("{}", count) });
+    }
+    // Debian/Ubuntu
+    if let Ok(out) = std::process::Command::new("apt")
+        .args(["list", "--upgradable"])
+        .output()
+    {
+        let text = String::from_utf8_lossy(&out.stdout);
+        let count = text
+            .lines()
+            .filter(|l| !l.is_empty() && !l.contains("Listando") && !l.starts_with("Listing"))
+            .count() as u64;
+        return (count, if count == 0 { "Em dia".into() } else { format!("{}", count) });
+    }
+    // Fedora (dnf returns exit code 100 when updates exist, so read stdout directly)
+    if let Ok(out) = std::process::Command::new("dnf")
+        .args(["check-update", "-q"])
+        .output()
+    {
+        let text = String::from_utf8_lossy(&out.stdout);
+        let count = text
+            .lines()
+            .filter(|l| !l.is_empty() && !l.starts_with("Last metadata"))
+            .count() as u64;
+        return (count, if count == 0 { "Em dia".into() } else { format!("{}", count) });
+    }
+    (0, "—".to_string())
+}
+
+fn get_load_average() -> String {
+    std::fs::read_to_string("/proc/loadavg")
+        .ok()
+        .and_then(|s| {
+            let parts: Vec<&str> = s.split_whitespace().take(3).collect();
+            if parts.len() == 3 {
+                Some(parts.join("  "))
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| "—".to_string())
+}
+
+fn get_swap_info() -> (String, String, f64) {
+    let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
+    let mut total_kb = 0u64;
+    let mut free_kb = 0u64;
+    for line in content.lines() {
+        if let Some(v) = line.strip_prefix("SwapTotal:") {
+            total_kb = v.trim().split_whitespace().next().and_then(|s| s.parse().ok()).unwrap_or(0);
+        }
+        if let Some(v) = line.strip_prefix("SwapFree:") {
+            free_kb = v.trim().split_whitespace().next().and_then(|s| s.parse().ok()).unwrap_or(0);
+        }
+    }
+    let used_kb = total_kb.saturating_sub(free_kb);
+    let pct = if total_kb > 0 {
+        (used_kb as f64 / total_kb as f64) * 100.0
+    } else {
+        0.0
+    };
+    fn fmt_kb(kb: u64) -> String {
+        if kb > 1_048_576 {
+            format!("{:.1} GB", kb as f64 / 1_048_576.0)
+        } else if kb > 1024 {
+            format!("{:.0} MB", kb as f64 / 1024.0)
+        } else {
+            format!("{} KB", kb)
+        }
+    }
+    (fmt_kb(used_kb), fmt_kb(total_kb), pct)
+}
+
+fn count_services() -> u64 {
+    run_cmd(&[
+        "systemctl",
+        "list-units",
+        "--type=service",
+        "--state=running",
+        "--no-legend",
+        "--no-pager",
+    ])
+    .map(|s| s.lines().filter(|l| !l.is_empty()).count() as u64)
+    .unwrap_or(0)
+}
+
+pub fn get_home_stats() -> HomeStats {
+    let (pkg_count, pkg_fmt) = count_packages();
+    let (upd_count, upd_fmt) = count_updates();
+    let (swap_used, swap_total, swap_pct) = get_swap_info();
+
+    HomeStats {
+        packages_installed: pkg_count,
+        packages_formatted: pkg_fmt,
+        updates_available: upd_count,
+        updates_formatted: upd_fmt,
+        load_average: get_load_average(),
+        swap_used,
+        swap_total,
+        swap_percent: (swap_pct * 10.0).round() / 10.0,
+        services_active: count_services(),
+    }
+}
+
 pub fn get_processes() -> Vec<ProcessInfo> {
     let total_mem_kb = get_total_mem_kb();
     let system_total = read_system_cpu_total();

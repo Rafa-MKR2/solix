@@ -49,6 +49,11 @@
 
   <main id="content">
     <div class="page active" id="page-sistema">
+      <div id="update-banner" class="update-banner hidden">
+        <span class="update-banner-icon">🚀</span>
+        <span class="update-banner-text">Nova versão <span id="update-version"></span> disponível!</span>
+        <span class="update-banner-action">Baixar →</span>
+      </div>
       <div class="profile-row">
         <section id="user-card" class="user-card hidden">
           <div class="user-avatar" id="user-avatar"><div class="avatar-placeholder" id="avatar-placeholder">?</div></div>
@@ -107,6 +112,50 @@
         <div class="info-item"><span class="label">Placa de Vídeo</span><span id="hw-gpu" class="value">—</span></div>
         <div class="info-item"><span class="label">Kernel</span><span id="hw-kernel" class="value">—</span></div>
         <div class="info-item"><span class="label">Ativo há</span><span id="hw-uptime" class="value">—</span></div>
+      </div>
+
+      <h2 class="section-title">📊 Visão Geral</h2>
+      <div class="home-stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-icon">📦</span>
+            <span class="stat-label">Pacotes</span>
+          </div>
+          <div class="stat-value" id="stat-packages">—</div>
+          <div class="stat-sub">instalados no sistema</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-icon">⬆️</span>
+            <span class="stat-label">Atualizações</span>
+          </div>
+          <div class="stat-value" id="stat-updates">—</div>
+          <div class="stat-sub" id="stat-updates-sub">disponíveis</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-icon">📊</span>
+            <span class="stat-label">Carga</span>
+          </div>
+          <div class="stat-value stat-value-sm" id="stat-load">—</div>
+          <div class="stat-sub">1 / 5 / 15 min</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-icon">💾</span>
+            <span class="stat-label">Swap</span>
+          </div>
+          <div class="stat-value stat-value-sm" id="stat-swap">—</div>
+          <div class="stat-sub" id="stat-swap-sub">memória de troca</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-icon">⚙️</span>
+            <span class="stat-label">Serviços</span>
+          </div>
+          <div class="stat-value" id="stat-services">—</div>
+          <div class="stat-sub">rodando agora</div>
+        </div>
       </div>
     </div>
 

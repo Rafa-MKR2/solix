@@ -203,15 +203,15 @@ body {
 
 .home-gauges {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.6rem;
   align-items: center;
   background: #18182e;
   border-radius: 10px;
-  padding: 0.6rem 0.8rem;
+  padding: 0.8rem 1rem;
 }
 
 .hgauge {
-  width: 78px;
+  width: 110px;
   text-align: center;
 }
 
@@ -223,13 +223,13 @@ body {
 .hgauge-bg {
   fill: none;
   stroke: #222244;
-  stroke-width: 6;
+  stroke-width: 8;
 }
 
 .hgauge-fill {
   fill: none;
   stroke: #00d4aa;
-  stroke-width: 6;
+  stroke-width: 8;
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: 40px 40px;
@@ -238,15 +238,60 @@ body {
 
 .hgauge-label {
   fill: #888;
-  font-size: 7px;
+  font-size: 10px;
   text-anchor: middle;
 }
 
 .hgauge-value {
   fill: #eee;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 700;
   text-anchor: middle;
+}
+
+/* Update Banner */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, #1a2a1a 0%, #112220 100%);
+  border: 1px solid #00d4aa44;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  animation: fadeIn 0.3s ease;
+}
+
+.update-banner:hover {
+  border-color: #00d4aa88;
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.12);
+}
+
+.update-banner-icon {
+  font-size: 1.3rem;
+}
+
+.update-banner-text {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #4ae0a0;
+  font-weight: 500;
+}
+
+.update-banner-action {
+  font-size: 0.8rem;
+  color: #00d4aa;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  background: #00d4aa18;
+  border-radius: 5px;
+  transition: background 0.2s;
+}
+
+.update-banner:hover .update-banner-action {
+  background: #00d4aa30;
 }
 
 /* User Card */
@@ -1139,6 +1184,68 @@ body {
 .toast-sub {
   color: #888;
   font-size: 0.8rem;
+}
+
+/* Home Stats Grid */
+.home-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat-card {
+  background: linear-gradient(145deg, #1a1a32 0%, #18182e 100%);
+  border: 1px solid #252545;
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  border-color: #00d4aa44;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 212, 170, 0.08);
+}
+
+.stat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stat-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #eee;
+  line-height: 1.2;
+  margin-top: 0.1rem;
+}
+
+.stat-value-sm {
+  font-size: 1.1rem;
+}
+
+.stat-sub {
+  font-size: 0.65rem;
+  color: #555;
+  line-height: 1.3;
 }
 
 /* Process Table */
