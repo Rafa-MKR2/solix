@@ -2513,6 +2513,247 @@ body {
   margin-bottom: 0.6rem;
 }
 
+/* ─── Package Manager Page ─── */
+
+.pkg-stats-bar {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.pkg-stat {
+  background: linear-gradient(145deg, #1a1a32 0%, #18182e 100%);
+  border: 1px solid #252545;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.pkg-stat-icon {
+  font-size: 1.2rem;
+}
+
+.pkg-stat-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #eee;
+}
+
+.pkg-stat-label {
+  font-size: 0.7rem;
+  color: #666;
+  margin-left: auto;
+}
+
+/* Tabs */
+.pkg-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #222244;
+  padding-bottom: 0;
+}
+
+.pkg-tab {
+  background: transparent;
+  border: none;
+  color: #777;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  font-family: inherit;
+  margin-bottom: -1px;
+}
+
+.pkg-tab:hover {
+  color: #aaa;
+}
+
+.pkg-tab.active {
+  color: #00d4aa;
+  border-bottom-color: #00d4aa;
+}
+
+.pkg-tab-content {
+  display: none;
+  animation: fadeIn 0.25s ease;
+}
+
+.pkg-tab-content.active {
+  display: block;
+}
+
+/* Toolbar */
+.pkg-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.pkg-toolbar .search-bar {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.pkg-installed-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.pkg-search-actions {
+  margin-top: 0.5rem;
+}
+
+/* Table */
+.pkg-table-wrap {
+  background: #18182e;
+  border: 1px solid #222244;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.pkg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.pkg-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.pkg-table th {
+  background: #1e1e38;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  font-weight: 500;
+  border-bottom: 1px solid #2a2a44;
+  white-space: nowrap;
+}
+
+.pkg-table td {
+  padding: 0.3rem 0.6rem;
+  border-bottom: 1px solid #1e1e30;
+  color: #bbb;
+  white-space: nowrap;
+}
+
+.pkg-th-check {
+  width: 36px;
+  text-align: center;
+}
+
+.pkg-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.pkg-row:hover td {
+  background: #1e1e38;
+}
+
+.pkg-row.selected td {
+  background: #1a2a28;
+}
+
+.pkg-cell-name {
+  font-weight: 600;
+  color: #ddd !important;
+}
+
+.pkg-cell-version {
+  color: #888 !important;
+  font-family: monospace;
+  font-size: 0.72rem;
+}
+
+.pkg-cell-size {
+  color: #e8c547 !important;
+  font-family: monospace;
+  font-size: 0.72rem;
+}
+
+.pkg-cell-repo {
+  color: #4a9eff !important;
+  font-size: 0.72rem;
+}
+
+.pkg-cell-desc {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #777 !important;
+  font-size: 0.72rem;
+}
+
+.pkg-check {
+  accent-color: #00d4aa;
+  cursor: pointer;
+}
+
+/* States */
+.pkg-loading, .pkg-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+/* History */
+.pkg-history-log {
+  padding: 0.5rem;
+}
+
+.pkg-history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #1e1e30;
+  font-size: 0.78rem;
+}
+
+.pkg-history-item:last-child {
+  border-bottom: none;
+}
+
+.pkg-history-icon {
+  font-size: 0.85rem;
+  width: 1.2rem;
+  text-align: center;
+}
+
+.pkg-history-action {
+  color: #888;
+  text-transform: capitalize;
+  width: 4rem;
+}
+
+.pkg-history-pkg {
+  color: #ddd;
+  flex: 1;
+}
+
+.pkg-history-date {
+  color: #555;
+  font-size: 0.68rem;
+  font-family: monospace;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   #sidebar {

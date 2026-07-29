@@ -34,6 +34,11 @@ import {
   setupUpdateListener,
   toolStatuses,
   handlePkgFileSelect,
+  loadInstalledPackages,
+  handleRemovePackages,
+  handleSearchRepoPackages,
+  handleInstallRepoPackages,
+  loadPackageHistory,
 } from './operations.js';
 import {
   loadConnectivity,
@@ -191,7 +196,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('process-search')?.addEventListener('input', handleProcessSearch);
 
-  // ─── Package Installer ───
+  // ─── Package Tabs ───
+
+  document.querySelectorAll('.pkg-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.pkg-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.pkg-tab-content').forEach(c => c.classList.remove('active'));
+      const target = document.getElementById('pkg-tab-' + (tab as HTMLElement).dataset.pkgTab);
+      if (target) target.classList.add('active');
+
+      const tabName = (tab as HTMLElement).dataset.pkgTab;
+      if (tabName === 'installed') loadInstalledPackages();
+      else if (tabName === 'history') loadPackageHistory();
+    });
+  });
+
+  document.getElementById('pkg-installed-search')?.addEventListener('input', () => {
+    loadInstalledPackages();
+  });
+  document.getElementById('pkg-refresh-btn')?.addEventListener('click', loadInstalledPackages);
+  document.getElementById('pkg-remove-btn')?.addEventListener('click', handleRemovePackages);
+
+  let searchTimeout: ReturnType<typeof setTimeout>;
+  document.getElementById('pkg-search-input')?.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    const q = (document.getElementById('pkg-search-input') as HTMLInputElement)?.value || '';
+    searchTimeout = setTimeout(() => handleSearchRepoPackages(q), 400);
+  });
+  document.getElementById('pkg-install-repo-btn')?.addEventListener('click', handleInstallRepoPackages);
+
+  // ─── Package Upload (kept from before) ───
 
   const pkgFileInput = document.getElementById('pkg-file-input') as HTMLInputElement | null;
   const pkgUploadArea = document.getElementById('pkg-upload-area');
@@ -207,32 +242,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ─── Drag & Drop ───
-
   pkgUploadArea?.addEventListener('dragover', (e) => {
     e.preventDefault();
     pkgUploadArea.classList.add('drag-over');
   });
-
   pkgUploadArea?.addEventListener('dragenter', (e) => {
     e.preventDefault();
     pkgUploadArea.classList.add('drag-over');
   });
-
   pkgUploadArea?.addEventListener('dragleave', (e) => {
     const related = e.relatedTarget as Node | null;
     if (!related || !pkgUploadArea.contains(related)) {
       pkgUploadArea.classList.remove('drag-over');
     }
   });
-
   pkgUploadArea?.addEventListener('drop', (e) => {
     e.preventDefault();
     pkgUploadArea.classList.remove('drag-over');
     const files = e.dataTransfer?.files;
     if (files && files.length > 0) {
       const file = files[0];
-      // Update the file input so change event also fires
       if (pkgFileInput) {
         const dt = new DataTransfer();
         dt.items.add(file);
@@ -247,9 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
     showPasswordModal({ type: 'install-package' });
   });
-
   document.getElementById('pkg-clear-btn')?.addEventListener('click', () => {
     if (pkgFileInput) pkgFileInput.value = '';
     handlePkgFileSelect(null);
   });
+
+  // Load installed packages on initial page load
+  loadInstalledPackages();
 });

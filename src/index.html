@@ -415,43 +415,88 @@
     </div>
 
     <div class="page" id="page-pacotes">
-      <h2 class="section-title">📦 Instalar Pacote Local <span class="help-tip" data-help="section-pacotes">ⓘ</span></h2>
-      <p class="hint">Selecione um arquivo <strong>.deb</strong> ou <strong>.rpm</strong> para instalar no seu sistema.</p>
+      <h2 class="section-title">📦 Gerenciar Pacotes <span class="help-tip" data-help="section-pacotes">ⓘ</span></h2>
 
-      <div class="pkg-upload-area" id="pkg-upload-area">
-        <input type="file" id="pkg-file-input" accept=".deb,.rpm" class="pkg-file-input" />
-        <label for="pkg-file-input" class="pkg-file-label">
-          <span class="pkg-upload-icon">📂</span>
-          <span class="pkg-upload-text">Clique para selecionar um pacote</span>
-          <span class="pkg-upload-sub">.deb (Debian/Ubuntu) ou .rpm (Fedora/openSUSE)</span>
-        </label>
+      <div class="pkg-stats-bar">
+        <div class="pkg-stat"><span class="pkg-stat-icon">📦</span><span class="pkg-stat-val" id="pkg-total-count">—</span><span class="pkg-stat-label">instalados</span></div>
+        <div class="pkg-stat"><span class="pkg-stat-icon">⬆️</span><span class="pkg-stat-val" id="pkg-update-count">—</span><span class="pkg-stat-label">atualizações</span></div>
+        <div class="pkg-stat"><span class="pkg-stat-icon">📏</span><span class="pkg-stat-val" id="pkg-total-size">—</span><span class="pkg-stat-label">tamanho total</span></div>
       </div>
 
-      <div id="pkg-info" class="pkg-info-card hidden">
-        <div class="pkg-info-header">
-          <span class="pkg-info-type" id="pkg-type">📦</span>
-          <div class="pkg-info-title">
-            <span class="pkg-info-name" id="pkg-name">—</span>
-            <span class="pkg-info-version" id="pkg-version">—</span>
+      <div class="pkg-tabs">
+        <button class="pkg-tab active" data-pkg-tab="installed">📋 Instalados</button>
+        <button class="pkg-tab" data-pkg-tab="search">🔍 Repositórios</button>
+        <button class="pkg-tab" data-pkg-tab="upload">📦 Upload Local</button>
+        <button class="pkg-tab" data-pkg-tab="history">📜 Histórico</button>
+      </div>
+
+      <!-- 📋 Instalados -->
+      <div class="pkg-tab-content active" id="pkg-tab-installed">
+        <div class="pkg-toolbar">
+          <input type="text" id="pkg-installed-search" class="search-bar" placeholder="🔍 Buscar pacote instalado..." />
+          <span id="pkg-installed-count" class="process-count"></span>
+        </div>
+        <div class="pkg-installed-actions">
+          <button id="pkg-refresh-btn" class="btn-tertiary">🔄 Atualizar lista</button>
+          <button id="pkg-remove-btn" class="btn-secondary" style="display:none">🗑️ Remover Selecionados</button>
+        </div>
+        <div id="pkg-installed-list" class="pkg-table-wrap">
+          <div class="pkg-loading">⏳ Carregando pacotes...</div>
+        </div>
+      </div>
+
+      <!-- 🔍 Repositórios -->
+      <div class="pkg-tab-content" id="pkg-tab-search">
+        <div class="pkg-toolbar">
+          <input type="text" id="pkg-search-input" class="search-bar" placeholder="🔍 Buscar pacote nos repositórios..." />
+        </div>
+        <div id="pkg-search-list" class="pkg-table-wrap">
+          <div class="pkg-empty">Digite um nome para buscar nos repositórios</div>
+        </div>
+        <div class="pkg-search-actions" style="display:none" id="pkg-search-actions">
+          <button id="pkg-install-repo-btn" class="btn-primary" disabled>⬇️ Instalar Selecionados</button>
+        </div>
+      </div>
+
+      <!-- 📦 Upload Local -->
+      <div class="pkg-tab-content" id="pkg-tab-upload">
+        <p class="hint">Selecione um arquivo <strong>.deb</strong> ou <strong>.rpm</strong> para instalar no seu sistema.</p>
+        <div class="pkg-upload-area" id="pkg-upload-area">
+          <input type="file" id="pkg-file-input" accept=".deb,.rpm" class="pkg-file-input" />
+          <label for="pkg-file-input" class="pkg-file-label">
+            <span class="pkg-upload-icon">📂</span>
+            <span class="pkg-upload-text">Clique ou arraste um pacote aqui</span>
+            <span class="pkg-upload-sub">.deb (Debian/Ubuntu) ou .rpm (Fedora/openSUSE)</span>
+          </label>
+        </div>
+        <div id="pkg-info" class="pkg-info-card hidden">
+          <div class="pkg-info-header">
+            <span class="pkg-info-type" id="pkg-type">📦</span>
+            <div class="pkg-info-title">
+              <span class="pkg-info-name" id="pkg-name">—</span>
+              <span class="pkg-info-version" id="pkg-version">—</span>
+            </div>
+          </div>
+          <div class="pkg-info-body">
+            <div class="pkg-info-row"><span class="pkg-info-label">📏 Tamanho</span><span class="pkg-info-val" id="pkg-size">—</span></div>
+            <div class="pkg-info-row"><span class="pkg-info-label">🏗️ Arquitetura</span><span class="pkg-info-val" id="pkg-arch">—</span></div>
+            <div class="pkg-info-row"><span class="pkg-info-label">📋 Dependências</span><span class="pkg-info-val" id="pkg-deps">—</span></div>
+            <div class="pkg-info-row pkg-info-desc"><span class="pkg-info-label">📝 Descrição</span><span class="pkg-info-val" id="pkg-desc">—</span></div>
+            <div class="pkg-compat" id="pkg-compat"></div>
+          </div>
+          <div class="pkg-info-actions">
+            <button id="pkg-install-btn" class="btn-primary" disabled>⬇️ Instalar Pacote</button>
+            <button id="pkg-clear-btn" class="btn-tertiary">✖ Limpar</button>
           </div>
         </div>
-        <div class="pkg-info-body">
-          <div class="pkg-info-row"><span class="pkg-info-label">📏 Tamanho</span><span class="pkg-info-val" id="pkg-size">—</span></div>
-          <div class="pkg-info-row"><span class="pkg-info-label">🏗️ Arquitetura</span><span class="pkg-info-val" id="pkg-arch">—</span></div>
-          <div class="pkg-info-row"><span class="pkg-info-label">📋 Dependências</span><span class="pkg-info-val" id="pkg-deps">—</span></div>
-          <div class="pkg-info-row pkg-info-desc"><span class="pkg-info-label">📝 Descrição</span><span class="pkg-info-val" id="pkg-desc">—</span></div>
-          <div class="pkg-compat" id="pkg-compat"></div>
-        </div>
-        <div class="pkg-info-actions">
-          <button id="pkg-install-btn" class="btn-primary" disabled>⬇️ Instalar Pacote</button>
-          <button id="pkg-clear-btn" class="btn-tertiary">✖ Limpar</button>
-        </div>
       </div>
 
-      <section id="pkg-output-section" class="collapsible hidden">
-        <h2 class="section-header" data-target="pkg-output-log">📜 Log da Instalação <span class="collapse-arrow">▼</span></h2>
-        <pre id="pkg-output-log" class="collapse-content"></pre>
-      </section>
+      <!-- 📜 Histórico -->
+      <div class="pkg-tab-content" id="pkg-tab-history">
+        <div id="pkg-history-list" class="pkg-table-wrap">
+          <div class="pkg-loading">⏳ Carregando histórico...</div>
+        </div>
+      </div>
     </div>
 
     <div class="page" id="page-rede">

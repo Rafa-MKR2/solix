@@ -139,6 +139,27 @@ export interface UpdateProgress {
   message: string;
 }
 
+export interface InstalledPackage {
+  name: string;
+  version: string;
+  size: string;
+  description: string;
+}
+
+export interface RepoPackage {
+  name: string;
+  version: string;
+  repo: string;
+  description: string;
+}
+
+export interface PackageHistoryEntry {
+  timestamp: string;
+  action: string;
+  package_name: string;
+  version: string;
+}
+
 export interface PmLockInfo {
   locked: boolean;
   message: string;

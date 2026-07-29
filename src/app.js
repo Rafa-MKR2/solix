@@ -1,6 +1,6 @@
 import { getInvoke, showToast } from './utils.js';
 import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, } from './operations.js';
+import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './operations.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './network.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
@@ -144,6 +144,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     document.getElementById('process-search')?.addEventListener('input', handleProcessSearch);
+    document.querySelectorAll('.pkg-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.pkg-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.pkg-tab-content').forEach(c => c.classList.remove('active'));
+            const target = document.getElementById('pkg-tab-' + tab.dataset.pkgTab);
+            if (target)
+                target.classList.add('active');
+            const tabName = tab.dataset.pkgTab;
+            if (tabName === 'installed')
+                loadInstalledPackages();
+            else if (tabName === 'history')
+                loadPackageHistory();
+        });
+    });
+    document.getElementById('pkg-installed-search')?.addEventListener('input', () => {
+        loadInstalledPackages();
+    });
+    document.getElementById('pkg-refresh-btn')?.addEventListener('click', loadInstalledPackages);
+    document.getElementById('pkg-remove-btn')?.addEventListener('click', handleRemovePackages);
+    let searchTimeout;
+    document.getElementById('pkg-search-input')?.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const q = document.getElementById('pkg-search-input')?.value || '';
+        searchTimeout = setTimeout(() => handleSearchRepoPackages(q), 400);
+    });
+    document.getElementById('pkg-install-repo-btn')?.addEventListener('click', handleInstallRepoPackages);
     const pkgFileInput = document.getElementById('pkg-file-input');
     const pkgUploadArea = document.getElementById('pkg-upload-area');
     pkgFileInput?.addEventListener('change', () => {
@@ -194,4 +221,5 @@ document.addEventListener('DOMContentLoaded', () => {
             pkgFileInput.value = '';
         handlePkgFileSelect(null);
     });
+    loadInstalledPackages();
 });

@@ -594,6 +594,289 @@ export async function reportProblem() {
             btn.textContent = '🐛 Reportar Problema';
     }
 }
+let selectedInstalledPkgs = new Set();
+let selectedRepoPkgs = new Set();
+function formatBytes(bytes) {
+    if (bytes >= 1073741824)
+        return (bytes / 1073741824).toFixed(1) + ' GB';
+    if (bytes >= 1048576)
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    if (bytes >= 1024)
+        return (bytes / 1024).toFixed(0) + ' KB';
+    return bytes + ' B';
+}
+export async function loadInstalledPackages() {
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    const listEl = document.getElementById('pkg-installed-list');
+    if (!listEl)
+        return;
+    listEl.innerHTML = '<div class="pkg-loading">⏳ Carregando pacotes...</div>';
+    try {
+        const pkgs = await invoke('list_installed_packages');
+        renderInstalledPackages(pkgs);
+        document.getElementById('pkg-total-count').textContent = pkgs.length.toString();
+        let totalBytes = 0;
+        for (const p of pkgs) {
+            const sizeStr = p.size;
+            if (sizeStr.includes('MiB') || sizeStr.includes('MB')) {
+                totalBytes += parseFloat(sizeStr) * 1048576;
+            }
+            else if (sizeStr.includes('KiB') || sizeStr.includes('kB')) {
+                totalBytes += parseFloat(sizeStr) * 1024;
+            }
+            else if (sizeStr.includes('GB') || sizeStr.includes('GiB')) {
+                totalBytes += parseFloat(sizeStr) * 1073741824;
+            }
+        }
+        document.getElementById('pkg-total-size').textContent = formatBytes(totalBytes);
+    }
+    catch (e) {
+        console.error('loadInstalledPackages failed:', e);
+        listEl.innerHTML = '<div class="pkg-empty">❌ Erro ao carregar pacotes.</div>';
+    }
+}
+function renderInstalledPackages(pkgs) {
+    const listEl = document.getElementById('pkg-installed-list');
+    if (!listEl)
+        return;
+    const query = (document.getElementById('pkg-installed-search')?.value || '').toLowerCase().trim();
+    const filtered = query
+        ? pkgs.filter(p => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query))
+        : pkgs;
+    document.getElementById('pkg-installed-count').textContent = `${filtered.length} pacotes`;
+    if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="pkg-empty">🔍 Nenhum pacote encontrado.</div>';
+        return;
+    }
+    filtered.sort((a, b) => {
+        const aSel = selectedInstalledPkgs.has(a.name) ? 0 : 1;
+        const bSel = selectedInstalledPkgs.has(b.name) ? 0 : 1;
+        if (aSel !== bSel)
+            return aSel - bSel;
+        return a.name.localeCompare(b.name);
+    });
+    listEl.innerHTML = `<table class="pkg-table">
+    <thead><tr>
+      <th class="pkg-th-check"></th>
+      <th class="pkg-th-name">Pacote</th>
+      <th class="pkg-th-version">Versão</th>
+      <th class="pkg-th-size">Tamanho</th>
+      <th class="pkg-th-desc">Descrição</th>
+    </tr></thead>
+    <tbody>${filtered.map(p => `
+      <tr class="pkg-row ${selectedInstalledPkgs.has(p.name) ? 'selected' : ''}" data-pkg="${p.name}">
+        <td><input type="checkbox" class="pkg-check" ${selectedInstalledPkgs.has(p.name) ? 'checked' : ''} /></td>
+        <td class="pkg-cell-name">${p.name}</td>
+        <td class="pkg-cell-version">${p.version}</td>
+        <td class="pkg-cell-size">${p.size || '—'}</td>
+        <td class="pkg-cell-desc">${p.description || '—'}</td>
+      </tr>
+    `).join('')}</tbody></table>`;
+    listEl.querySelectorAll('.pkg-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+            if (e.target.tagName === 'INPUT')
+                return;
+            const cb = row.querySelector('.pkg-check');
+            cb.checked = !cb.checked;
+            cb.dispatchEvent(new Event('change'));
+        });
+        const cb = row.querySelector('.pkg-check');
+        cb.addEventListener('change', () => {
+            const name = row.dataset.pkg;
+            if (cb.checked) {
+                selectedInstalledPkgs.add(name);
+                row.classList.add('selected');
+            }
+            else {
+                selectedInstalledPkgs.delete(name);
+                row.classList.remove('selected');
+            }
+            updateRemoveButton();
+        });
+    });
+    updateRemoveButton();
+}
+function updateRemoveButton() {
+    const btn = document.getElementById('pkg-remove-btn');
+    if (!btn)
+        return;
+    const count = selectedInstalledPkgs.size;
+    if (count > 0) {
+        btn.style.display = '';
+        btn.textContent = `🗑️ Remover (${count})`;
+        btn.disabled = false;
+    }
+    else {
+        btn.style.display = 'none';
+    }
+}
+export async function handleRemovePackages() {
+    if (selectedInstalledPkgs.size === 0)
+        return;
+    const names = Array.from(selectedInstalledPkgs);
+    const doRemove = async (password) => {
+        const invoke = getInvoke();
+        if (!invoke)
+            return;
+        try {
+            const results = await invoke('remove_system_packages', { password, packageNames: names });
+            const listEl = document.getElementById('pkg-installed-list');
+            if (listEl) {
+                listEl.innerHTML = `<div class="pkg-history-log">${results.map(r => `<div>${r}</div>`).join('')}</div>`;
+            }
+            showToast('success', `${names.length} pacote(s) removido(s)!`);
+            selectedInstalledPkgs.clear();
+            setTimeout(() => loadInstalledPackages(), 2000);
+        }
+        catch (e) {
+            showToast('error', (e + '') || 'Erro ao remover pacotes.');
+        }
+    };
+    if (cachedPassword) {
+        await doRemove(cachedPassword);
+    }
+    else {
+        pendingAction = { type: 'remove', tools: names };
+        showPasswordModal({ type: 'remove', tools: names });
+    }
+}
+export async function handleSearchRepoPackages(query) {
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    const listEl = document.getElementById('pkg-search-list');
+    if (!listEl)
+        return;
+    if (!query.trim()) {
+        listEl.innerHTML = '<div class="pkg-empty">Digite um nome para buscar nos repositórios</div>';
+        document.getElementById('pkg-search-actions').style.display = 'none';
+        return;
+    }
+    listEl.innerHTML = '<div class="pkg-loading">⏳ Buscando...</div>';
+    selectedRepoPkgs.clear();
+    try {
+        const pkgs = await invoke('search_repo_packages', { query: query.trim() });
+        renderRepoPackages(pkgs);
+    }
+    catch (e) {
+        console.error('search_repo_packages failed:', e);
+        listEl.innerHTML = '<div class="pkg-empty">❌ Erro ao buscar pacotes.</div>';
+    }
+}
+function renderRepoPackages(pkgs) {
+    const listEl = document.getElementById('pkg-search-list');
+    if (!listEl)
+        return;
+    if (pkgs.length === 0) {
+        listEl.innerHTML = '<div class="pkg-empty">Nenhum pacote encontrado nos repositórios.</div>';
+        document.getElementById('pkg-search-actions').style.display = 'none';
+        return;
+    }
+    document.getElementById('pkg-search-actions').style.display = '';
+    listEl.innerHTML = `<table class="pkg-table">
+    <thead><tr>
+      <th class="pkg-th-check"></th>
+      <th class="pkg-th-name">Pacote</th>
+      <th class="pkg-th-version">Versão</th>
+      <th class="pkg-th-repo">Repositório</th>
+      <th class="pkg-th-desc">Descrição</th>
+    </tr></thead>
+    <tbody>${pkgs.map(p => `
+      <tr class="pkg-row ${selectedRepoPkgs.has(p.name) ? 'selected' : ''}" data-repo-pkg="${p.name}">
+        <td><input type="checkbox" class="pkg-check" /></td>
+        <td class="pkg-cell-name">${p.name}</td>
+        <td class="pkg-cell-version">${p.version}</td>
+        <td class="pkg-cell-repo">${p.repo}</td>
+        <td class="pkg-cell-desc">${p.description || '—'}</td>
+      </tr>
+    `).join('')}</tbody></table>`;
+    listEl.querySelectorAll('.pkg-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+            if (e.target.tagName === 'INPUT')
+                return;
+            const cb = row.querySelector('.pkg-check');
+            cb.checked = !cb.checked;
+            cb.dispatchEvent(new Event('change'));
+        });
+        const cb = row.querySelector('.pkg-check');
+        cb.addEventListener('change', () => {
+            const name = row.dataset.repoPkg;
+            if (cb.checked) {
+                selectedRepoPkgs.add(name);
+                row.classList.add('selected');
+            }
+            else {
+                selectedRepoPkgs.delete(name);
+                row.classList.remove('selected');
+            }
+            const btn = document.getElementById('pkg-install-repo-btn');
+            if (btn) {
+                btn.disabled = selectedRepoPkgs.size === 0;
+                btn.textContent = selectedRepoPkgs.size > 0 ? `⬇️ Instalar (${selectedRepoPkgs.size})` : '⬇️ Instalar Selecionados';
+            }
+        });
+    });
+}
+export async function handleInstallRepoPackages() {
+    if (selectedRepoPkgs.size === 0)
+        return;
+    const names = Array.from(selectedRepoPkgs);
+    const doInstall = async (password) => {
+        const invoke = getInvoke();
+        if (!invoke)
+            return;
+        try {
+            const results = await invoke('install_repo_packages', { password, packageNames: names });
+            const listEl = document.getElementById('pkg-search-list');
+            if (listEl) {
+                listEl.innerHTML = `<div class="pkg-history-log">${results.map(r => `<div>${r}</div>`).join('')}</div>`;
+            }
+            showToast('success', `${names.length} pacote(s) instalado(s)!`);
+            selectedRepoPkgs.clear();
+        }
+        catch (e) {
+            showToast('error', (e + '') || 'Erro ao instalar pacotes.');
+        }
+    };
+    if (cachedPassword) {
+        await doInstall(cachedPassword);
+    }
+    else {
+        showPasswordModal({ type: 'install', tools: names });
+    }
+}
+export async function loadPackageHistory() {
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    const listEl = document.getElementById('pkg-history-list');
+    if (!listEl)
+        return;
+    try {
+        const entries = await invoke('get_package_history');
+        if (entries.length === 0) {
+            listEl.innerHTML = '<div class="pkg-empty">Nenhum histórico encontrado.</div>';
+            return;
+        }
+        listEl.innerHTML = `<div class="pkg-history-log">${entries.map(e => {
+            const icon = e.action === 'install' ? '⬆️' : e.action === 'remove' ? '🗑️' : '🔄';
+            const date = e.timestamp.slice(0, 19).replace('T', ' ');
+            const pkgInfo = e.package_name ? `${e.package_name} ${e.version}` : '';
+            return `<div class="pkg-history-item">
+        <span class="pkg-history-icon">${icon}</span>
+        <span class="pkg-history-action">${e.action}</span>
+        <span class="pkg-history-pkg">${pkgInfo}</span>
+        <span class="pkg-history-date">${date}</span>
+      </div>`;
+        }).join('')}</div>`;
+    }
+    catch (e) {
+        console.error('loadPackageHistory failed:', e);
+        listEl.innerHTML = '<div class="pkg-empty">❌ Erro ao carregar histórico.</div>';
+    }
+}
 export async function cancelOperation() {
     const invoke = getInvoke();
     if (invoke) {

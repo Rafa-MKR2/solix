@@ -14,6 +14,7 @@ mod stats;
 mod system_info;
 mod system_ops;
 mod tool;
+mod package_manager;
 mod updater;
 mod user;
 mod util;
@@ -359,6 +360,40 @@ async fn install_update(app: tauri::AppHandle, password: String) -> Result<(), S
 }
 
 #[tauri::command]
+async fn list_installed_packages() -> Result<Vec<package_manager::InstalledPackage>, String> {
+    let pkgs = tokio::task::spawn_blocking(package_manager::list_installed)
+        .await
+        .map_err(|_| "Erro ao listar pacotes".to_string())?;
+    Ok(pkgs)
+}
+
+#[tauri::command]
+async fn search_repo_packages(query: String) -> Result<Vec<package_manager::RepoPackage>, String> {
+    let pkgs = tokio::task::spawn_blocking(move || package_manager::search_repos(&query))
+        .await
+        .map_err(|_| "Erro ao buscar pacotes".to_string())?;
+    Ok(pkgs)
+}
+
+#[tauri::command]
+async fn get_package_history() -> Result<Vec<package_manager::PackageHistoryEntry>, String> {
+    let entries = tokio::task::spawn_blocking(package_manager::get_history)
+        .await
+        .map_err(|_| "Erro ao carregar histórico".to_string())?;
+    Ok(entries)
+}
+
+#[tauri::command]
+async fn remove_system_packages(password: String, package_names: Vec<String>) -> Result<Vec<String>, String> {
+    package_manager::remove_system_packages(&password, &package_names).await
+}
+
+#[tauri::command]
+async fn install_repo_packages(password: String, package_names: Vec<String>) -> Result<Vec<String>, String> {
+    package_manager::install_repo_packages(&password, &package_names).await
+}
+
+#[tauri::command]
 async fn get_processes() -> Result<Vec<stats::ProcessInfo>, String> {
     let list = tokio::task::spawn_blocking(stats::get_processes)
         .await
@@ -441,6 +476,11 @@ pub fn run() {
     inspect_package_data,
     install_package_data,
     run_simple_command,
+    list_installed_packages,
+    search_repo_packages,
+    get_package_history,
+    remove_system_packages,
+    install_repo_packages,
 ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));
