@@ -8,6 +8,7 @@ mod executable;
 mod install;
 mod network;
 mod package_info;
+mod package_installer;
 mod stats;
 mod system_info;
 mod system_ops;
@@ -261,6 +262,38 @@ async fn get_home_stats() -> Result<stats::HomeStats, String> {
 }
 
 #[tauri::command]
+async fn inspect_local_package(path: String) -> Result<package_installer::LocalPackageInfo, String> {
+    let info = tokio::task::spawn_blocking(move || {
+        package_installer::inspect_package(&path)
+    })
+    .await
+    .map_err(|_| "Erro ao inspecionar pacote".to_string())??;
+    Ok(info)
+}
+
+#[tauri::command]
+async fn inspect_package_data(data: String, file_name: String) -> Result<package_installer::LocalPackageInfo, String> {
+    let info = tokio::task::spawn_blocking(move || {
+        package_installer::inspect_package_data(&data, &file_name)
+    })
+    .await
+    .map_err(|_| "Erro ao inspecionar pacote".to_string())??;
+    Ok(info)
+}
+
+#[tauri::command]
+async fn install_local_package(path: String, password: String) -> Result<install::InstallResult, String> {
+    let result = package_installer::install_local_package(&path, &password).await?;
+    Ok(result)
+}
+
+#[tauri::command]
+async fn install_package_data(data: String, file_name: String, password: String) -> Result<install::InstallResult, String> {
+    let result = package_installer::install_package_data(&data, &file_name, &password).await?;
+    Ok(result)
+}
+
+#[tauri::command]
 async fn open_file_manager(path: String) -> Result<(), String> {
     let dir = if path.is_empty() { "/".to_string() } else { path };
     tokio::process::Command::new("xdg-open")
@@ -358,6 +391,10 @@ pub fn run() {
     open_file_manager,
     analyze_disk_usage,
     get_partition_table,
+    inspect_local_package,
+    install_local_package,
+    inspect_package_data,
+    install_package_data,
 ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));

@@ -498,6 +498,7 @@ async function executePending() {
   const isCleanup = pendingAction.type === 'cleanup';
   const isInstall = pendingAction.type === 'install';
   const isRemove = pendingAction.type === 'remove';
+  const isInstallPkg = pendingAction.type === 'install-package';
   try {
     let result;
     if (isUpdate) {
@@ -510,6 +511,13 @@ async function executePending() {
       result = await invoke('install_tools', { toolNames: pendingAction.tools, password: cachedPassword });
     } else if (isRemove) {
       result = await invoke('remove_tools', { toolNames: pendingAction.tools, password: cachedPassword });
+    } else if (isInstallPkg) {
+      if (outputLog) outputLog.textContent = '🔐 Instalando pacote...\n';
+      result = await invoke('install_package_data', {
+        data: pendingPkgData,
+        fileName: pendingPkgFileName,
+        password: cachedPassword,
+      });
     }
     if (outputLog) {
       if (Array.isArray(result)) {
@@ -540,11 +548,13 @@ async function executePending() {
       }
     }
     if (!isUpdate && !isZram && !isCleanup) {
-      selectedTools.clear();
-      removedTools.clear();
-      await loadSystemInfo();
-      const removeBtn = document.getElementById('remove-btn');
-      if (removeBtn) removeBtn.style.display = 'none';
+      if (!isInstallPkg) {
+        selectedTools.clear();
+        removedTools.clear();
+        await loadSystemInfo();
+        const removeBtn = document.getElementById('remove-btn');
+        if (removeBtn) removeBtn.style.display = 'none';
+      }
     }
   } catch (err) {
     const msg = (err + '').toLowerCase();
@@ -560,6 +570,16 @@ async function executePending() {
     isOperating = false;
     pendingAction = null;
     if (cancelBtn) cancelBtn.classList.add('hidden');
+    // Reset do botao de instalacao de pacote
+    if (isInstallPkg) {
+      const pkgBtn = document.getElementById('pkg-install-btn');
+      if (pkgBtn) {
+        pkgBtn.disabled = false;
+        pkgBtn.textContent = '⬇️ Instalar Pacote';
+      }
+      pendingPkgData = null;
+      pendingPkgFileName = null;
+    }
   }
 }
 
@@ -900,6 +920,7 @@ const helpTexts = {
   'disco-abrir': 'Abre o gerenciador de arquivos do seu sistema na pasta deste disco, para você ver e organizar seus arquivos e pastas.',
   'disco-analisar': 'Escaneia as pastas mais pesadas deste disco, mostrando o que está ocupando mais espaço. Útil para encontrar arquivos grandes e liberar espaço.',
   'disco-particoes': 'Mostra a tabela de partições do disco, com informações detalhadas: nome, tamanho, tipo e onde está montada cada partição.',
+  'section-pacotes': 'Instale pacotes .deb ou .rpm baixados da internet. O Solix mostra as informações do pacote, verifica se é compatível com seu sistema, e só instala após sua confirmação.',
 }
 
 let helpTooltipEl = null;
@@ -986,6 +1007,130 @@ function setupHelpTooltips() {
     }
   });
 }
+
+// ─── Package Installer ───
+
+let pendingPkgData = null;
+let pendingPkgFileName = null;
+
+async function handlePkgFileSelect(file) {
+  const infoCard = document.getElementById('pkg-info');
+  const nameEl = document.getElementById('pkg-name');
+  const versionEl = document.getElementById('pkg-version');
+  const sizeEl = document.getElementById('pkg-size');
+  const archEl = document.getElementById('pkg-arch');
+  const depsEl = document.getElementById('pkg-deps');
+  const descEl = document.getElementById('pkg-desc');
+  const compatEl = document.getElementById('pkg-compat');
+  const installBtn = document.getElementById('pkg-install-btn');
+  const typeEl = document.getElementById('pkg-type');
+
+  pendingPkgData = null;
+  pendingPkgFileName = null;
+
+  if (!file) {
+    if (infoCard) infoCard.classList.add('hidden');
+    return;
+  }
+
+  const invoke = getInvoke();
+  if (!invoke) return;
+
+  installBtn.disabled = true;
+  installBtn.textContent = '⏳ Analisando...';
+  if (infoCard) infoCard.classList.remove('hidden');
+  if (nameEl) nameEl.textContent = file.name;
+  if (versionEl) versionEl.textContent = 'Analisando...';
+  if (sizeEl) sizeEl.textContent = '—';
+  if (archEl) archEl.textContent = '—';
+  if (depsEl) depsEl.textContent = '—';
+  if (descEl) descEl.textContent = '—';
+  if (compatEl) compatEl.className = 'pkg-compat';
+  if (typeEl) typeEl.textContent = file.name.endsWith('.deb') ? '📦' : '📀';
+
+  try {
+    // Ler arquivo como base64 no frontend
+    const base64 = await readFileAsBase64(file);
+    const info = await invoke('inspect_package_data', {
+      data: base64,
+      fileName: file.name,
+    });
+
+    pendingPkgData = base64;
+    pendingPkgFileName = file.name;
+
+    if (nameEl) nameEl.textContent = info.package_name || file.name;
+    if (versionEl) versionEl.textContent = info.version;
+    if (sizeEl) sizeEl.textContent = info.file_size;
+    if (archEl) archEl.textContent = info.architecture;
+    if (descEl) descEl.textContent = info.description || 'Sem descrição';
+    if (typeEl) typeEl.textContent = info.package_type === 'deb' ? '📦' : '📀';
+
+    if (depsEl) {
+      depsEl.textContent = info.dependencies && info.dependencies.length > 0
+        ? info.dependencies.join(', ')
+        : 'Nenhuma dependência listada';
+    }
+
+    if (compatEl) {
+      compatEl.textContent = info.compat_message;
+      compatEl.className = 'pkg-compat ' + (info.compatible ? 'compatible' : 'incompatible');
+    }
+
+    installBtn.disabled = !info.compatible;
+    installBtn.textContent = info.compatible ? '⬇️ Instalar Pacote' : '🚫 Incompatível';
+  } catch (e) {
+    console.error('inspect_package_data failed:', e);
+    if (versionEl) versionEl.textContent = '❌ Erro';
+    if (compatEl) {
+      compatEl.textContent = '❌ ' + (e + '');
+      compatEl.className = 'pkg-compat incompatible';
+    }
+    installBtn.disabled = true;
+    installBtn.textContent = '⬇️ Instalar Pacote';
+  }
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      // Remove o prefixo "data:application/...;base64,"
+      const base64 = result.split(',')[1] || result;
+      resolve(base64);
+    };
+    reader.onerror = () => reject('Erro ao ler arquivo');
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('pkg-file-input')?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  handlePkgFileSelect(file);
+});
+
+document.getElementById('pkg-clear-btn')?.addEventListener('click', () => {
+  const input = document.getElementById('pkg-file-input');
+  if (input) { input.value = ''; }
+  pendingPkgData = null;
+  pendingPkgFileName = null;
+  const infoCard = document.getElementById('pkg-info');
+  if (infoCard) infoCard.classList.add('hidden');
+  const outputSection = document.getElementById('pkg-output-section');
+  if (outputSection) outputSection.classList.add('hidden');
+  const outputLog = document.getElementById('pkg-output-log');
+  if (outputLog) outputLog.textContent = '';
+});
+
+document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
+  if (!pendingPkgData || !pendingPkgFileName) return;
+  const installBtn = document.getElementById('pkg-install-btn');
+  installBtn.disabled = true;
+  installBtn.textContent = '⏳ Aguardando senha...';
+  // Reusa o fluxo de senha existente
+  showPasswordModal({ type: 'install-package' });
+});
 
 // ─── ───
 

@@ -37,6 +37,10 @@
         <span class="nav-icon">🌐</span>
         <span class="nav-label">Rede</span>
       </div>
+      <div class="nav-item" data-page="pacotes">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Pacotes</span>
+      </div>
     </div>
   </nav>
 
@@ -294,6 +298,46 @@
         <h2 class="section-header" data-target="output-log">📜 Saída <span class="collapse-arrow">▼</span></h2>
         <pre id="output-log" class="collapse-content"></pre>
         <button id="cancel-btn" class="btn-cancel hidden">✖ Cancelar</button>
+      </section>
+    </div>
+
+    <div class="page" id="page-pacotes">
+      <h2 class="section-title">📦 Instalar Pacote Local <span class="help-tip" data-help="section-pacotes">ⓘ</span></h2>
+      <p class="hint">Selecione um arquivo <strong>.deb</strong> ou <strong>.rpm</strong> para instalar no seu sistema.</p>
+
+      <div class="pkg-upload-area" id="pkg-upload-area">
+        <input type="file" id="pkg-file-input" accept=".deb,.rpm" class="pkg-file-input" />
+        <label for="pkg-file-input" class="pkg-file-label">
+          <span class="pkg-upload-icon">📂</span>
+          <span class="pkg-upload-text">Clique para selecionar um pacote</span>
+          <span class="pkg-upload-sub">.deb (Debian/Ubuntu) ou .rpm (Fedora/openSUSE)</span>
+        </label>
+      </div>
+
+      <div id="pkg-info" class="pkg-info-card hidden">
+        <div class="pkg-info-header">
+          <span class="pkg-info-type" id="pkg-type">📦</span>
+          <div class="pkg-info-title">
+            <span class="pkg-info-name" id="pkg-name">—</span>
+            <span class="pkg-info-version" id="pkg-version">—</span>
+          </div>
+        </div>
+        <div class="pkg-info-body">
+          <div class="pkg-info-row"><span class="pkg-info-label">📏 Tamanho</span><span class="pkg-info-val" id="pkg-size">—</span></div>
+          <div class="pkg-info-row"><span class="pkg-info-label">🏗️ Arquitetura</span><span class="pkg-info-val" id="pkg-arch">—</span></div>
+          <div class="pkg-info-row"><span class="pkg-info-label">📋 Dependências</span><span class="pkg-info-val" id="pkg-deps">—</span></div>
+          <div class="pkg-info-row pkg-info-desc"><span class="pkg-info-label">📝 Descrição</span><span class="pkg-info-val" id="pkg-desc">—</span></div>
+          <div class="pkg-compat" id="pkg-compat"></div>
+        </div>
+        <div class="pkg-info-actions">
+          <button id="pkg-install-btn" class="btn-primary" disabled>⬇️ Instalar Pacote</button>
+          <button id="pkg-clear-btn" class="btn-tertiary">✖ Limpar</button>
+        </div>
+      </div>
+
+      <section id="pkg-output-section" class="collapsible hidden">
+        <h2 class="section-header" data-target="pkg-output-log">📜 Log da Instalação <span class="collapse-arrow">▼</span></h2>
+        <pre id="pkg-output-log" class="collapse-content"></pre>
       </section>
     </div>
 
