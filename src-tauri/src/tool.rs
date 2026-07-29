@@ -150,10 +150,21 @@ pub fn get_development_tools() -> Vec<DevelopmentTool> {
     ]
 }
 
+fn get_check_name(tool_name: &str) -> &str {
+    // Mapeia nome da ferramenta para nome do binário no PATH
+    // (alguns pacotes instalam binários com nome diferente do tool name)
+    match tool_name {
+        "telegram" => "telegram-desktop",
+        "code" => "code",
+        "discord" => "discord",
+        _ => tool_name,
+    }
+}
+
 pub async fn detect_development_tools() -> Vec<DevelopmentToolStatus> {
     let tools = get_development_tools();
-    let names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
-    let statuses = executable::detect_executables(&names).await;
+    let check_names: Vec<&str> = tools.iter().map(|t| get_check_name(&t.name)).collect();
+    let statuses = executable::detect_executables(&check_names).await;
 
     tools
         .into_iter()

@@ -150,6 +150,20 @@ async function executePending() {
     const isInstall = pendingAction.type === 'install';
     const isRemove = pendingAction.type === 'remove';
     const isInstallPkg = pendingAction.type === 'install-package';
+    if (outputLog) {
+        if (isInstall)
+            outputLog.textContent = '⏳ Instalando...\n';
+        else if (isRemove)
+            outputLog.textContent = '⏳ Removendo...\n';
+        else if (isUpdate)
+            outputLog.textContent = '⏳ Atualizando sistema...\n';
+        else if (isZram)
+            outputLog.textContent = '⏳ Ativando ZRAM...\n';
+        else if (isCleanup)
+            outputLog.textContent = '⏳ Limpando sistema...\n';
+        else if (isInstallPkg)
+            outputLog.textContent = '🔐 Instalando pacote...\n';
+    }
     try {
         let result;
         if (isUpdate) {
@@ -168,8 +182,6 @@ async function executePending() {
             result = await invoke('remove_tools', { toolNames: pendingAction.tools, password: cachedPassword });
         }
         else if (isInstallPkg) {
-            if (outputLog)
-                outputLog.textContent = '🔐 Instalando pacote...\n';
             result = await invoke('install_package_data', {
                 data: pendingPkgData,
                 fileName: pendingPkgFileName,
