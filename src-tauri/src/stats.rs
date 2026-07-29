@@ -552,6 +552,121 @@ mod tests {
         assert_eq!(p.state, "Sleep");
     }
 
+    #[test]
+    fn test_home_stats_struct() {
+        let h = HomeStats {
+            packages_installed: 1500,
+            packages_formatted: "1.5k".into(),
+            updates_available: 5,
+            updates_formatted: "5".into(),
+            load_average: "0.50 0.40 0.30".into(),
+            swap_used: "500 MB".into(),
+            swap_total: "2.0 GB".into(),
+            swap_percent: 24.5,
+            services_active: 42,
+        };
+        assert_eq!(h.packages_installed, 1500);
+        assert_eq!(h.packages_formatted, "1.5k");
+        assert_eq!(h.updates_available, 5);
+        assert_eq!(h.updates_formatted, "5");
+        assert_eq!(h.load_average, "0.50 0.40 0.30");
+        assert_eq!(h.swap_used, "500 MB");
+        assert_eq!(h.swap_total, "2.0 GB");
+        assert!((h.swap_percent - 24.5).abs() < 0.01);
+        assert_eq!(h.services_active, 42);
+    }
+
+    #[test]
+    fn test_process_info_complete() {
+        let p = ProcessInfo {
+            pid: 9999,
+            name: "firefox".into(),
+            cpu_percent: 15.3,
+            mem_percent: 8.1,
+            mem_kb: 65536,
+            state: "Exec".into(),
+            user: "alice".into(),
+            cmd: "/usr/lib/firefox/firefox".into(),
+        };
+        assert_eq!(p.pid, 9999);
+        assert_eq!(p.name, "firefox");
+        assert!((p.cpu_percent - 15.3).abs() < 0.01);
+        assert!((p.mem_percent - 8.1).abs() < 0.01);
+        assert_eq!(p.mem_kb, 65536);
+        assert_eq!(p.state, "Exec");
+        assert_eq!(p.user, "alice");
+        assert_eq!(p.cmd, "/usr/lib/firefox/firefox");
+    }
+
+    #[test]
+    fn test_state_mapping_all() {
+        let cases = [
+            ('R', "Exec"),
+            ('S', "Sleep"),
+            ('D', "Disk"),
+            ('Z', "Zomb"),
+            ('T', "Stop"),
+            ('t', "Stop"),
+            ('X', "X"),
+            ('I', "Idle"),
+            ('P', "P"),
+        ];
+        for (ch, expected) in &cases {
+            let state = match ch {
+                'R' => "Exec".to_string(),
+                'S' => "Sleep".to_string(),
+                'D' => "Disk".to_string(),
+                'Z' => "Zomb".to_string(),
+                'T' | 't' => "Stop".to_string(),
+                'I' => "Idle".to_string(),
+                _ => ch.to_string(),
+            };
+            assert_eq!(state, *expected, "State mapping for '{}' failed", ch);
+        }
+    }
+
+    #[test]
+    fn test_state_mapping_unknown() {
+        let ch = '?';
+        let state = match ch {
+            'R' => "Exec".to_string(),
+            'S' => "Sleep".to_string(),
+            'D' => "Disk".to_string(),
+            'Z' => "Zomb".to_string(),
+            'T' | 't' => "Stop".to_string(),
+            'I' => "Idle".to_string(),
+            _ => ch.to_string(),
+        };
+        assert_eq!(state, "?");
+    }
+
+    #[test]
+    fn test_get_username_for_uid_invalid() {
+        let name = get_username_for_uid(99999);
+        assert_eq!(name, "99999");
+    }
+
+    #[test]
+    fn test_process_info_edge_cases() {
+        let p = ProcessInfo {
+            pid: 0,
+            name: String::new(),
+            cpu_percent: 0.0,
+            mem_percent: 0.0,
+            mem_kb: 0,
+            state: "Zomb".into(),
+            user: "root".into(),
+            cmd: String::new(),
+        };
+        assert_eq!(p.pid, 0);
+        assert!(p.name.is_empty());
+        assert!((p.cpu_percent - 0.0).abs() < 0.01);
+        assert!((p.mem_percent - 0.0).abs() < 0.01);
+        assert_eq!(p.mem_kb, 0);
+        assert_eq!(p.state, "Zomb");
+        assert_eq!(p.user, "root");
+        assert!(p.cmd.is_empty());
+    }
 }
 
 

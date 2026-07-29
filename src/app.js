@@ -6,6 +6,7 @@ let toolStatuses = [];
 let selectedTools = new Set();
 let removedTools = new Set();
 let pendingAction = null;
+let lastPendingAction = null;
 let cachedPassword = '';
 let systemDistro = '';
 let processList = [];
@@ -486,6 +487,7 @@ async function executePending() {
   const invoke = getInvoke();
   if (!invoke || !pendingAction || isOperating) return;
   isOperating = true;
+  switchToPage('sistema');
   const outputLog = document.getElementById('output-log');
   const outputSection = document.getElementById('output-section');
   const cancelBtn = document.getElementById('cancel-btn');
@@ -499,6 +501,7 @@ async function executePending() {
   const isInstall = pendingAction.type === 'install';
   const isRemove = pendingAction.type === 'remove';
   const isInstallPkg = pendingAction.type === 'install-package';
+  const isAppUpdate = pendingAction.type === 'app-update';
   try {
     let result;
     if (isUpdate) {
@@ -521,12 +524,16 @@ async function executePending() {
     }
     if (outputLog) {
       if (Array.isArray(result)) {
+        const hasLockError = result.some(r => !r.success && (
+          r.error?.includes('db.lck') || r.error?.includes('não foi possível travar') ||
+          r.error?.includes('não foi possível')
+        ));
         outputLog.textContent = result.map(r => {
           const name = r.tool_name || 'desconhecido';
           if (r.cancelled) return `${name}: cancelado`;
           if (!r.success) {
             let err = r.error || '';
-            if (err.includes('db.lck') || err.includes('não foi possível travar')) {
+            if (hasLockError) {
               err = 'Outro gerenciador de pacotes está em execução (Pamac, Discover, terminal). Feche-o e tente novamente.';
             } else if (err.includes('não foi possível')) {
               err = 'Erro ao acessar o gerenciador de pacotes. Tente novamente.';
@@ -535,6 +542,11 @@ async function executePending() {
           }
           return `${name}: ok`;
         }).join('\n');
+
+        if (hasLockError) {
+          showLockDiagnosis();
+          return;
+        }
       } else if (result) {
         outputLog.textContent = result.output || result.message || JSON.stringify(result, null, 2);
       }
@@ -556,11 +568,14 @@ async function executePending() {
         if (removeBtn) removeBtn.style.display = 'none';
       }
     }
+    // Oculta diagnóstico de lock se a operação deu certo
+    document.getElementById('lock-diagnosis')?.classList.add('hidden');
   } catch (err) {
     const msg = (err + '').toLowerCase();
     let friendly = 'Erro na operação.';
     if (msg.includes('db.lck') || msg.includes('não foi possível travar')) {
       friendly = 'Outro gerenciador de pacotes está em execução. Feche o Pamac/Discover/terminal e tente novamente.';
+      showLockDiagnosis();
     } else if (msg.includes('password') || msg.includes('senha')) {
       friendly = 'Senha incorreta. Tente novamente.';
     }
@@ -568,6 +583,7 @@ async function executePending() {
     showToast('error', friendly);
   } finally {
     isOperating = false;
+    lastPendingAction = pendingAction;
     pendingAction = null;
     if (cancelBtn) cancelBtn.classList.add('hidden');
     // Reset do botao de instalacao de pacote
@@ -632,6 +648,100 @@ function showToast(type, message) {
   }
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function switchToPage(pageName) {
+  const navItem = document.querySelector(`.nav-item[data-page="${pageName}"]`);
+  if (!navItem) return;
+  navItem.click();
+}
+
+async function showLockDiagnosis() {
+  switchToPage('sistema');
+  const diagnosis = document.getElementById('lock-diagnosis');
+  if (!diagnosis) return;
+  diagnosis.classList.remove('hidden');
+  const infoEl = document.getElementById('lock-info');
+  const spinnerEl = document.getElementById('lock-spinner');
+  if (spinnerEl) spinnerEl.classList.remove('hidden');
+  if (infoEl) infoEl.textContent = '🔍 Detectando...';
+
+  const invoke = getInvoke();
+  if (!invoke) return;
+
+  try {
+    const lockInfo = await invoke('check_pm_lock');
+    if (spinnerEl) spinnerEl.classList.add('hidden');
+    if (infoEl) {
+      if (lockInfo.locked) {
+        infoEl.textContent = lockInfo.message;
+      } else {
+        infoEl.innerHTML = '🔒 O lock foi liberado! <button class="lock-retry-btn" id="lock-freed-retry-btn">🔄 Tentar Novamente</button>';
+        document.getElementById('lock-freed-retry-btn')?.addEventListener('click', retryLastOperation);
+      }
+    }
+    const retryBtn = document.getElementById('lock-retry-btn');
+    if (retryBtn) retryBtn.classList.remove('hidden');
+  } catch (e) {
+    console.error('check_pm_lock failed:', e);
+    if (spinnerEl) spinnerEl.classList.add('hidden');
+    if (infoEl) infoEl.textContent = '❌ Não foi possível detectar o bloqueio. Feche outros programas (Pamac, Discover, terminal) e tente novamente.';
+  }
+}
+
+function setupLockActions() {
+  document.querySelectorAll('.lock-action-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = btn.dataset.action;
+      const invoke = getInvoke();
+      switch (action) {
+        case 'pamac':
+          showToast('info', 'Feche o Pamac manualmente ou execute: pkill pamac');
+          try { await invoke('run_simple_command', { command: 'pkill -f pamac 2>/dev/null; pkill -f pamac-manager 2>/dev/null; echo done' }); } catch (e) {}
+          break;
+        case 'discover':
+          showToast('info', 'Feche o Discover manualmente ou execute: pkill discover');
+          try { await invoke('run_simple_command', { command: 'pkill -f discover 2>/dev/null; echo done' }); } catch (e) {}
+          break;
+        case 'terminals':
+          showToast('info', 'Feche terminais rodando pacman/apt/dnf');
+          break;
+        case 'restart-pm': {
+          const pm = document.getElementById('distro-pm')?.textContent?.trim().toLowerCase() || 'pacman';
+          try {
+            const result = await invoke('run_simple_command', { command: `sudo systemctl restart ${pm} 2>/dev/null; echo done` });
+            showToast('info', `Comando executado: sudo systemctl restart ${pm}`);
+          } catch (e) {
+            showToast('error', 'Não foi possível reiniciar o gerenciador');
+          }
+          break;
+        }
+        case 'kill-lock': {
+          if (!confirm('Remover o arquivo de trava manualmente pode corromper o banco de dados do gerenciador. Tem certeza?')) return;
+          try {
+            await invoke('run_simple_command', { command: 'sudo rm -f /var/lib/pacman/db.lck /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock 2>/dev/null; echo done' });
+            showToast('success', 'Trava removida. Tente novamente.');
+          } catch (e) {
+            showToast('error', 'Não foi possível remover a trava');
+          }
+          break;
+        }
+      }
+    });
+  });
+}
+
+function retryLastOperation() {
+  const action = pendingAction || lastPendingAction;
+  if (!action && !cachedPassword) return;
+  document.getElementById('lock-diagnosis')?.classList.add('hidden');
+  if (action) {
+    // Reexecuta a última ação (guardada antes de ser limpa no finally)
+    showPasswordModal(action);
+  } else if (cachedPassword) {
+    // Senha em cache mas ação perdida — informa o usuário
+    showToast('error', 'Selecione a operação novamente.');
+  }
 }
 
 async function loadConnectivity() {
@@ -776,31 +886,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-let updateUrl = '';
 
-async function checkForUpdate() {
-  const invoke = getInvoke();
-  if (!invoke) return;
-  try {
-    const info = await invoke('check_update');
-    if (info.has_update) {
-      const banner = document.getElementById('update-banner');
-      const versionEl = document.getElementById('update-version');
-      if (versionEl) versionEl.textContent = info.latest_version;
-      if (banner) banner.classList.remove('hidden');
-      updateUrl = info.download_url;
-    }
-  } catch (e) {
-    // Silently fail — não é crítico
-    console.error('checkUpdate failed:', e);
-  }
-}
-
-function handleUpdateClick() {
-  if (updateUrl) {
-    window.open(updateUrl, '_blank');
-  }
-}
 
 async function loadHomeStats() {
   const invoke = getInvoke();
@@ -1138,6 +1224,7 @@ document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
   setupHelpTooltips();
+  setupLockActions();
   loadSystemInfo();
 
   document.getElementById('password-input').addEventListener('keydown', (e) => {
@@ -1181,8 +1268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showPasswordModal({ type: 'cleanup' });
   });
   document.getElementById('report-btn')?.addEventListener('click', reportProblem);
-  document.getElementById('update-banner')?.addEventListener('click', handleUpdateClick);
-document.getElementById('dev-github-link')?.addEventListener('click', (e) => {
+  document.getElementById('dev-github-link')?.addEventListener('click', (e) => {
   e.preventDefault();
   window.open('https://github.com/Rafa-MKR2/solix', '_blank');
 });
@@ -1340,6 +1426,14 @@ document.getElementById('test-speed-btn')?.addEventListener('click', async () =>
   if (btn) { btn.classList.remove('measuring'); btn.textContent = '🚀 Testar Velocidade'; }
 });
 
+  // Lock diagnosis buttons
+  document.getElementById('lock-retry-btn')?.addEventListener('click', retryLastOperation);
+  document.getElementById('lock-close-btn')?.addEventListener('click', () => {
+    document.getElementById('lock-diagnosis')?.classList.add('hidden');
+  });
+
+
+
   document.getElementById('cancel-btn')?.addEventListener('click', async () => {
     const invoke = getInvoke();
     if (invoke) {
@@ -1394,7 +1488,6 @@ document.getElementById('test-speed-btn')?.addEventListener('click', async () =>
   loadExternalInfo();
   loadProcesses();
   loadHomeStats();
-  checkForUpdate();
   setInterval(pollStats, 3000);
   setInterval(loadConnectivity, 10000);
   setInterval(loadProcesses, 3000);

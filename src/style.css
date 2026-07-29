@@ -469,51 +469,6 @@ body {
   text-anchor: middle;
 }
 
-/* Update Banner */
-.update-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  background: linear-gradient(135deg, #1a2a1a 0%, #112220 100%);
-  border: 1px solid #00d4aa44;
-  border-radius: 10px;
-  padding: 0.7rem 1rem;
-  margin-bottom: 0.8rem;
-  cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  animation: fadeIn 0.3s ease;
-}
-
-.update-banner:hover {
-  border-color: #00d4aa88;
-  box-shadow: 0 0 20px rgba(0, 212, 170, 0.12);
-}
-
-.update-banner-icon {
-  font-size: 1.3rem;
-}
-
-.update-banner-text {
-  flex: 1;
-  font-size: 0.85rem;
-  color: #4ae0a0;
-  font-weight: 500;
-}
-
-.update-banner-action {
-  font-size: 0.8rem;
-  color: #00d4aa;
-  font-weight: 600;
-  padding: 0.3rem 0.7rem;
-  background: #00d4aa18;
-  border-radius: 5px;
-  transition: background 0.2s;
-}
-
-.update-banner:hover .update-banner-action {
-  background: #00d4aa30;
-}
-
 /* User Card */
 .user-card {
   display: flex;
@@ -1996,6 +1951,125 @@ body {
 
 #process-table td.process-state.Idle {
   color: #666;
+}
+
+/* Lock Diagnosis */
+.lock-diagnosis {
+  background: linear-gradient(145deg, #2a1a1a 0%, #221111 100%);
+  border: 1px solid #e84a4a44;
+  border-radius: 12px;
+  margin-top: 0.8rem;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease;
+}
+
+.lock-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: #3a1a1a;
+  border-bottom: 1px solid #e84a4a33;
+}
+
+.lock-icon {
+  font-size: 1.2rem;
+}
+
+.lock-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e88;
+}
+
+.lock-body {
+  padding: 0.8rem 1rem;
+}
+
+.lock-info {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: #ccc;
+  white-space: pre-wrap;
+  padding: 0.6rem 0;
+}
+
+.lock-spinner {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+  margin-right: 0.4rem;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lock-tips {
+  background: #1a1a30;
+  border: 1px solid #2a2a44;
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  margin: 0.5rem 0;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: #aaa;
+}
+
+.lock-tips p {
+  margin-bottom: 0.4rem;
+  color: #ccc;
+}
+
+.lock-action-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.lock-action-btn {
+  background: #2a2a44;
+  border: 1px solid #3a3a5a;
+  color: #ccc;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.lock-action-btn:hover {
+  background: #3a3a5a;
+  border-color: #00d4aa66;
+  color: #fff;
+}
+
+.lock-action-btn-warn {
+  border-color: #e84a4a44;
+  color: #e88;
+}
+
+.lock-action-btn-warn:hover {
+  border-color: #e84a4a;
+  background: #3a1a1a;
+}
+
+.lock-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #2a2a44;
+}
+
+.lock-retry-btn {
+  animation: pulseBorder 1.5s ease infinite;
+}
+
+@keyframes pulseBorder {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(0, 212, 170, 0.1); }
 }
 
 /* Hint text */

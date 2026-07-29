@@ -317,3 +317,65 @@ pub async fn get_package_info(tool_name: &str) -> Result<PackageDetail, String> 
         icon_base64: icon,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_package_detail_complete() {
+        let detail = PackageDetail {
+            tool_name: "firefox".into(),
+            package_name: "firefox".into(),
+            description: "Navegador web Firefox".into(),
+            version: "123.0".into(),
+            size: "50.0 MB".into(),
+            installed: true,
+            icon_base64: Some("data:image/png;base64,iVBORw0KGgo=".into()),
+        };
+        assert_eq!(detail.tool_name, "firefox");
+        assert_eq!(detail.package_name, "firefox");
+        assert_eq!(detail.description, "Navegador web Firefox");
+        assert_eq!(detail.version, "123.0");
+        assert_eq!(detail.size, "50.0 MB");
+        assert!(detail.installed);
+        assert_eq!(detail.icon_base64, Some("data:image/png;base64,iVBORw0KGgo=".into()));
+    }
+
+    #[test]
+    fn test_icon_info_struct() {
+        #[derive(Debug, PartialEq)]
+        struct IconInfo {
+            pub name: String,
+            pub data: Option<String>,
+        }
+        let icon = IconInfo {
+            name: "firefox".into(),
+            data: Some("data:image/svg+xml;base64,PHN2Zy...".into()),
+        };
+        assert_eq!(icon.name, "firefox");
+        assert!(icon.data.is_some());
+        let icon2 = IconInfo {
+            name: "unknown".into(),
+            data: None,
+        };
+        assert_eq!(icon2.name, "unknown");
+        assert!(icon2.data.is_none());
+    }
+
+    #[test]
+    fn test_package_detail_icon_none() {
+        let detail = PackageDetail {
+            tool_name: "teste".into(),
+            package_name: "teste-pkg".into(),
+            description: String::new(),
+            version: "0.1".into(),
+            size: "1 KB".into(),
+            installed: false,
+            icon_base64: None,
+        };
+        assert!(!detail.installed);
+        assert!(detail.icon_base64.is_none());
+        assert_eq!(detail.description, "");
+    }
+}

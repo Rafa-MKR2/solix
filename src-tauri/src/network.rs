@@ -382,5 +382,120 @@ mod tests {
         assert_eq!(info.external_ip, "8.8.8.8");
         assert_eq!(info.isp, "Google");
     }
+
+    #[test]
+    fn test_connectivity_info_default() {
+        let info = ConnectivityInfo {
+            internet: true,
+            ping_latency_ms: 15.5,
+            ethernet: true,
+            ip_address: "192.168.1.100".into(),
+            bluetooth: true,
+            wifi_present: false,
+            wifi_ssid: String::new(),
+            wifi_signal: 0,
+        };
+        assert!(info.internet);
+        assert_eq!(info.ping_latency_ms, 15.5);
+        assert!(info.ethernet);
+        assert_eq!(info.ip_address, "192.168.1.100");
+        assert!(info.bluetooth);
+        assert!(!info.wifi_present);
+        assert_eq!(info.wifi_ssid, "");
+        assert_eq!(info.wifi_signal, 0);
+    }
+
+    #[test]
+    fn test_connectivity_info_wifi_off_bluetooth_absent() {
+        let info = ConnectivityInfo {
+            internet: false,
+            ping_latency_ms: 0.0,
+            ethernet: false,
+            ip_address: String::new(),
+            bluetooth: false,
+            wifi_present: true,
+            wifi_ssid: String::new(),
+            wifi_signal: 0,
+        };
+        assert!(!info.internet);
+        assert_eq!(info.ping_latency_ms, 0.0);
+        assert!(!info.ethernet);
+        assert!(info.ip_address.is_empty());
+        assert!(!info.bluetooth);
+        assert!(info.wifi_present);
+        assert!(info.wifi_ssid.is_empty());
+        assert_eq!(info.wifi_signal, 0);
+    }
+
+    #[test]
+    fn test_connectivity_info_wifi_connected() {
+        let info = ConnectivityInfo {
+            internet: true,
+            ping_latency_ms: 12.3,
+            ethernet: false,
+            ip_address: "192.168.1.5".into(),
+            bluetooth: false,
+            wifi_present: true,
+            wifi_ssid: "MyNetwork".into(),
+            wifi_signal: 85,
+        };
+        assert!(info.internet);
+        assert_eq!(info.ping_latency_ms, 12.3);
+        assert!(!info.ethernet);
+        assert_eq!(info.ip_address, "192.168.1.5");
+        assert!(!info.bluetooth);
+        assert!(info.wifi_present);
+        assert_eq!(info.wifi_ssid, "MyNetwork");
+        assert_eq!(info.wifi_signal, 85);
+    }
+
+    #[test]
+    fn test_external_network_info_all_fields() {
+        let info = ExternalNetworkInfo {
+            external_ip: "203.0.113.1".into(),
+            isp: "ISP Test".into(),
+            city: "São Paulo".into(),
+            region: "SP".into(),
+        };
+        assert_eq!(info.external_ip, "203.0.113.1");
+        assert_eq!(info.isp, "ISP Test");
+        assert_eq!(info.city, "São Paulo");
+        assert_eq!(info.region, "SP");
+    }
+
+    #[test]
+    fn test_speed_test_result_struct_alt() {
+        let r = SpeedTestResult { mbps: 0.0, formatted: "Indispon\u{ed}vel".into() };
+        assert_eq!(r.mbps, 0.0);
+        assert_eq!(r.formatted, "Indispon\u{ed}vel");
+    }
+
+    #[test]
+    fn test_format_speed_0_5mbps() {
+        let (mbps, fmt) = format_speed(62_500.0);
+        assert!((mbps - 0.5).abs() < 0.01);
+        assert_eq!(fmt, "500 Kbps");
+    }
+
+    #[test]
+    fn test_format_speed_9999mbps() {
+        let (mbps, fmt) = format_speed(1_249_875_000.0);
+        assert!((mbps - 9999.0).abs() < 1.0);
+        assert_eq!(fmt, "9999 Mbps");
+    }
+
+    #[test]
+    fn test_format_speed_very_small() {
+        let (mbps, fmt) = format_speed(1.0);
+        assert!(mbps < 0.00001);
+        assert_eq!(fmt, "0 Kbps");
+    }
+
+    #[test]
+    fn test_format_speed_negative() {
+        let (mbps, fmt) = format_speed(-1000.0);
+        assert!(mbps < 0.0);
+        assert!(!fmt.is_empty());
+    }
 }
 

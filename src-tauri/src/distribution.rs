@@ -241,5 +241,66 @@ PRETTY_NAME="Ubuntu 22.04.3 LTS"
         assert_eq!(d.name, "Test OS");
         assert_eq!(d.package_manager, "test-pm");
     }
+
+    #[test]
+    fn test_unquote_escaped_double() {
+        assert_eq!(unquote("\"with\\\"quote\""), "with\"quote");
+    }
+
+    #[test]
+    fn test_unquote_escaped_single() {
+        assert_eq!(unquote("'with\\'quote'"), "with'quote");
+    }
+
+    #[test]
+    fn test_find_mapping_linuxmint() {
+        let (family, pm) = find_mapping("linuxmint", "");
+        assert_eq!(family, "debian");
+        assert_eq!(pm, "apt");
+    }
+
+    #[test]
+    fn test_find_mapping_fedora_direct() {
+        let (family, pm) = find_mapping("fedora", "");
+        assert_eq!(family, "fedora");
+        assert_eq!(pm, "dnf");
+    }
+
+    #[test]
+    fn test_find_mapping_opensuse_tumbleweed_direct() {
+        let (family, pm) = find_mapping("opensuse-tumbleweed", "");
+        assert_eq!(family, "unknown");
+        assert_eq!(pm, "unknown");
+    }
+
+    #[test]
+    fn test_find_mapping_opensuse_tumbleweed_via_id_like() {
+        let (family, pm) = find_mapping("tumbleweed", "opensuse");
+        assert_eq!(family, "opensuse");
+        assert_eq!(pm, "zypper");
+    }
+
+    #[test]
+    fn test_find_mapping_unknown_with_id_like() {
+        let (family, pm) = find_mapping("nonexistent", "unknown");
+        assert_eq!(family, "unknown");
+        assert_eq!(pm, "unknown");
+    }
+
+    #[test]
+    fn test_parse_os_release_malformed_no_equal() {
+        let content = "ID=arch\nTHIS_LINE_HAS_NO_EQUAL\nVERSION_ID=rolling\n";
+        let map = parse_os_release(content);
+        assert_eq!(map.get("ID").unwrap(), "arch");
+        assert_eq!(map.get("VERSION_ID").unwrap(), "rolling");
+        assert_eq!(map.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_os_release_only_blank_and_comments() {
+        let content = "\n# comment 1\n\n# comment 2\n  \n";
+        let map = parse_os_release(content);
+        assert!(map.is_empty());
+    }
 }
 

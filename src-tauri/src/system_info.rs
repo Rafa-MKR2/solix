@@ -285,5 +285,103 @@ mod tests {
     fn test_read_first_line_nonexistent() {
         assert!(read_first_line("/nonexistent/path").is_none());
     }
+
+    #[test]
+    fn test_parse_cpuinfo_multi_core_different_names() {
+        let content = "\
+processor\t: 0\n\
+model name\t: Intel(R) Core(TM) i7-8700K\n\
+processor\t: 1\n\
+model name\t: Intel(R) Core(TM) i7-8700K\n\
+processor\t: 2\n\
+model name\t: AMD Ryzen 5 3600\n\
+processor\t: 3\n\
+model name\t: AMD Ryzen 5 3600\n\
+processor\t: 4\n\
+model name\t: AMD Ryzen 5 3600\n";
+        let (cpu, cores) = parse_cpuinfo(content);
+        assert_eq!(cpu, "Intel(R) Core(TM) i7-8700K");
+        assert_eq!(cores, "5 núcleos");
+    }
+
+    #[test]
+    fn test_parse_meminfo_zero_values() {
+        let content = "MemTotal:        0 kB\nMemAvailable:        0 kB\n";
+        let (total, used) = parse_meminfo(content);
+        assert_eq!(total, "0.0 GB");
+        assert_eq!(used, "0.0 GB");
+    }
+
+    #[test]
+    fn test_parse_meminfo_partial_missing_available() {
+        let content = "MemTotal:       1048576 kB\n";
+        let (total, used) = parse_meminfo(content);
+        assert_eq!(total, "1.0 GB");
+        assert_eq!(used, "1.0 GB");
+    }
+
+    #[test]
+    fn test_parse_meminfo_missing_available() {
+        let content = "MemTotal:       1048576 kB\n";
+        let (total, used) = parse_meminfo(content);
+        assert_eq!(total, "1.0 GB");
+        assert_eq!(used, "1.0 GB");
+    }
+
+    #[test]
+    fn test_parse_uptime_very_large() {
+        assert_eq!(parse_uptime("172800.0 100000.0"), "48h 0m");
+    }
+
+    #[test]
+    fn test_parse_uptime_huge() {
+        assert_eq!(parse_uptime("604800.0 300000.0"), "168h 0m");
+    }
+
+    #[test]
+    fn test_disk_info_struct_full() {
+        let d = DiskInfo {
+            mount_point: "/home".into(),
+            total: "500 GB".into(),
+            used: "200 GB".into(),
+            available: "300 GB".into(),
+            percent_used: 40.0,
+            filesystem: "/dev/sdb1".into(),
+            fstype: "btrfs".into(),
+        };
+        assert_eq!(d.mount_point, "/home");
+        assert_eq!(d.total, "500 GB");
+        assert_eq!(d.used, "200 GB");
+        assert_eq!(d.available, "300 GB");
+        assert_eq!(d.percent_used, 40.0);
+        assert_eq!(d.filesystem, "/dev/sdb1");
+        assert_eq!(d.fstype, "btrfs");
+    }
+
+    #[test]
+    fn test_system_hardware_struct_empty_fields() {
+        let hw = SystemHardware {
+            cpu: String::new(),
+            cores: String::new(),
+            memory_total: String::new(),
+            memory_used: String::new(),
+            disk_total: String::new(),
+            disk_used: String::new(),
+            disks: vec![],
+            gpu: String::new(),
+            kernel: String::new(),
+            uptime: String::new(),
+        };
+        assert!(hw.cpu.is_empty());
+        assert!(hw.cores.is_empty());
+        assert!(hw.memory_total.is_empty());
+        assert!(hw.memory_used.is_empty());
+        assert!(hw.disk_total.is_empty());
+        assert!(hw.disk_used.is_empty());
+        assert!(hw.disks.is_empty());
+        assert!(hw.gpu.is_empty());
+        assert!(hw.kernel.is_empty());
+        assert!(hw.uptime.is_empty());
+    }
 }
 

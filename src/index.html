@@ -57,11 +57,6 @@
 
   <main id="content">
     <div class="page active" id="page-sistema">
-      <div id="update-banner" class="update-banner hidden">
-        <span class="update-banner-icon">🚀</span>
-        <span class="update-banner-text">Nova versão <span id="update-version"></span> disponível!</span>
-        <span class="update-banner-action">Baixar →</span>
-      </div>
       <div class="profile-row">
         <section id="user-card" class="user-card hidden">
           <div class="user-avatar" id="user-avatar"><div class="avatar-placeholder" id="avatar-placeholder">?</div></div>
@@ -99,6 +94,39 @@
               <text class="hgauge-label" x="40" y="36">Temp</text>
               <text class="hgauge-value" id="gauge-temp-home-value" x="40" y="54">0°</text>
             </svg>
+          </div>
+        </div>
+      </div>
+
+      <section id="output-section" class="collapsible hidden">
+        <h2 class="section-header" data-target="output-log">📜 Saída <span class="collapse-arrow">▼</span></h2>
+        <pre id="output-log" class="collapse-content"></pre>
+        <button id="cancel-btn" class="btn-cancel hidden">✖ Cancelar</button>
+      </section>
+
+      <div id="lock-diagnosis" class="lock-diagnosis hidden">
+        <div class="lock-header">
+          <span class="lock-icon">🔒</span>
+          <span class="lock-title">Gerenciador Ocupado</span>
+        </div>
+        <div class="lock-body">
+          <div id="lock-info" class="lock-info">
+            <span id="lock-spinner" class="lock-spinner">⏳</span>
+            Detectando bloqueio...
+          </div>
+          <div class="lock-tips">
+            <p>💡 <strong>Ações para resolver:</strong></p>
+            <div class="lock-action-list">
+              <button class="lock-action-btn" data-action="pamac" title="Fecha o Pamac se estiver aberto">✖ Fechar Pamac</button>
+              <button class="lock-action-btn" data-action="discover" title="Fecha o Discover se estiver aberto">✖ Fechar Discover</button>
+              <button class="lock-action-btn" data-action="terminals" title="Fecha terminais com pacman/apt/dnf rodando">✖ Fechar Terminais</button>
+              <button class="lock-action-btn" data-action="restart-pm">🔄 Reiniciar Gerenciador</button>
+              <button class="lock-action-btn lock-action-btn-warn" data-action="kill-lock">⚠️ Remover Trava Manual</button>
+            </div>
+          </div>
+          <div class="lock-actions">
+            <button id="lock-retry-btn" class="btn-primary lock-retry-btn hidden">🔄 Tentar Novamente</button>
+            <button id="lock-close-btn" class="btn-tertiary">✖ Fechar</button>
           </div>
         </div>
       </div>
@@ -298,11 +326,6 @@
         </div>
         <p id="selected-count" class="counter">Nenhuma ferramenta selecionada</p>
       </div>
-      <section id="output-section" class="collapsible hidden">
-        <h2 class="section-header" data-target="output-log">📜 Saída <span class="collapse-arrow">▼</span></h2>
-        <pre id="output-log" class="collapse-content"></pre>
-        <button id="cancel-btn" class="btn-cancel hidden">✖ Cancelar</button>
-      </section>
     </div>
 
     <div class="page" id="page-desenvolvedor">

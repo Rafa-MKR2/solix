@@ -201,5 +201,86 @@ mod tests {
         assert_eq!(b.status, "Discharging");
         assert_eq!(b.time_remaining, "2:00");
     }
+
+    #[test]
+    fn test_battery_info_status_full() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 100,
+            status: "Full".into(),
+            time_remaining: String::new(),
+        };
+        assert_eq!(b.status, "Full");
+        assert_eq!(b.percentage, 100);
+    }
+
+    #[test]
+    fn test_battery_info_status_unknown() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 0,
+            status: "Unknown".into(),
+            time_remaining: String::new(),
+        };
+        assert_eq!(b.status, "Unknown");
+    }
+
+    #[test]
+    fn test_battery_info_percentage_0() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 0,
+            status: "Unknown".into(),
+            time_remaining: String::new(),
+        };
+        assert_eq!(b.percentage, 0);
+    }
+
+    #[test]
+    fn test_battery_info_percentage_50() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 50,
+            status: "Discharging".into(),
+            time_remaining: "1:00".into(),
+        };
+        assert_eq!(b.percentage, 50);
+    }
+
+    #[test]
+    fn test_battery_info_percentage_100() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 100,
+            status: "Full".into(),
+            time_remaining: String::new(),
+        };
+        assert_eq!(b.percentage, 100);
+    }
+
+    #[test]
+    fn test_battery_info_present_false() {
+        let b = BatteryInfo {
+            present: false,
+            percentage: 0,
+            status: String::new(),
+            time_remaining: String::new(),
+        };
+        assert!(!b.present);
+        assert_eq!(b.percentage, 0);
+        assert!(b.status.is_empty());
+        assert!(b.time_remaining.is_empty());
+    }
+
+    #[test]
+    fn test_battery_info_time_remaining_empty() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 80,
+            status: "Charging".into(),
+            time_remaining: String::new(),
+        };
+        assert!(b.time_remaining.is_empty());
+    }
 }
 

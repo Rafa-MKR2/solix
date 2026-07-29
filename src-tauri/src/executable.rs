@@ -96,5 +96,37 @@ mod tests {
         assert!(!s.available);
         assert!(s.executable.is_none());
     }
+
+    #[test]
+    fn test_executable_status_available_true() {
+        let s = ExecutableStatus {
+            name: "test".into(),
+            available: true,
+            executable: Some("/usr/bin/test".into()),
+        };
+        assert!(s.available);
+    }
+
+    #[test]
+    fn test_executable_status_available_false() {
+        let s = ExecutableStatus {
+            name: "test".into(),
+            available: false,
+            executable: None,
+        };
+        assert!(!s.available);
+    }
+
+    #[test]
+    fn test_executable_status_all_fields() {
+        let fields = ExecutableStatus {
+            name: "rustc".into(),
+            available: true,
+            executable: Some("/usr/bin/rustc".into()),
+        };
+        assert_eq!(fields.name, "rustc");
+        assert!(fields.available);
+        assert_eq!(fields.executable, Some("/usr/bin/rustc".into()));
+    }
 }
 

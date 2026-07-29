@@ -437,3 +437,115 @@ pub async fn install_local_package(
 
     Ok(result)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_local_package_info_complete() {
+        let info = LocalPackageInfo {
+            file_name: "package.deb".into(),
+            file_size: "1.2 MB".into(),
+            package_name: "test-pkg".into(),
+            version: "2.0.1".into(),
+            description: "Um pacote de teste".into(),
+            architecture: "amd64".into(),
+            dependencies: vec!["libc6".into(), "libssl3".into()],
+            package_type: "deb".into(),
+            compatible: true,
+            compat_message: "✅ Compatível com sua distribuição".into(),
+        };
+        assert_eq!(info.file_name, "package.deb");
+        assert_eq!(info.file_size, "1.2 MB");
+        assert_eq!(info.package_name, "test-pkg");
+        assert_eq!(info.version, "2.0.1");
+        assert_eq!(info.description, "Um pacote de teste");
+        assert_eq!(info.architecture, "amd64");
+        assert_eq!(info.dependencies, vec!["libc6", "libssl3"]);
+        assert_eq!(info.package_type, "deb");
+        assert!(info.compatible);
+    }
+
+    #[test]
+    fn test_detect_extension_deb() {
+        let result = inspect_package("pacote.deb");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Arquivo não encontrado.");
+    }
+
+    #[test]
+    fn test_detect_extension_rpm() {
+        let result = inspect_package("pacote.rpm");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err == "Arquivo não encontrado." || err.starts_with("Erro ao executar rpm"));
+    }
+
+    #[test]
+    fn test_detect_extension_txt_unknown() {
+        let result = inspect_package("arquivo.txt");
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            "Formato não suportado. Selecione um arquivo .deb ou .rpm."
+        );
+    }
+
+    #[test]
+    fn test_local_package_info_compatible_true() {
+        let info = LocalPackageInfo {
+            file_name: "app.deb".into(),
+            file_size: "500 KB".into(),
+            package_name: "app".into(),
+            version: "1.0".into(),
+            description: "App compatível".into(),
+            architecture: "amd64".into(),
+            dependencies: vec![],
+            package_type: "deb".into(),
+            compatible: true,
+            compat_message: "Compatível".into(),
+        };
+        assert!(info.compatible);
+    }
+
+    #[test]
+    fn test_local_package_info_compatible_false() {
+        let info = LocalPackageInfo {
+            file_name: "app.rpm".into(),
+            file_size: "500 KB".into(),
+            package_name: "app".into(),
+            version: "1.0".into(),
+            description: "App incompatível".into(),
+            architecture: "amd64".into(),
+            dependencies: vec![],
+            package_type: "rpm".into(),
+            compatible: false,
+            compat_message: "Incompatível".into(),
+        };
+        assert!(!info.compatible);
+    }
+
+    #[test]
+    fn test_local_package_info_empty_and_optional_fields() {
+        let info = LocalPackageInfo {
+            file_name: "vazio.deb".into(),
+            file_size: "0 bytes".into(),
+            package_name: String::new(),
+            version: String::new(),
+            description: String::new(),
+            architecture: String::new(),
+            dependencies: vec![],
+            package_type: "deb".into(),
+            compatible: false,
+            compat_message: String::new(),
+        };
+        assert!(info.package_name.is_empty());
+        assert!(info.version.is_empty());
+        assert!(info.description.is_empty());
+        assert!(info.architecture.is_empty());
+        assert!(info.dependencies.is_empty());
+        assert!(!info.compatible);
+        assert!(info.compat_message.is_empty());
+    }
+}

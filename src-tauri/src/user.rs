@@ -254,5 +254,76 @@ mod tests {
         assert!(u.is_admin);
         assert_eq!(u.shell, "/bin/bash");
     }
+
+    #[test]
+    fn test_parse_passwd_line_different_shell() {
+        let line = "user:x:1002:1002:Full Name:/home/user:/usr/bin/fish";
+        let (_, _, _, shell, _) = parse_passwd_line(line).unwrap();
+        assert_eq!(shell, "fish");
+    }
+
+    #[test]
+    fn test_parse_passwd_line_nologin_shell() {
+        let line = "daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin";
+        let (_, _, _, shell, _) = parse_passwd_line(line).unwrap();
+        assert_eq!(shell, "nologin");
+    }
+
+    #[test]
+    fn test_parse_passwd_line_uid_1000() {
+        let line = "user2:x:1000:1000:User Two:/home/user2:/bin/bash";
+        let (_, _, _, _, uid) = parse_passwd_line(line).unwrap();
+        assert_eq!(uid, "1000");
+    }
+
+    #[test]
+    fn test_parse_passwd_line_uid_0() {
+        let line = "root:x:0:0:root:/root:/bin/bash";
+        let (_, _, _, _, uid) = parse_passwd_line(line).unwrap();
+        assert_eq!(uid, "0");
+    }
+
+    #[test]
+    fn test_parse_passwd_line_no_shell() {
+        let line = "user:x:1003:1003:No Shell:/home/user:";
+        let result = parse_passwd_line(line);
+        assert!(result.is_some());
+        let (_, _, _, shell, _) = result.unwrap();
+        assert_eq!(shell, "");
+    }
+
+    #[test]
+    fn test_parse_passwd_line_shell_missing_field() {
+        let line = "user:x:1004:1004:Test User:/home/user";
+        let result = parse_passwd_line(line);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_user_info_struct_admin_false() {
+        let u = UserInfo {
+            username: "guest".into(),
+            full_name: "Guest Account".into(),
+            is_admin: false,
+            avatar_base64: Some("data:image/png;base64,iVBORw0KGgo=".into()),
+            shell: "/usr/sbin/nologin".into(),
+            home_dir: "/tmp/guest".into(),
+        };
+        assert_eq!(u.username, "guest");
+        assert!(!u.is_admin);
+        assert!(u.avatar_base64.is_some());
+        assert_eq!(u.home_dir, "/tmp/guest");
+    }
+
+    #[test]
+    fn test_parse_passwd_line_minimal_fields() {
+        let line = "testuser:x:1005:1005::/home/testuser:/bin/sh";
+        let (user, name, home, shell, uid) = parse_passwd_line(line).unwrap();
+        assert_eq!(user, "testuser");
+        assert_eq!(name, "");
+        assert_eq!(home, "/home/testuser");
+        assert_eq!(shell, "sh");
+        assert_eq!(uid, "1005");
+    }
 }
 
