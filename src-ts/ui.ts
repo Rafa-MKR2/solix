@@ -113,6 +113,28 @@ document.getElementById('disk-analysis-overlay')?.addEventListener('click', (e) 
   }
 });
 
+function parseSizeGB(sizeStr: string): number {
+  // Converts "100 GB", "500 MB", "1.5 TB" to GB
+  const s = sizeStr.trim();
+  if (s.includes('TB') || s.includes('TiB')) {
+    return parseFloat(s) * 1024;
+  } else if (s.includes('GB') || s.includes('GiB')) {
+    return parseFloat(s);
+  } else if (s.includes('MB') || s.includes('MiB')) {
+    return parseFloat(s) / 1024;
+  } else if (s.includes('KB') || s.includes('KiB')) {
+    return parseFloat(s) / (1024 * 1024);
+  }
+  return 0;
+}
+
+function formatSizeGB(gb: number): string {
+  if (gb >= 1024) {
+    return (gb / 1024).toFixed(1) + ' TB';
+  }
+  return gb.toFixed(0) + ' GB';
+}
+
 export function renderDisks(disks: DiskInfo[]): void {
   const container = document.getElementById('disks-list');
   if (!container) return;
@@ -121,12 +143,30 @@ export function renderDisks(disks: DiskInfo[]): void {
     container.innerHTML = '<div class="hint">Nenhum disco detectado.</div>';
     return;
   }
+
+  // Compute stats
+  let totalGB = 0, usedGB = 0;
+  for (const d of disks) {
+    totalGB += parseSizeGB(d.total);
+    usedGB += parseSizeGB(d.used);
+  }
+  const pct = totalGB > 0 ? Math.round((usedGB / totalGB) * 100) : 0;
+
+  document.getElementById('disk-count')!.textContent = disks.length.toString();
+  document.getElementById('disk-total-space')!.textContent = formatSizeGB(totalGB);
+  document.getElementById('disk-used-space')!.textContent = formatSizeGB(usedGB);
+  document.getElementById('disk-pct-used')!.textContent = `${pct}%`;
+
   for (const d of disks) {
     const card = document.createElement('div');
     card.className = 'disk-card';
 
     const deviceName = d.filesystem.split('/').pop()!;
     const typeIcon = d.fstype === 'ntfs' ? '🪟' : d.fstype === 'vfat' ? '💾' : d.fstype === 'btrfs' ? '🌳' : '💽';
+    const roundedPct = Math.round(d.percent_used);
+
+    const hasIO = d.io_read && d.io_read !== '—' && d.io_write && d.io_write !== '—';
+    const hasModel = d.device_model && d.device_model.length > 0;
 
     card.innerHTML = `
       <div class="disk-card-top">
@@ -134,6 +174,7 @@ export function renderDisks(disks: DiskInfo[]): void {
           <div class="disk-device-row">
             <span class="disk-device-icon">${typeIcon}</span>
             <span class="disk-device-name">${deviceName || d.filesystem}</span>
+            ${hasModel ? `<span class="disk-model">${d.device_model}</span>` : ''}
           </div>
           <div class="disk-meta">
             <span class="disk-fstype">${d.fstype}</span>
@@ -142,7 +183,7 @@ export function renderDisks(disks: DiskInfo[]): void {
         </div>
         <div class="disk-capacity">
           <span class="disk-total">${d.total}</span>
-          <span class="disk-percent">${Math.round(d.percent_used)}%</span>
+          <span class="disk-percent ${getBarColor(d.percent_used)}">${roundedPct}%</span>
         </div>
       </div>
       <div class="disk-bar-bg"><div class="disk-bar-fill ${getBarColor(d.percent_used)}" style="width:${Math.min(d.percent_used, 100)}%"></div></div>
@@ -150,6 +191,11 @@ export function renderDisks(disks: DiskInfo[]): void {
         <span class="disk-used">📝 ${d.used} usados</span>
         <span class="disk-free">📦 ${d.available} livres</span>
       </div>
+      ${hasIO ? `
+      <div class="disk-io-row">
+        <span class="disk-io-item">📥 <strong>Leitura:</strong> ${d.io_read}</span>
+        <span class="disk-io-item">📤 <strong>Escrita:</strong> ${d.io_write}</span>
+      </div>` : ''}
       <div class="disk-actions">
         <button class="disk-btn disk-btn-open" data-mount="${d.mount_point}">📂 Abrir <span class="help-tip" data-help="disco-abrir">ⓘ</span></button>
         <button class="disk-btn disk-btn-analyze" data-mount="${d.mount_point}">🔍 Analisar <span class="help-tip" data-help="disco-analisar">ⓘ</span></button>

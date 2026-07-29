@@ -2754,6 +2754,81 @@ body {
   font-family: monospace;
 }
 
+/* ─── Disk Page Stats Bar ─── */
+
+.disk-stats-bar {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.disk-stat {
+  background: linear-gradient(145deg, #1a1a32 0%, #18182e 100%);
+  border: 1px solid #252545;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.disk-stat-icon {
+  font-size: 1.1rem;
+}
+
+.disk-stat-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #eee;
+}
+
+.disk-stat-label {
+  font-size: 0.7rem;
+  color: #666;
+  margin-left: auto;
+}
+
+/* ─── Disk Card Enhancements ─── */
+
+.disk-model {
+  font-size: 0.65rem;
+  color: #888;
+  margin-left: 0.4rem;
+  font-weight: 400;
+}
+
+.disk-percent {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.disk-percent.green { color: #4ae0a0; }
+.disk-percent.yellow { color: #e8c547; }
+.disk-percent.orange { color: #e87a3e; }
+.disk-percent.red { color: #e84a4a; }
+
+.disk-io-row {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid #222244;
+  font-size: 0.75rem;
+  color: #999;
+  flex-wrap: wrap;
+}
+
+.disk-io-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.disk-io-item strong {
+  color: #bbb;
+  font-weight: 500;
+}
+
 /* ─── Bridge: Tools → Packages ─── */
 
 .tools-bridge {

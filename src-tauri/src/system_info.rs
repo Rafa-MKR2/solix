@@ -4,6 +4,7 @@
 
 
 use serde::Serialize;
+use std::collections::HashMap;
 use std::path::Path;
 
 #[derive(Debug, Serialize)]
@@ -15,6 +16,9 @@ pub struct DiskInfo {
     pub percent_used: f64,
     pub filesystem: String,
     pub fstype: String,
+    pub io_read: String,   // human-readable, e.g. "45.2 MB/s"
+    pub io_write: String,  // human-readable
+    pub device_model: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -38,10 +42,9 @@ fn read_first_line(path: &str) -> Option<String> {
 
 fn get_disks() -> Vec<DiskInfo> {
     let mut disks = Vec::new();
+    let io_map = get_disk_io_map();
 
     if Path::new("/usr/bin/df").exists() {
-        // df -hT: formato legível + tipo do filesystem (ext4, btrfs, ntfs, etc.)
-        // Colunas: source, type, size, used, avail, use%, mount
         if let Ok(out) = std::process::Command::new("df")
             .args(["-hT"])
             .output()
@@ -56,7 +59,6 @@ fn get_disks() -> Vec<DiskInfo> {
                 let filesystem = parts[0];
                 let fstype = parts[1].to_string();
 
-                // Skip virtual filesystems
                 if is_virtual_fs(&fstype) {
                     continue;
                 }
@@ -68,6 +70,25 @@ fn get_disks() -> Vec<DiskInfo> {
                 let pcent_str = parts[5].trim_end_matches('%');
                 let percent = pcent_str.parse::<f64>().unwrap_or(0.0);
 
+                // Extract base device name (e.g. /dev/sda1 → sda, /dev/nvme0n1p2 → nvme0n1)
+                let dev_name = filesystem
+                    .strip_prefix("/dev/")
+                    .unwrap_or(filesystem)
+                    .trim_end_matches(|c: char| c.is_ascii_digit())
+                    .trim_end_matches('p');
+
+                let full_name = filesystem
+                    .strip_prefix("/dev/")
+                    .unwrap_or(filesystem)
+                    .to_string();
+
+                let (io_read, io_write) = io_map.get(&full_name)  // try partition name first
+                    .or_else(|| io_map.get(&dev_name.to_string()))  // fallback to base device
+                    .cloned()
+                    .unwrap_or(("—".to_string(), "—".to_string()));
+
+                let device_model = get_device_model(dev_name);
+
                 disks.push(DiskInfo {
                     mount_point: mount.to_string(),
                     total,
@@ -76,12 +97,91 @@ fn get_disks() -> Vec<DiskInfo> {
                     percent_used: percent,
                     filesystem: filesystem.to_string(),
                     fstype,
+                    io_read,
+                    io_write,
+                    device_model,
                 });
             }
         }
     }
 
     disks
+}
+
+fn get_disk_io_map() -> HashMap<String, (String, String)> {
+    // Read /proc/diskstats twice with a delay to calculate I/O speed
+    fn read_diskstats() -> HashMap<String, (u64, u64)> {
+        let mut map = HashMap::new();
+        if let Ok(content) = std::fs::read_to_string("/proc/diskstats") {
+            for line in content.lines() {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 10 {
+                    let name = parts[2].to_string();
+                    // Skip virtual devices
+                    if name.starts_with("loop") || name.starts_with("ram") 
+                        || name.starts_with("zram") || name.starts_with("dm-") {
+                        continue;
+                    }
+                    let rsect: u64 = parts.get(5).and_then(|s| s.parse().ok()).unwrap_or(0);
+                    let wsect: u64 = parts.get(9).and_then(|s| s.parse().ok()).unwrap_or(0);
+                    map.insert(name, (rsect, wsect));
+                }
+            }
+        }
+        map
+    }
+
+    fn sectors_to_bytes(sectors: u64) -> u64 {
+        sectors * 512 // 1 sector = 512 bytes
+    }
+
+    fn format_speed(bytes_per_sec: u64) -> String {
+        if bytes_per_sec > 1_073_741_824 {
+            format!("{:.1} GB/s", bytes_per_sec as f64 / 1_073_741_824.0)
+        } else if bytes_per_sec > 1_048_576 {
+            format!("{:.1} MB/s", bytes_per_sec as f64 / 1_048_576.0)
+        } else if bytes_per_sec > 1024 {
+            format!("{:.0} KB/s", bytes_per_sec as f64 / 1024.0)
+        } else {
+            format!("{} B/s", bytes_per_sec)
+        }
+    }
+
+    let first = read_diskstats();
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    let second = read_diskstats();
+
+    let mut result = HashMap::new();
+    for (name, (s1_r, s1_w)) in &first {
+        if let Some(&(s2_r, s2_w)) = second.get(name) {
+            let read_bytes = sectors_to_bytes(s2_r.saturating_sub(*s1_r));
+            let write_bytes = sectors_to_bytes(s2_w.saturating_sub(*s1_w));
+            // Multiply by 2 because we slept 500ms (0.5s), so multiply by 2 for bytes/sec
+            let read_speed = format_speed(read_bytes * 2);
+            let write_speed = format_speed(write_bytes * 2);
+            result.insert(name.clone(), (read_speed, write_speed));
+        }
+    }
+    result
+}
+
+fn get_device_model(dev_name: &str) -> String {
+    // Try /sys/block/<name>/device/model for NVMe/SATA/SCSI
+    let model_path = format!("/sys/block/{}/device/model", dev_name);
+    if let Ok(model) = std::fs::read_to_string(&model_path) {
+        return model.trim().to_string();
+    }
+    // Try loopback devices
+    if dev_name.starts_with("loop") {
+        return "Loopback".to_string();
+    }
+    // Try /sys/block/<name>/dm/name for device mapper
+    if dev_name.starts_with("dm-") {
+        if let Ok(name) = std::fs::read_to_string(format!("/sys/block/{}/dm/name", dev_name)) {
+            return format!("DM-{}", name.trim());
+        }
+    }
+    String::new()
 }
 
 fn is_virtual_fs(fstype: &str) -> bool {
@@ -257,6 +357,9 @@ mod tests {
             percent_used: 50.0,
             filesystem: "/dev/sda1".into(),
             fstype: "ext4".into(),
+            io_read: "—".into(),
+            io_write: "—".into(),
+            device_model: String::new(),
         };
         assert_eq!(d.mount_point, "/");
         assert_eq!(d.percent_used, 50.0);
@@ -348,6 +451,9 @@ model name\t: AMD Ryzen 5 3600\n";
             percent_used: 40.0,
             filesystem: "/dev/sdb1".into(),
             fstype: "btrfs".into(),
+            io_read: "45.2 MB/s".into(),
+            io_write: "22.8 MB/s".into(),
+            device_model: "Samsung SSD 970".into(),
         };
         assert_eq!(d.mount_point, "/home");
         assert_eq!(d.total, "500 GB");
@@ -356,6 +462,9 @@ model name\t: AMD Ryzen 5 3600\n";
         assert_eq!(d.percent_used, 40.0);
         assert_eq!(d.filesystem, "/dev/sdb1");
         assert_eq!(d.fstype, "btrfs");
+        assert_eq!(d.io_read, "45.2 MB/s");
+        assert_eq!(d.io_write, "22.8 MB/s");
+        assert_eq!(d.device_model, "Samsung SSD 970");
     }
 
     #[test]

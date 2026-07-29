@@ -29,6 +29,9 @@ export interface DiskInfo {
   used: string;
   available: string;
   percent_used: number;
+  io_read: string;
+  io_write: string;
+  device_model: string;
 }
 
 export interface SystemHardware {
