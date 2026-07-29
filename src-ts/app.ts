@@ -43,6 +43,8 @@ import {
   handleStartBackup,
   handleCopyReport,
   handleOpenIssue,
+  handleSaveReport,
+  handleEmailReport,
 } from './operations.js';
 import {
   loadConnectivity,
@@ -113,6 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('report-overlay-close')?.addEventListener('click', hideReportModal);
   document.getElementById('report-close-btn')?.addEventListener('click', hideReportModal);
   document.getElementById('report-copy-btn')?.addEventListener('click', handleCopyReport);
+  document.getElementById('report-save-btn')?.addEventListener('click', handleSaveReport);
+  document.getElementById('report-email-btn')?.addEventListener('click', handleEmailReport);
   document.getElementById('report-github-btn')?.addEventListener('click', handleOpenIssue);
   document.getElementById('report-overlay')?.addEventListener('click', (e) => {
     if (e.target === e.currentTarget) hideReportModal();

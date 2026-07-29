@@ -581,10 +581,14 @@ export function handleCopyReport(): void {
   if (!lastReportText) return;
   navigator.clipboard.writeText(lastReportText).then(() => {
     const resultEl = document.getElementById('report-result');
-    if (resultEl) {
-      resultEl.classList.remove('hidden');
-      setTimeout(() => resultEl.classList.add('hidden'), 3000);
-    }
+    const resultText = document.getElementById('report-result-text');
+    const resultIcon = document.getElementById('report-result-icon');
+    if (resultIcon) resultIcon.textContent = '✅';
+    if (resultEl) resultEl.classList.remove('hidden');
+    if (resultText) resultText.textContent = '📋 Relatório copiado! Cole onde quiser.';
+    setTimeout(() => {
+      if (resultEl) resultEl.classList.add('hidden');
+    }, 3000);
     showToast('success', 'Relatório copiado para a área de transferência!');
   }).catch(() => {
     // Fallback: select text manually
@@ -604,7 +608,6 @@ export async function handleOpenIssue(): Promise<void> {
   if (!lastIssueUrl) return;
   const invoke = getInvoke();
   if (!invoke) {
-    // Fallback: tenta window.open se não tiver invoke
     window.open(lastIssueUrl, '_blank');
     hideReportModal();
     return;
@@ -616,6 +619,54 @@ export async function handleOpenIssue(): Promise<void> {
   } catch (e) {
     console.error('open_url failed:', e);
     showToast('error', 'Erro ao abrir o GitHub. Copie o relatório e abra manualmente.');
+  }
+}
+
+export async function handleSaveReport(): Promise<void> {
+  if (!lastReportText) return;
+  const invoke = getInvoke();
+  if (!invoke) {
+    showToast('error', 'Não foi possível salvar o relatório.');
+    return;
+  }
+  try {
+    const filePath = await invoke<string>('save_report_to_desktop', { content: lastReportText });
+    showToast('success', `💾 Relatório salvo! ${filePath}`);
+    // Mostra no modal também
+    const resultEl = document.getElementById('report-result');
+    const resultText = document.getElementById('report-result-text');
+    if (resultEl) resultEl.classList.remove('hidden');
+    if (resultText) resultText.textContent = `💾 Salvo em: ${filePath.split('/').pop()}`;
+    setTimeout(() => {
+      if (resultEl) resultEl.classList.add('hidden');
+    }, 4000);
+  } catch (e) {
+    console.error('save_report_to_desktop failed:', e);
+    showToast('error', 'Erro ao salvar relatório: ' + (e + ''));
+  }
+}
+
+export async function handleEmailReport(): Promise<void> {
+  if (!lastReportText) return;
+  const invoke = getInvoke();
+  if (!invoke) return;
+  const subject = encodeURIComponent('Relatório Solix - Problema');
+  const body = encodeURIComponent(
+    'Relatório do sistema gerado pelo Solix\n\n' +
+    '---\n\n' +
+    lastReportText +
+    '\n\n---\n\n' +
+    'Descreva seu problema acima.\n' +
+    'Obrigado por ajudar a melhorar o Solix!'
+  );
+  const mailto = `mailto:rafaeldocarmo.dev@gmail.com?subject=${subject}&body=${body}`;
+  try {
+    await invoke('open_url', { url: mailto });
+    hideReportModal();
+    showToast('success', '📧 Cliente de email aberto! Envie o relatório para o desenvolvedor.');
+  } catch (e) {
+    console.error('open_url mailto failed:', e);
+    showToast('error', 'Erro ao abrir cliente de email. Copie o relatório e envie manualmente para rafaeldocarmo.dev@gmail.com');
   }
 }
 

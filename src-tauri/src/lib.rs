@@ -313,6 +313,34 @@ async fn open_url(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn save_report_to_desktop(content: String) -> Result<String, String> {
+    let home = std::env::var("HOME").map_err(|_| "Variável HOME não encontrada".to_string())?;
+    // Procura a Área de Trabalho (português, inglês ou fallback pra home)
+    let candidates = vec![
+        format!("{}/Área de Trabalho", home),
+        format!("{}/Desktop", home),
+        format!("{}/Escritorio", home),
+        home.clone(), // fallback: salva na home
+    ];
+    let dest = candidates.into_iter()
+        .find(|p| std::path::Path::new(p).exists())
+        .unwrap_or(home.clone());
+
+    // Timestamp: segundos desde epoch (único e simples)
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| "Erro ao obter tempo".to_string())?
+        .as_secs();
+    let filename = format!("{}/solix-report-{}.txt", dest, secs);
+
+    tokio::fs::write(&filename, &content)
+        .await
+        .map_err(|e| format!("Erro ao salvar arquivo: {}", e))?;
+
+    Ok(filename)
+}
+
+#[tauri::command]
 async fn get_app_version() -> Result<String, String> {
     Ok(env!("CARGO_PKG_VERSION").to_string())
 }
@@ -500,6 +528,7 @@ pub fn run() {
     remove_system_packages,
     install_repo_packages,
     create_backup,
+    save_report_to_desktop,
 ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));
