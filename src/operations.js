@@ -1,5 +1,5 @@
 import { getInvoke, showToast, setText } from './utils.js';
-import { renderTools, renderDisks, selectedTools, removedTools, updateButtons, showLockDiagnosis, switchToPage, showUpdateBanner, } from './ui.js';
+import { renderTools, renderDisks, selectedTools, removedTools, showLockDiagnosis, switchToPage, showUpdateBanner, } from './ui.js';
 export let toolStatuses = [];
 export let systemDistro = '';
 let cachedPassword = '';
@@ -8,20 +8,6 @@ let lastPendingAction = null;
 let isOperating = false;
 let pendingPkgData = null;
 let pendingPkgFileName = null;
-export function clearSelectedTools() {
-    selectedTools.clear();
-    removedTools.clear();
-    updateButtons();
-}
-export function getCachedPassword() {
-    return cachedPassword;
-}
-export function getPendingAction() {
-    return pendingAction;
-}
-export function getLastPendingAction() {
-    return lastPendingAction;
-}
 export async function loadSystemInfo() {
     const invoke = getInvoke();
     if (!invoke)
@@ -284,19 +270,6 @@ export function retryLastOperation() {
         showToast('error', 'Selecione a operação novamente.');
     }
 }
-export function clearPendingPkg() {
-    pendingPkgData = null;
-    pendingPkgFileName = null;
-    const infoCard = document.getElementById('pkg-info');
-    if (infoCard)
-        infoCard.classList.add('hidden');
-    const outputSection = document.getElementById('pkg-output-section');
-    if (outputSection)
-        outputSection.classList.add('hidden');
-    const outputLog = document.getElementById('pkg-output-log');
-    if (outputLog)
-        outputLog.textContent = '';
-}
 export async function handlePkgFileSelect(file) {
     const infoCard = document.getElementById('pkg-info');
     const nameEl = document.getElementById('pkg-name');
@@ -522,10 +495,4 @@ export async function cancelOperation() {
             console.error('cancel failed:', e);
         }
     }
-}
-export function getPendingPkgData() {
-    return pendingPkgData;
-}
-export function getPendingPkgFileName() {
-    return pendingPkgFileName;
 }

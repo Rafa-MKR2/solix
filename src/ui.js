@@ -176,10 +176,6 @@ export const categoryLabels = {
 const categoryOrder = ['desenvolvimento', 'internet', 'container', 'jogos', 'midia', 'escritorio', 'comunicacao', 'utilitarios', 'temas'];
 export let selectedTools = new Set();
 export let removedTools = new Set();
-let updateButtonsRef = null;
-export function setUpdateButtonsFn(fn) {
-    updateButtonsRef = fn;
-}
 export function updateButtons() {
     const installBtn = document.getElementById('install-btn');
     const removeBtn = document.getElementById('remove-btn');
@@ -690,30 +686,6 @@ export function showUpdateBanner(info) {
         if (banner.parentNode)
             banner.remove();
     }, 30000);
-}
-export async function showInfoModal(toolName) {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
-    try {
-        const info = await invoke('get_package_info', { toolName });
-        document.getElementById('info-name').textContent = toolName;
-        document.getElementById('info-package').textContent = info.package_name || toolName;
-        document.getElementById('info-desc').textContent = info.description || 'N/A';
-        document.getElementById('info-version').textContent = info.version || 'N/A';
-        document.getElementById('info-size').textContent = info.size || 'N/A';
-        document.getElementById('info-status').textContent = info.installed ? 'Instalado ✓' : 'Ausente ✗';
-        const icon = document.getElementById('info-icon');
-        if (icon && info.icon_base64) {
-            icon.src = info.icon_base64;
-            icon.style.display = 'inline-block';
-        }
-        document.getElementById('info-overlay').classList.remove('hidden');
-    }
-    catch (e) {
-        console.error('get_package_info failed:', e);
-        showToast('error', `Erro ao buscar informações de ${toolName}.`);
-    }
 }
 export async function loadHomeStats() {
     const invoke = getInvoke();
