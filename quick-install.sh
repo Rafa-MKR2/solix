@@ -4,12 +4,12 @@
 # GitHub: https://github.com/Rafa-MKR2
 #
 # Quick install script — downloads pre-built Solix binary and runs it.
-# Usage: curl -sSL https://github.com/Rafa-MKR2/solix/releases/download/v1.0/quick-install.sh | bash
+# Usage: curl -sSL https://github.com/Rafa-MKR2/solix/releases/latest/download/quick-install.sh | sudo bash
 
 set -euo pipefail
 
 APP_NAME="solix"
-VERSION="v2.0.1"
+VERSION="v2.0.2"
 REPO="Rafa-MKR2/solix"
 BIN_URL="https://github.com/$REPO/releases/download/$VERSION/$APP_NAME-x86_64-linux"
 ARCHIVE_URL="https://github.com/$REPO/releases/download/$VERSION/solix-assets.tar.gz"

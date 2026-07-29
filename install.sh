@@ -35,3 +35,9 @@ sudo cp "$SCRIPT_DIR/src-tauri/icons/128x128.png" "/usr/share/icons/hicolor/128x
 sudo gtk-update-icon-cache /usr/share/icons/hicolor/ 2>/dev/null || true
 
 echo "✓ $APP_NAME instalado. Execute com: $APP_NAME"
+echo ""
+echo "📥 Download direto (pre-compilado):"
+echo "   https://github.com/Rafa-MKR2/solix/releases/latest/download/solix-x86_64-linux"
+echo ""
+echo "🚀 Instalação rápida (como root):"
+echo "   curl -sSL https://github.com/Rafa-MKR2/solix/releases/latest/download/quick-install.sh | sudo bash"
