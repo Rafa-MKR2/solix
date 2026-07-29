@@ -396,6 +396,8 @@
             <div class="roadmap-item"><span class="roadmap-bullet status-done"></span>Ferramentas e Instalação de Aplicativos</div>
             <div class="roadmap-item"><span class="roadmap-bullet status-done"></span>Painel de Rede</div>
             <div class="roadmap-item"><span class="roadmap-bullet status-done"></span>Atualização Automática</div>
+            <div class="roadmap-item"><span class="roadmap-bullet status-done"></span>Gerenciamento de Pacotes</div>
+            <div class="roadmap-item"><span class="roadmap-bullet status-done"></span>Backup do sistema (tar)</div>
             <div class="roadmap-item"><span class="roadmap-bullet status-done"></span>Ajuda Educativa</div>
           </div>
         </div>
@@ -417,8 +419,9 @@
             <span class="roadmap-group-title">Planejado</span>
           </div>
           <div class="roadmap-list">
-            <div class="roadmap-item"><span class="roadmap-bullet status-planned"></span>Backup do sistema</div>
             <div class="roadmap-item"><span class="roadmap-bullet status-planned"></span>Snapshots (Timeshift/Btrfs)</div>
+            <div class="roadmap-item"><span class="roadmap-bullet status-planned"></span>Gerenciamento de Serviços (systemd)</div>
+            <div class="roadmap-item"><span class="roadmap-bullet status-planned"></span>Temas e personalização visual</div>
             <div class="roadmap-item"><span class="roadmap-bullet status-planned"></span>Plugins e extensões</div>
             <div class="roadmap-item"><span class="roadmap-bullet status-planned"></span>Internacionalização (i18n)</div>
             <div class="roadmap-item"><span class="roadmap-bullet status-planned"></span>Assistente de configuração inicial</div>
@@ -658,6 +661,74 @@
       <div class="password-actions">
         <button id="confirm-btn-no" class="btn-pw-cancel">Cancelar</button>
         <button id="confirm-btn-yes" class="btn-pw-confirm">Sim, atualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="report-overlay" class="overlay hidden">
+    <div class="report-modal">
+      <div class="report-modal-header">
+        <h3>🐛 Reportar Problema</h3>
+        <span id="report-overlay-close" class="info-close-btn">&times;</span>
+      </div>
+      <div class="report-modal-body">
+        <div id="report-status" class="report-status">
+          <span id="report-status-icon">⏳</span>
+          <span id="report-status-text">Coletando informações...</span>
+        </div>
+        <div id="report-content" class="report-content hidden">
+          <div class="report-info-msg">
+            Veja abaixo as informações do seu sistema. Nenhum dado será enviado sem sua ação.
+          </div>
+          <pre id="report-text" class="report-text"></pre>
+          <div id="report-result" class="report-result hidden">
+            <span class="report-result-icon">✅</span>
+            <span class="report-result-text">Relatório copiado! Agora cole no GitHub.</span>
+          </div>
+        </div>
+      </div>
+      <div class="report-modal-footer" id="report-buttons">
+        <button id="report-close-btn" class="btn-pw-cancel">✖ Fechar</button>
+        <button id="report-copy-btn" class="btn-secondary">📋 Copiar Relatório</button>
+        <button id="report-github-btn" class="btn-pw-confirm">🐛 Abrir Issue no GitHub</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="backup-overlay" class="overlay hidden">
+    <div class="backup-modal">
+      <div class="backup-modal-header">
+        <h3>💾 Criar Backup</h3>
+        <span id="backup-close-btn" class="info-close-btn">&times;</span>
+      </div>
+      <div class="backup-modal-body">
+        <div class="backup-field">
+          <span class="backup-label">📂 Origem</span>
+          <span class="backup-value" id="backup-source">—</span>
+        </div>
+        <div class="backup-field">
+          <span class="backup-label">💾 Destino</span>
+          <input type="text" id="backup-destination" class="backup-input" placeholder="/mnt/backup" value="" />
+        </div>
+        <p class="backup-hint">O backup será salvo como <code>solix-backup-&lt;pasta&gt;-&lt;data&gt;.tar.gz</code> na pasta de destino.</p>
+        <div id="backup-progress" class="backup-progress hidden">
+          <div class="backup-progress-status" id="backup-progress-status">⏳ Comprimindo...</div>
+          <div class="backup-progress-track">
+            <div id="backup-progress-fill" class="update-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="backup-progress-text" id="backup-progress-text">0%</div>
+        </div>
+        <div id="backup-result" class="backup-result hidden">
+          <div class="backup-result-icon">✅</div>
+          <div class="backup-result-info">
+            <span class="backup-result-title" id="backup-result-title">Backup concluído!</span>
+            <span class="backup-result-sub" id="backup-result-sub"></span>
+          </div>
+        </div>
+      </div>
+      <div class="backup-modal-footer">
+        <button id="backup-cancel-btn" class="btn-pw-cancel">Cancelar</button>
+        <button id="backup-start-btn" class="btn-pw-confirm">💾 Iniciar Backup</button>
       </div>
     </div>
   </div>

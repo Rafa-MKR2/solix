@@ -14,6 +14,7 @@ mod stats;
 mod system_info;
 mod system_ops;
 mod tool;
+mod backup;
 mod package_manager;
 mod updater;
 mod user;
@@ -301,6 +302,17 @@ async fn run_simple_command(command: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn open_url(url: String) -> Result<(), String> {
+    // Usa xdg-open com caminho absoluto e spawn (fire-and-forget)
+    // para abrir URLs no navegador padrão do sistema
+    tokio::process::Command::new("/usr/bin/xdg-open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| format!("Erro ao abrir URL: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn get_app_version() -> Result<String, String> {
     Ok(env!("CARGO_PKG_VERSION").to_string())
 }
@@ -401,6 +413,11 @@ async fn get_processes() -> Result<Vec<stats::ProcessInfo>, String> {
     Ok(list)
 }
 
+#[tauri::command]
+async fn create_backup(source: String, destination: String, mount_point: String) -> Result<backup::BackupResult, String> {
+    backup::create_backup(&source, &destination, &mount_point).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -465,6 +482,7 @@ pub fn run() {
     get_report_info,
     get_home_stats,
     get_app_version,
+    open_url,
     check_app_update,
     install_update,
     check_pm_lock,
@@ -481,6 +499,7 @@ pub fn run() {
     get_package_history,
     remove_system_packages,
     install_repo_packages,
+    create_backup,
 ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));

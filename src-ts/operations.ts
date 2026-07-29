@@ -522,6 +522,11 @@ export async function handleCheckUpdateClick(): Promise<void> {
 
 // ─── Report ───
 
+import { showReportModal, hideReportModal } from './ui.js';
+
+let lastReportText = '';
+let lastIssueUrl = '';
+
 export async function reportProblem(): Promise<void> {
   const invoke = getInvoke();
   if (!invoke) return;
@@ -532,39 +537,85 @@ export async function reportProblem(): Promise<void> {
     const outputLog = document.getElementById('output-log');
     const logText = outputLog?.textContent?.trim() || '(vazio)';
     const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    // Build a more detailed and friendly report
     const report = [
       '📋 Relatório do Solix — v' + info.app_version,
-      '━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
       '',
-      '🖥️ Sistema',
-      '  Distribuição: ' + info.distro_name,
-      '  Versão: ' + info.distro_version,
-      '  Kernel: ' + info.kernel,
-      '  Gerenciador: ' + info.package_manager,
+      '🖥️  SISTEMA',
+      '  Distribuição : ' + info.distro_name + ' ' + info.distro_version,
+      '  Kernel       : ' + info.kernel,
+      '  Pacotes      : ' + info.package_manager,
       '',
-      '📊 Desempenho',
-      '  CPU: ' + Math.round(info.cpu_percent) + '%',
-      '  RAM: ' + Math.round(info.memory_percent) + '%',
-      '  Temperatura: ' + Math.round(info.temperature) + '°C',
+      '📊  DESEMPENHO (no momento do relatório)',
+      '  CPU    : ' + Math.round(info.cpu_percent) + '%',
+      '  RAM    : ' + Math.round(info.memory_percent) + '%',
+      '  Temp.  : ' + Math.round(info.temperature) + '°C',
       '',
-      '📜 Última operação:',
-      logText,
+      '📜  ÚLTIMA OPERAÇÃO',
+      '  ' + logText.replace(/\n/g, '\n  '),
       '',
-      '🕐 Gerado em: ' + now,
+      '🕐  Gerado em: ' + now,
     ].join('\n');
-    const body = encodeURIComponent('## Descrição do problema\n\n' +
-      '(Descreva aqui o que aconteceu)\n\n' +
-      '---\n' +
-      '```\n' + report + '\n```');
-    window.open('https://github.com/Rafa-MKR2/solix/issues/new?body=' + body, '_blank');
-    if (btn) btn.textContent = '✅ Aberto!';
-    setTimeout(() => {
-      if (btn) btn.textContent = '🐛 Reportar Problema';
-    }, 3000);
+
+    lastReportText = report;
+    lastIssueUrl = 'https://github.com/Rafa-MKR2/solix/issues/new?body=' +
+      encodeURIComponent('## Descrição do problema\n\n' +
+        '(Descreva aqui o que aconteceu)\n\n' +
+        '---\n' +
+        '```\n' + report + '\n```');
+
+    // Show modal with the report preview
+    showReportModal(report);
+
+    if (btn) btn.textContent = '🐛 Reportar Problema';
   } catch (e) {
     console.error('reportProblem failed:', e);
     showToast('error', 'Erro ao gerar relatório.');
     if (btn) btn.textContent = '🐛 Reportar Problema';
+  }
+}
+
+export function handleCopyReport(): void {
+  if (!lastReportText) return;
+  navigator.clipboard.writeText(lastReportText).then(() => {
+    const resultEl = document.getElementById('report-result');
+    if (resultEl) {
+      resultEl.classList.remove('hidden');
+      setTimeout(() => resultEl.classList.add('hidden'), 3000);
+    }
+    showToast('success', 'Relatório copiado para a área de transferência!');
+  }).catch(() => {
+    // Fallback: select text manually
+    const textEl = document.getElementById('report-text');
+    if (textEl) {
+      const range = document.createRange();
+      range.selectNodeContents(textEl);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      showToast('info', 'Selecione o texto e copie (Ctrl+C)');
+    }
+  });
+}
+
+export async function handleOpenIssue(): Promise<void> {
+  if (!lastIssueUrl) return;
+  const invoke = getInvoke();
+  if (!invoke) {
+    // Fallback: tenta window.open se não tiver invoke
+    window.open(lastIssueUrl, '_blank');
+    hideReportModal();
+    return;
+  }
+  try {
+    await invoke('open_url', { url: lastIssueUrl });
+    hideReportModal();
+    showToast('success', '✅ GitHub aberto no navegador! Descreva o problema e envie.');
+  } catch (e) {
+    console.error('open_url failed:', e);
+    showToast('error', 'Erro ao abrir o GitHub. Copie o relatório e abra manualmente.');
   }
 }
 
@@ -867,6 +918,81 @@ export function updateRecommendedCount(): void {
   const total = toolStatuses.length;
   const el = document.getElementById('pkg-recommended-count');
   if (el) el.textContent = `${installed}/${total}`;
+}
+
+// ─── Backup ───
+
+import type { BackupResult } from './types.js';
+
+export async function handleStartBackup(): Promise<void> {
+  const invoke = getInvoke();
+  if (!invoke) return;
+
+  const source = document.getElementById('backup-source')?.textContent || '';
+  const destInput = document.getElementById('backup-destination') as HTMLInputElement | null;
+  const destination = destInput?.value?.trim() || '';
+
+  if (!source || !destination) {
+    showToast('error', 'Selecione uma origem e destino para o backup.');
+    return;
+  }
+
+  // Show progress
+  const progressEl = document.getElementById('backup-progress');
+  const resultEl = document.getElementById('backup-result');
+  const statusEl = document.getElementById('backup-progress-status');
+  const fillEl = document.getElementById('backup-progress-fill');
+  const textEl = document.getElementById('backup-progress-text');
+  const startBtn = document.getElementById('backup-start-btn') as HTMLButtonElement | null;
+  const cancelBtn = document.getElementById('backup-cancel-btn') as HTMLButtonElement | null;
+
+  if (progressEl) progressEl.classList.remove('hidden');
+  if (resultEl) resultEl.classList.add('hidden');
+  if (statusEl) statusEl.textContent = '⏳ Comprimindo...';
+  if (fillEl) fillEl.style.width = '0%';
+  if (textEl) textEl.textContent = '0%';
+  if (startBtn) startBtn.disabled = true;
+  if (cancelBtn) cancelBtn.textContent = '⏳';
+
+  const mountPoint = source; // e.g., /home, /
+
+  try {
+    const result = await invoke<BackupResult>('create_backup', {
+      source,
+      destination,
+      mountPoint,
+    });
+
+    if (result.success) {
+      if (statusEl) statusEl.textContent = '✅ Backup concluído!';
+      if (fillEl) fillEl.style.width = '100%';
+      if (textEl) textEl.textContent = '100%';
+
+      if (resultEl) {
+        resultEl.classList.remove('hidden');
+        document.getElementById('backup-result-title')!.textContent = '✅ Backup concluído!';
+        document.getElementById('backup-result-sub')!.textContent =
+          `${result.file_size} • ${result.duration_secs}s • ${result.file_path}`;
+      }
+
+      showToast('success', `Backup criado: ${result.file_size}`);
+    } else {
+      throw new Error(result.error || 'Erro desconhecido');
+    }
+  } catch (e) {
+    const msg = (e + '') || 'Erro ao criar backup';
+    if (statusEl) statusEl.textContent = '❌ ' + msg;
+    if (fillEl) fillEl.style.width = '0%';
+    if (resultEl) {
+      resultEl.classList.remove('hidden');
+      document.getElementById('backup-result-title')!.textContent = '❌ Falha no backup';
+      document.getElementById('backup-result-sub')!.textContent = msg;
+    }
+    showToast('error', msg);
+  } finally {
+    if (startBtn) startBtn.disabled = false;
+    if (cancelBtn) cancelBtn.textContent = 'Cancelar';
+  }
 }
 
 // ─── Cancel ───

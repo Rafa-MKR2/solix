@@ -2789,44 +2789,489 @@ body {
   margin-left: auto;
 }
 
-/* ─── Disk Card Enhancements ─── */
+/* ─── Compact Disk Table (Windows-style) ─── */
 
-.disk-model {
-  font-size: 0.65rem;
-  color: #888;
-  margin-left: 0.4rem;
-  font-weight: 400;
+.disk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  background: #18182e;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #222244;
 }
 
-.disk-percent {
-  font-size: 0.75rem;
+.disk-table thead {
+  background: #1e1e38;
+}
+
+.disk-table th {
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.5rem;
+  text-align: left;
+  font-weight: 500;
+  border-bottom: 1px solid #2a2a44;
+  white-space: nowrap;
+}
+
+.disk-row {
+  border-bottom: 1px solid #1e1e30;
+  transition: background 0.15s;
+}
+
+.disk-row:last-child {
+  border-bottom: none;
+}
+
+.disk-row:hover {
+  background: #1e1e38;
+}
+
+.disk-row td {
+  padding: 0.5rem 0.5rem;
+  vertical-align: middle;
+}
+
+.dth-icon, .dtd-icon {
+  width: 30px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.dtd-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.dtd-device {
+  font-weight: 600;
+  color: #ddd;
+  font-family: monospace;
+}
+
+.dtd-mount {
+  font-size: 0.65rem;
+  color: #666;
+}
+
+.dtd-model {
+  font-size: 0.65rem;
+  color: #888;
+  font-style: italic;
+}
+
+.dtd-type .disk-fstype {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4ae0a0;
+  background: #00d4aa18;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
   font-weight: 600;
 }
 
-.disk-percent.green { color: #4ae0a0; }
-.disk-percent.yellow { color: #e8c547; }
-.disk-percent.orange { color: #e87a3e; }
-.disk-percent.red { color: #e84a4a; }
-
-.disk-io-row {
+.dtd-capacity {
   display: flex;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
-  border-top: 1px solid #222244;
-  font-size: 0.75rem;
-  color: #999;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.05rem;
 }
 
-.disk-io-item {
+.dtd-total {
+  font-weight: 600;
+  color: #ddd;
+}
+
+.dtd-used {
+  font-size: 0.65rem;
+  color: #666;
+}
+
+.dtd-bar {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.5rem;
+  min-width: 120px;
 }
 
-.disk-io-item strong {
-  color: #bbb;
+.dtd-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #222244;
+  border-radius: 4px;
+  overflow: hidden;
+  max-width: 100px;
+}
+
+.dtd-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.dtd-bar-fill.green { background: #00d4aa; }
+.dtd-bar-fill.yellow { background: #e8c547; }
+.dtd-bar-fill.orange { background: #e87a3e; }
+.dtd-bar-fill.red { background: #e84a4a; }
+
+.dtd-bar-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  min-width: 2.5rem;
+}
+
+.dtd-bar-label.green { color: #4ae0a0; }
+.dtd-bar-label.yellow { color: #e8c547; }
+.dtd-bar-label.orange { color: #e87a3e; }
+.dtd-bar-label.red { color: #e84a4a; }
+
+.dtd-io {
+  min-width: 100px;
+}
+
+.dtd-io-text {
+  font-size: 0.68rem;
+  color: #888;
+  font-family: monospace;
+}
+
+.dtd-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.dtd-btn {
+  background: transparent;
+  border: 1px solid #2a2a44;
+  color: #888;
+  padding: 0.2rem 0.35rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.15s;
+  margin-left: 0.15rem;
+  line-height: 1;
+}
+
+.dtd-btn:hover {
+  background: #2a2a55;
+  color: #ccc;
+  border-color: #3a3a66;
+}
+
+.dtd-btn-open:hover {
+  background: #1a2a3a;
+  border-color: #00d4aa44;
+}
+
+.dtd-btn-analyze:hover {
+  background: #2a2a1a;
+  border-color: #e8c54744;
+}
+
+.dtd-btn-partitions:hover {
+  background: #1a2a2a;
+  border-color: #4a9eff44;
+}
+
+.dtd-btn-backup {
+  transition: all 0.15s;
+}
+
+.dtd-btn-backup:hover {
+  background: #1a2a1a;
+  border-color: #4ae0a044;
+}
+
+/* ─── Report Modal ─── */
+
+.report-modal {
+  background: linear-gradient(145deg, #16162a 0%, #12121f 100%);
+  border: 1px solid #2a2a44;
+  border-radius: 16px;
+  padding: 0;
+  max-width: 640px;
+  width: 92vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 16px 64px rgba(0,0,0,0.6);
+  animation: modalIn 0.25s ease-out;
+}
+
+.report-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #252545;
+}
+
+.report-modal-header h3 {
+  font-size: 1rem;
+  color: #eee;
+  margin: 0;
+}
+
+.report-modal-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.report-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.5rem;
+  justify-content: center;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.report-status.loading {
+  animation: pulseText 1.2s ease-in-out infinite;
+}
+
+@keyframes pulseText {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.report-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.report-info-msg {
+  background: #1a1a32;
+  border: 1px solid #2a2a44;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+  color: #999;
+  line-height: 1.4;
+}
+
+.report-text {
+  background: #0d0d1a;
+  border: 1px solid #1e1e38;
+  border-radius: 10px;
+  padding: 1rem;
+  font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #ccc;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  user-select: all;
+}
+
+.report-text::-webkit-scrollbar {
+  width: 4px;
+}
+.report-text::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+.report-result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #0f2a1a;
+  border: 1px solid #2a5a3a;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+  color: #4ae0a0;
+}
+
+.report-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #252545;
+}
+
+.report-modal-footer .btn-secondary {
+  background: #1a1a32;
+  border: 1px solid #3a3a5a;
+  color: #ccc;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.15s;
+}
+
+.report-modal-footer .btn-secondary:hover {
+  background: #252545;
+  border-color: #4a4a6a;
+}
+
+/* ─── Backup Modal ─── */
+
+.backup-modal {
+  background: #18182e;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 500px;
+  border: 1px solid #2a2a44;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.backup-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.backup-modal-header h3 {
+  font-size: 1.1rem;
+  color: #eee;
+  margin: 0;
+}
+
+.backup-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.backup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.8rem;
+}
+
+.backup-label {
+  font-size: 0.8rem;
+  color: #888;
   font-weight: 500;
+}
+
+.backup-value {
+  font-size: 0.9rem;
+  color: #00d4aa;
+  font-weight: 600;
+  font-family: monospace;
+  padding: 0.4rem 0.6rem;
+  background: #12122a;
+  border-radius: 6px;
+  border: 1px solid #222244;
+}
+
+.backup-input {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #2a2a44;
+  background: #12122a;
+  color: #ddd;
+  font-size: 0.85rem;
+  font-family: monospace;
+  outline: none;
+}
+
+.backup-input:focus {
+  border-color: #00d4aa;
+}
+
+.backup-hint {
+  font-size: 0.75rem;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 0.8rem;
+}
+
+.backup-hint code {
+  background: #1a1a30;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  color: #aaa;
+}
+
+.backup-progress {
+  background: #12122a;
+  border: 1px solid #222244;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.backup-progress-status {
+  font-size: 0.85rem;
+  color: #eee;
+  margin-bottom: 0.5rem;
+}
+
+.backup-progress-track {
+  height: 8px;
+  background: #1a1a30;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.3rem;
+}
+
+.backup-progress-text {
+  font-size: 0.75rem;
+  color: #777;
+  text-align: center;
+}
+
+.backup-result {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  background: #112220;
+  border: 1px solid #00d4aa44;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+.backup-result-icon {
+  font-size: 1.3rem;
+}
+
+.backup-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.backup-result-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4ae0a0;
+}
+
+.backup-result-sub {
+  font-size: 0.65rem;
+  color: #888;
+  word-break: break-all;
+}
+
+.backup-modal-footer {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
 }
 
 /* ─── Bridge: Tools → Packages ─── */

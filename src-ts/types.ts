@@ -206,7 +206,23 @@ export interface SpeedTestResult {
   formatted: string;
 }
 
-export type PendingActionType = 'install' | 'remove' | 'update' | 'zram' | 'cleanup' | 'install-package' | 'app-update';
+export interface BackupResult {
+  success: boolean;
+  file_path: string;
+  file_size: string;
+  duration_secs: number;
+  error: string | null;
+}
+
+export interface BackupProgress {
+  stage: string;
+  message: string;
+  percent: number;
+  file_path: string | null;
+  file_size: string | null;
+}
+
+export type PendingActionType = 'install' | 'remove' | 'update' | 'zram' | 'cleanup' | 'install-package' | 'app-update' | 'backup';
 
 export interface PendingAction {
   type: PendingActionType;

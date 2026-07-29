@@ -144,7 +144,7 @@ export function renderDisks(disks: DiskInfo[]): void {
     return;
   }
 
-  // Compute stats
+  // Compute aggregate stats
   let totalGB = 0, usedGB = 0;
   for (const d of disks) {
     totalGB += parseSizeGB(d.total);
@@ -157,63 +157,119 @@ export function renderDisks(disks: DiskInfo[]): void {
   document.getElementById('disk-used-space')!.textContent = formatSizeGB(usedGB);
   document.getElementById('disk-pct-used')!.textContent = `${pct}%`;
 
-  for (const d of disks) {
-    const card = document.createElement('div');
-    card.className = 'disk-card';
+  // Build compact Windows-style table
+  const table = document.createElement('table');
+  table.className = 'disk-table';
 
+  // Header row
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th class="dth-icon"></th>
+        <th class="dth-name">Dispositivo</th>
+        <th class="dth-type">Tipo</th>
+        <th class="dth-capacity">Capacidade</th>
+        <th class="dth-bar">Uso</th>
+        <th class="dth-io">I/O</th>
+        <th class="dth-actions">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  const tbody = table.querySelector('tbody')!;
+
+  for (const d of disks) {
     const deviceName = d.filesystem.split('/').pop()!;
     const typeIcon = d.fstype === 'ntfs' ? '🪟' : d.fstype === 'vfat' ? '💾' : d.fstype === 'btrfs' ? '🌳' : '💽';
     const roundedPct = Math.round(d.percent_used);
+    const barColor = getBarColor(d.percent_used);
+    const hasIO = d.io_read && d.io_read !== '—';
+    const ioDisplay = hasIO ? `${d.io_read} / ${d.io_write}` : '—';
 
-    const hasIO = d.io_read && d.io_read !== '—' && d.io_write && d.io_write !== '—';
-    const hasModel = d.device_model && d.device_model.length > 0;
-
-    card.innerHTML = `
-      <div class="disk-card-top">
-        <div class="disk-card-info">
-          <div class="disk-device-row">
-            <span class="disk-device-icon">${typeIcon}</span>
-            <span class="disk-device-name">${deviceName || d.filesystem}</span>
-            ${hasModel ? `<span class="disk-model">${d.device_model}</span>` : ''}
-          </div>
-          <div class="disk-meta">
-            <span class="disk-fstype">${d.fstype}</span>
-            <span class="disk-mount">${d.mount_point}</span>
-          </div>
+    const row = document.createElement('tr');
+    row.className = 'disk-row';
+    row.innerHTML = `
+      <td class="dtd-icon">${typeIcon}</td>
+      <td class="dtd-name">
+        <span class="dtd-device">${deviceName}</span>
+        ${d.device_model ? `<span class="dtd-model">${d.device_model}</span>` : ''}
+        <span class="dtd-mount">${d.mount_point}</span>
+      </td>
+      <td class="dtd-type"><span class="disk-fstype">${d.fstype}</span></td>
+      <td class="dtd-capacity">
+        <span class="dtd-total">${d.total}</span>
+        <span class="dtd-used">${d.used} usado</span>
+      </td>
+      <td class="dtd-bar">
+        <div class="dtd-bar-track">
+          <div class="dtd-bar-fill ${barColor}" style="width:${Math.min(d.percent_used, 100)}%"></div>
         </div>
-        <div class="disk-capacity">
-          <span class="disk-total">${d.total}</span>
-          <span class="disk-percent ${getBarColor(d.percent_used)}">${roundedPct}%</span>
-        </div>
-      </div>
-      <div class="disk-bar-bg"><div class="disk-bar-fill ${getBarColor(d.percent_used)}" style="width:${Math.min(d.percent_used, 100)}%"></div></div>
-      <div class="disk-details">
-        <span class="disk-used">📝 ${d.used} usados</span>
-        <span class="disk-free">📦 ${d.available} livres</span>
-      </div>
-      ${hasIO ? `
-      <div class="disk-io-row">
-        <span class="disk-io-item">📥 <strong>Leitura:</strong> ${d.io_read}</span>
-        <span class="disk-io-item">📤 <strong>Escrita:</strong> ${d.io_write}</span>
-      </div>` : ''}
-      <div class="disk-actions">
-        <button class="disk-btn disk-btn-open" data-mount="${d.mount_point}">📂 Abrir <span class="help-tip" data-help="disco-abrir">ⓘ</span></button>
-        <button class="disk-btn disk-btn-analyze" data-mount="${d.mount_point}">🔍 Analisar <span class="help-tip" data-help="disco-analisar">ⓘ</span></button>
-        <button class="disk-btn disk-btn-partitions" data-device="${d.filesystem}">📋 Partições <span class="help-tip" data-help="disco-particoes">ⓘ</span></button>
-      </div>
+        <span class="dtd-bar-label ${barColor}">${roundedPct}%</span>
+      </td>
+      <td class="dtd-io">
+        <span class="dtd-io-text">${ioDisplay}</span>
+      </td>
+      <td class="dtd-actions">
+        <button class="dtd-btn dtd-btn-open" title="Abrir" data-mount="${d.mount_point}">📂</button>
+        <button class="dtd-btn dtd-btn-analyze" title="Analisar pastas" data-mount="${d.mount_point}">🔍</button>
+        <button class="dtd-btn dtd-btn-backup" title="Backup" data-source="${d.mount_point}">💾</button>
+        <button class="dtd-btn dtd-btn-partitions" title="Partições" data-device="${d.filesystem}">📋</button>
+      </td>
     `;
-    container.appendChild(card);
+    tbody.appendChild(row);
 
-    card.querySelector('.disk-btn-open')!.addEventListener('click', () => {
-      handleOpenFileManager(d.mount_point);
-    });
-    card.querySelector('.disk-btn-analyze')!.addEventListener('click', () => {
-      handleAnalyzeDisk(d.mount_point);
-    });
-    card.querySelector('.disk-btn-partitions')!.addEventListener('click', () => {
-      handleShowPartitions(d.filesystem);
-    });
+    row.querySelector('.dtd-btn-open')!.addEventListener('click', () => handleOpenFileManager(d.mount_point));
+    row.querySelector('.dtd-btn-analyze')!.addEventListener('click', () => handleAnalyzeDisk(d.mount_point));
+    row.querySelector('.dtd-btn-backup')!.addEventListener('click', () => showBackupModal(d.mount_point));
+    row.querySelector('.dtd-btn-partitions')!.addEventListener('click', () => handleShowPartitions(d.filesystem));
   }
+
+  container.appendChild(table);
+}
+
+// ─── Backup Modal ───
+
+export function showBackupModal(mountPoint: string): void {
+  const overlay = document.getElementById('backup-overlay');
+  const sourceEl = document.getElementById('backup-source');
+  const resultEl = document.getElementById('backup-result');
+  const progressEl = document.getElementById('backup-progress');
+
+  if (!overlay) return;
+
+  if (sourceEl) sourceEl.textContent = mountPoint;
+  if (resultEl) resultEl.classList.add('hidden');
+  if (progressEl) progressEl.classList.add('hidden');
+
+  // Reset state
+  const statusEl = document.getElementById('backup-progress-status');
+  const fillEl = document.getElementById('backup-progress-fill');
+  const textEl = document.getElementById('backup-progress-text');
+  const startBtn = document.getElementById('backup-start-btn') as HTMLButtonElement | null;
+  const cancelBtn = document.getElementById('backup-cancel-btn') as HTMLButtonElement | null;
+
+  if (statusEl) statusEl.textContent = '⏳ Comprimindo...';
+  if (fillEl) fillEl.style.width = '0%';
+  if (textEl) textEl.textContent = '0%';
+  if (startBtn) startBtn.disabled = false;
+  if (cancelBtn) cancelBtn.textContent = 'Cancelar';
+
+  // Pre-fill destination based on mount point
+  const destInput = document.getElementById('backup-destination') as HTMLInputElement | null;
+  if (destInput) {
+    if (mountPoint === '/home') {
+      destInput.value = '/home/rafaeldc/backups';
+    } else if (mountPoint === '/') {
+      destInput.value = '/root/backups';
+    } else if (mountPoint.startsWith('/media') || mountPoint.startsWith('/mnt')) {
+      destInput.value = mountPoint + '/backups';
+    } else {
+      destInput.value = mountPoint.replace(/\/[^/]+$/, '') + '/backups';
+    }
+  }
+
+  overlay.classList.remove('hidden');
 }
 
 // ─── Tools ───
@@ -663,6 +719,50 @@ export function setupHelpTooltips(): void {
     helpTipVisible = false;
     helpTipEl = null;
   }, true);
+}
+
+// ─── Report Modal ───
+
+export function showReportModal(reportText: string): void {
+  const overlay = document.getElementById('report-overlay');
+  const status = document.getElementById('report-status');
+  const content = document.getElementById('report-content');
+  const textEl = document.getElementById('report-text');
+  const result = document.getElementById('report-result');
+  const githubBtn = document.getElementById('report-github-btn') as HTMLButtonElement | null;
+  const copyBtn = document.getElementById('report-copy-btn') as HTMLButtonElement | null;
+
+  if (!overlay) return;
+
+  // Show status briefly
+  if (status) {
+    status.classList.remove('hidden');
+    status.classList.add('loading');
+  }
+  if (content) content.classList.add('hidden');
+  if (result) result.classList.add('hidden');
+  if (githubBtn) githubBtn.disabled = true;
+  if (copyBtn) copyBtn.disabled = true;
+  if (textEl) textEl.textContent = '';
+
+  overlay.classList.remove('hidden');
+
+  // Brief animation to show status, then reveal the report
+  setTimeout(() => {
+    if (status) {
+      status.classList.add('hidden');
+      status.classList.remove('loading');
+    }
+    if (content) content.classList.remove('hidden');
+    if (textEl) textEl.textContent = reportText;
+    if (githubBtn) githubBtn.disabled = false;
+    if (copyBtn) copyBtn.disabled = false;
+  }, 250);
+}
+
+export function hideReportModal(): void {
+  const overlay = document.getElementById('report-overlay');
+  if (overlay) overlay.classList.add('hidden');
 }
 
 // ─── Navigation ───

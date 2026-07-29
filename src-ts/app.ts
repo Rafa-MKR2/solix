@@ -18,6 +18,7 @@ import {
   loadHomeStats,
   pollStats,
   loadProcesses,
+  hideReportModal,
 } from './ui.js';
 import {
   loadSystemInfo,
@@ -39,6 +40,9 @@ import {
   handleSearchRepoPackages,
   handleInstallRepoPackages,
   loadPackageHistory,
+  handleStartBackup,
+  handleCopyReport,
+  handleOpenIssue,
 } from './operations.js';
 import {
   loadConnectivity,
@@ -106,9 +110,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('report-btn')?.addEventListener('click', reportProblem);
-  document.getElementById('dev-github-link')?.addEventListener('click', (e) => {
+  document.getElementById('report-overlay-close')?.addEventListener('click', hideReportModal);
+  document.getElementById('report-close-btn')?.addEventListener('click', hideReportModal);
+  document.getElementById('report-copy-btn')?.addEventListener('click', handleCopyReport);
+  document.getElementById('report-github-btn')?.addEventListener('click', handleOpenIssue);
+  document.getElementById('report-overlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) hideReportModal();
+  });
+  document.getElementById('dev-github-link')?.addEventListener('click', async (e) => {
     e.preventDefault();
-    window.open('https://github.com/Rafa-MKR2/solix', '_blank');
+    const invoke = getInvoke();
+    if (invoke) {
+      try {
+        await invoke('open_url', { url: 'https://github.com/Rafa-MKR2/solix' });
+      } catch (err) {
+        window.open('https://github.com/Rafa-MKR2/solix', '_blank');
+      }
+    }
   });
 
   document.getElementById('test-ping-btn')?.addEventListener('click', handleTestPingClick);
@@ -287,6 +305,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
     showPasswordModal({ type: 'install-package' });
   });
+  // ─── Backup ───
+
+  document.getElementById('backup-start-btn')?.addEventListener('click', handleStartBackup);
+  document.getElementById('backup-cancel-btn')?.addEventListener('click', () => {
+    document.getElementById('backup-overlay')?.classList.add('hidden');
+  });
+  document.getElementById('backup-close-btn')?.addEventListener('click', () => {
+    document.getElementById('backup-overlay')?.classList.add('hidden');
+  });
+
   document.getElementById('pkg-clear-btn')?.addEventListener('click', () => {
     if (pkgFileInput) pkgFileInput.value = '';
     handlePkgFileSelect(null);
