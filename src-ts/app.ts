@@ -33,6 +33,7 @@ import {
   setupProgressListener,
   setupUpdateListener,
   toolStatuses,
+  handlePkgFileSelect,
 } from './operations.js';
 import {
   loadConnectivity,
@@ -189,4 +190,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('process-search')?.addEventListener('input', handleProcessSearch);
+
+  // ─── Package Installer ───
+
+  const pkgFileInput = document.getElementById('pkg-file-input') as HTMLInputElement | null;
+  pkgFileInput?.addEventListener('change', () => {
+    const file = pkgFileInput.files?.[0] || null;
+    handlePkgFileSelect(file);
+  });
+
+  document.getElementById('pkg-upload-area')?.addEventListener('click', () => {
+    pkgFileInput?.click();
+  });
+
+  document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
+    showPasswordModal({ type: 'install-package' });
+  });
+
+  document.getElementById('pkg-clear-btn')?.addEventListener('click', () => {
+    if (pkgFileInput) pkgFileInput.value = '';
+    handlePkgFileSelect(null);
+  });
 });

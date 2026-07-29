@@ -1,6 +1,6 @@
 import { getInvoke, showToast } from './utils.js';
 import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, } from './operations.js';
+import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, } from './operations.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './network.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
@@ -144,4 +144,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     document.getElementById('process-search')?.addEventListener('input', handleProcessSearch);
+    const pkgFileInput = document.getElementById('pkg-file-input');
+    pkgFileInput?.addEventListener('change', () => {
+        const file = pkgFileInput.files?.[0] || null;
+        handlePkgFileSelect(file);
+    });
+    document.getElementById('pkg-upload-area')?.addEventListener('click', () => {
+        pkgFileInput?.click();
+    });
+    document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
+        showPasswordModal({ type: 'install-package' });
+    });
+    document.getElementById('pkg-clear-btn')?.addEventListener('click', () => {
+        if (pkgFileInput)
+            pkgFileInput.value = '';
+        handlePkgFileSelect(null);
+    });
 });
