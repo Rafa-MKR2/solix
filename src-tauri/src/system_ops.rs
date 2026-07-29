@@ -79,7 +79,7 @@ pub fn get_battery_info() -> BatteryInfo {
     }
 }
 
-pub async fn enable_zram(password: &str) -> Result<install::InstallResult, String> {
+pub async fn enable_zram(password: &str, _app: Option<&tauri::AppHandle>) -> Result<install::InstallResult, String> {
     crate::stats::set_operation_in_progress(true);
     crate::install::kill_readonly_pacman_queries();
     let result = async {
@@ -131,7 +131,7 @@ pub async fn enable_zram(password: &str) -> Result<install::InstallResult, Strin
     result
 }
 
-pub async fn cleanup_system(password: &str) -> Result<install::InstallResult, String> {
+pub async fn cleanup_system(password: &str, _app: Option<&tauri::AppHandle>) -> Result<install::InstallResult, String> {
     crate::stats::set_operation_in_progress(true);
     crate::install::kill_readonly_pacman_queries();
     let result = async {

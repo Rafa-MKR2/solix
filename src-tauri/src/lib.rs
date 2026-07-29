@@ -81,8 +81,18 @@ async fn remove_tools(app: tauri::AppHandle, tool_names: Vec<String>, password: 
 }
 
 #[tauri::command]
-async fn update_system(password: String) -> Result<install::InstallResult, String> {
-    install::update_system(&password).await
+async fn update_system(app: tauri::AppHandle, password: String) -> Result<install::InstallResult, String> {
+    install::update_system(&password, Some(&app)).await
+}
+
+#[tauri::command]
+async fn enable_zram(app: tauri::AppHandle, password: String) -> Result<install::InstallResult, String> {
+    system_ops::enable_zram(&password, Some(&app)).await
+}
+
+#[tauri::command]
+async fn cleanup_system(app: tauri::AppHandle, password: String) -> Result<install::InstallResult, String> {
+    system_ops::cleanup_system(&password, Some(&app)).await
 }
 
 #[tauri::command]
@@ -107,16 +117,6 @@ async fn get_battery() -> Result<system_ops::BatteryInfo, String> {
         .await
         .map_err(|_| "Erro ao carregar informações da bateria".to_string())?;
     Ok(info)
-}
-
-#[tauri::command]
-async fn enable_zram(password: String) -> Result<install::InstallResult, String> {
-    system_ops::enable_zram(&password).await
-}
-
-#[tauri::command]
-async fn cleanup_system(password: String) -> Result<install::InstallResult, String> {
-    system_ops::cleanup_system(&password).await
 }
 
 #[tauri::command]

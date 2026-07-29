@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tauri::Emitter;
+use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::distribution;
 use crate::password;
@@ -19,6 +20,13 @@ pub struct ProgressPayload {
     pub total: usize,
     pub tool_name: String,
     pub status: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct OutputPayload {
+    pub tool_name: String,
+    pub line: String,
+    pub stream: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -214,6 +222,112 @@ pub async fn run_command(password: &str, tool_name: &str, command: &str) -> Inst
 }
 
 
+pub async fn run_command_streaming(
+    app: &tauri::AppHandle,
+    password: &str,
+    tool_name: &str,
+    command: &str,
+) -> InstallResult {
+    let child = tokio::process::Command::new("sh")
+        .arg("-c")
+        .arg(command)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn();
+
+    let mut c = match child {
+        Ok(c) => c,
+        Err(e) => {
+            return InstallResult {
+                tool_name: tool_name.to_string(),
+                command: command.to_string(),
+                success: false,
+                cancelled: false,
+                output: None,
+                error: Some(e.to_string()),
+            };
+        }
+    };
+
+    let pid = c.id().unwrap_or(0);
+    if let Ok(mut guard) = CURRENT_CHILD_PID.lock() {
+        *guard = Some(pid);
+    }
+
+    let _ = password::pipe_password(&mut c, password).await;
+
+    let stdout = c.stdout.take().expect("stdout missing");
+    let stderr = c.stderr.take().expect("stderr missing");
+
+    let app_out = app.clone();
+    let tn_out = tool_name.to_string();
+    let stdout_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stdout).lines();
+        let mut collected = Vec::new();
+        while let Ok(Some(line)) = reader.next_line().await {
+            let _ = app_out.emit("operation-output", OutputPayload {
+                tool_name: tn_out.clone(),
+                line: line.clone(),
+                stream: "stdout".to_string(),
+            });
+            collected.push(line);
+        }
+        collected.join("\n")
+    });
+
+    let app_err = app.clone();
+    let tn_err = tool_name.to_string();
+    let stderr_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stderr).lines();
+        let mut collected = Vec::new();
+        while let Ok(Some(line)) = reader.next_line().await {
+            let _ = app_err.emit("operation-output", OutputPayload {
+                tool_name: tn_err.clone(),
+                line: line.clone(),
+                stream: "stderr".to_string(),
+            });
+            collected.push(line);
+        }
+        collected.join("\n")
+    });
+
+    let status = c.wait().await;
+    let cancelled = CANCEL_FLAG.load(Ordering::SeqCst);
+
+    if let Ok(mut guard) = CURRENT_CHILD_PID.lock() {
+        if *guard == Some(pid) {
+            *guard = None;
+        }
+    }
+
+    let stdout_str = stdout_task.await.unwrap_or_default();
+    let stderr_str = stderr_task.await.unwrap_or_default();
+
+    let success = match &status {
+        Ok(s) => s.success(),
+        Err(_) => false,
+    };
+
+    let (output_text, error_text) = if cancelled {
+        (String::new(), Some("Operação cancelada".to_string()))
+    } else if success {
+        (stdout_str, None)
+    } else {
+        let combined = if stderr_str.is_empty() { stdout_str } else { stderr_str };
+        (combined.clone(), Some(combined))
+    };
+
+    InstallResult {
+        tool_name: tool_name.to_string(),
+        command: command.to_string(),
+        success: success && !cancelled,
+        cancelled,
+        output: Some(output_text),
+        error: error_text,
+    }
+}
+
 
 /// Mata processos pacman de consulta (read-only: pacman -Q, pacman -Qu) que
 /// estejam rodando, para evitar falso positivo de lock quando uma operação de
@@ -366,7 +480,11 @@ async fn run_tool_operation(
                 });
             }
             let command = format!("{} {}", prefix, package);
-            results.push(run_command(password, tool_name, &command).await);
+            if let Some(app) = app {
+                results.push(run_command_streaming(app, password, tool_name, &command).await);
+            } else {
+                results.push(run_command(password, tool_name, &command).await);
+            }
         }
         Ok::<Vec<InstallResult>, String>(results)
     }.await;
@@ -441,7 +559,7 @@ fn get_update_command(pm: &str) -> &'static str {
     }
 }
 
-pub async fn update_system(password: &str) -> Result<InstallResult, String> {
+pub async fn update_system(password: &str, app: Option<&tauri::AppHandle>) -> Result<InstallResult, String> {
     CANCEL_FLAG.store(false, Ordering::SeqCst);
 
     crate::stats::set_operation_in_progress(true);
@@ -452,10 +570,18 @@ pub async fn update_system(password: &str) -> Result<InstallResult, String> {
 
         let (distro, _) = get_distro_and_prefix().await?;
         let command = get_update_command(&distro.package_manager);
-        let mut result = run_command(password, "system-update", command).await;
+        let mut result = if let Some(app) = app {
+            run_command_streaming(app, password, "system-update", command).await
+        } else {
+            run_command(password, "system-update", command).await
+        };
 
         if result.success {
-            let fp = run_command(password, "flatpak-update", "flatpak update -y 2>/dev/null; echo done").await;
+            let fp = if let Some(app) = app {
+                run_command_streaming(app, password, "flatpak-update", "flatpak update -y 2>/dev/null; echo done").await
+            } else {
+                run_command(password, "flatpak-update", "flatpak update -y 2>/dev/null; echo done").await
+            };
             let out = result.output.unwrap_or_default();
             let fp_out = fp.output.unwrap_or_default();
             result.output = Some(format!("{out}\nFlatpak: {fp_out}"));

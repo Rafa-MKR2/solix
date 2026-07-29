@@ -7,7 +7,6 @@ import type {
   AppUpdateInfo,
   PendingAction,
 } from './types.js';
-import { listen } from '@tauri-apps/api/event';
 import { getInvoke, showToast, setText } from './utils.js';
 import {
   renderTools,
@@ -30,8 +29,12 @@ let pendingPkgData: string | null = null;
 let pendingPkgFileName: string | null = null;
 
 export function setupProgressListener(): void {
-  listen<{ current: number; total: number; tool_name: string; status: string }>('operation-progress', (event) => {
-    const { current, total, tool_name, status } = event.payload;
+  const invoke = getInvoke();
+  if (!invoke) return;
+  const tauri = (window as any).__TAURI_INTERNALS__;
+  if (!tauri?.transformCallback) return;
+  const handler = tauri.transformCallback((event: any) => {
+    const { current, total, tool_name, status } = event.payload || event;
     const area = document.getElementById('progress-area');
     const fill = document.getElementById('progress-bar-fill') as HTMLElement | null;
     const text = document.getElementById('progress-text');
@@ -45,6 +48,24 @@ export function setupProgressListener(): void {
     fill.style.width = pct + '%';
     text.textContent = tool_name ? `${tool_name} (${current}/${total})` : `${pct}%`;
   });
+  invoke('plugin:event|listen', {
+    event: 'operation-progress',
+    target: { kind: 'Any' },
+    handler,
+  }).catch(() => {});
+
+  const outHandler = tauri.transformCallback((event: any) => {
+    const { line } = event.payload || event;
+    const log = document.getElementById('output-log');
+    if (!log || !line) return;
+    log.textContent += line + '\n';
+    log.scrollTop = log.scrollHeight;
+  });
+  invoke('plugin:event|listen', {
+    event: 'operation-output',
+    target: { kind: 'Any' },
+    handler: outHandler,
+  }).catch(() => {});
 }
 
 export async function loadSystemInfo(): Promise<void> {
