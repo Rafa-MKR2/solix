@@ -45,7 +45,7 @@ pub struct InstallResult {
 
 fn get_command_prefixes() -> HashMap<&'static str, (&'static str, &'static str)> {
     let mut map = HashMap::new();
-    map.insert("pacman", ("sudo -S pacman -S --noconfirm", "sudo -S pacman -R --noconfirm"));
+    map.insert("pacman", ("sudo -S pacman -Sy --noconfirm", "sudo -S pacman -R --noconfirm"));
     map.insert("apt", ("sudo -S apt install -y", "sudo -S apt remove -y"));
     map.insert("dnf", ("sudo -S dnf install -y", "sudo -S dnf remove -y"));
     map.insert("zypper", ("sudo -S zypper install -y", "sudo -S zypper remove -y"));
