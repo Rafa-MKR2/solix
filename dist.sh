@@ -9,7 +9,7 @@
 set -euo pipefail
 
 APP_NAME="solix"
-VERSION="v2.0.0"
+VERSION="v2.0.1"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DIST_DIR="$SCRIPT_DIR/dist"
 

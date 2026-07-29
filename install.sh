@@ -7,9 +7,20 @@ set -euo pipefail
 APP_NAME="solix"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# When run with sudo, use the original user's Rust installation
+# We set HOME + RUSTUP_HOME so cargo/rustup find the right toolchains
+if [ -n "${SUDO_USER:-}" ]; then
+  ORIGINAL_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+  if [ -f "$ORIGINAL_HOME/.cargo/env" ]; then
+    export HOME="$ORIGINAL_HOME"
+    . "$ORIGINAL_HOME/.cargo/env"
+  fi
+else
+  [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+fi
+
 echo "=== Compilando $APP_NAME ==="
 cd "$SCRIPT_DIR/src-tauri"
-. "$HOME/.cargo/env"
 cargo build --release
 
 echo "=== Instalando $APP_NAME ==="

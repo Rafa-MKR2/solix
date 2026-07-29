@@ -278,6 +278,20 @@ pub async fn cancel_operation_inner() {
 
 pub async fn install_tools(tool_names: &[String], password: &str) -> Result<Vec<InstallResult>, String> {
     CANCEL_FLAG.store(false, Ordering::SeqCst);
+
+    // Se for apenas verificação de senha (__verify__), não tenta instalar nada
+    if tool_names.len() == 1 && tool_names[0] == "__verify__" {
+        verify_password(password).await?;
+        return Ok(vec![InstallResult {
+            tool_name: "__verify__".into(),
+            command: String::new(),
+            success: true,
+            cancelled: false,
+            output: Some("Senha verificada".into()),
+            error: None,
+        }]);
+    }
+
     verify_password(password).await?;
 
     let (_, (install_prefix, _)) = get_distro_and_prefix().await?;
