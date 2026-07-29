@@ -460,6 +460,113 @@ body {
   margin: 0;
 }
 
+/* Roadmap */
+.roadmap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  animation: fadeIn 0.4s ease 0.2s both;
+}
+
+.roadmap-group {
+  background: linear-gradient(145deg, #1a1a32 0%, #18182e 100%);
+  border: 1px solid #252545;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.roadmap-group:hover {
+  border-color: #00d4aa44;
+}
+
+.roadmap-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #222244;
+}
+
+.roadmap-status-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.roadmap-group-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.roadmap-group:first-child .roadmap-group-title {
+  color: #4ae0a0;
+}
+
+.roadmap-group:nth-child(2) .roadmap-group-title {
+  color: #e8c547;
+}
+
+.roadmap-group:nth-child(3) .roadmap-group-title {
+  color: #888;
+}
+
+.roadmap-list {
+  padding: 0.5rem 1rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.roadmap-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: #bbb;
+  padding: 0.2rem 0;
+  transition: color 0.2s, padding-left 0.2s;
+}
+
+.roadmap-item:hover {
+  color: #eee;
+  padding-left: 0.3rem;
+}
+
+.roadmap-bullet {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.roadmap-item:hover .roadmap-bullet {
+  transform: scale(1.4);
+}
+
+.roadmap-bullet.status-done {
+  background: #4ae0a0;
+  box-shadow: 0 0 6px rgba(74, 224, 160, 0.4);
+}
+
+.roadmap-bullet.status-wip {
+  background: #e8c547;
+  box-shadow: 0 0 6px rgba(232, 197, 71, 0.4);
+  animation: wipPulse 1.5s ease infinite;
+}
+
+.roadmap-bullet.status-planned {
+  background: #555;
+}
+
+@keyframes wipPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .hgauge-label {
   fill: #888;
   font-size: 10px;
