@@ -7,10 +7,19 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use tauri::Emitter;
 
 use crate::distribution;
 use crate::password;
 use crate::tool;
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ProgressPayload {
+    pub current: usize,
+    pub total: usize,
+    pub tool_name: String,
+    pub status: String,
+}
 
 #[derive(Debug, Serialize, Clone)]
 pub struct PmLockInfo {
@@ -323,6 +332,7 @@ async fn run_tool_operation(
     tool_names: &[String],
     password: &str,
     prefix: &str,
+    app: Option<&tauri::AppHandle>,
 ) -> Result<Vec<InstallResult>, String> {
     CANCEL_FLAG.store(false, Ordering::SeqCst);
 
@@ -331,9 +341,10 @@ async fn run_tool_operation(
     crate::stats::set_operation_in_progress(true);
     kill_readonly_pacman_queries();
 
+    let total = tool_names.len();
     let result = async {
-        let mut results = Vec::with_capacity(tool_names.len());
-        for tool_name in tool_names {
+        let mut results = Vec::with_capacity(total);
+        for (i, tool_name) in tool_names.iter().enumerate() {
             if CANCEL_FLAG.load(Ordering::SeqCst) {
                 results.push(InstallResult {
                     tool_name: tool_name.to_string(),
@@ -346,11 +357,28 @@ async fn run_tool_operation(
                 continue;
             }
             let package = get_package_name(tool_name);
+            if let Some(app) = app {
+                let _ = app.emit("operation-progress", ProgressPayload {
+                    current: i + 1,
+                    total,
+                    tool_name: tool_name.to_string(),
+                    status: "installing".to_string(),
+                });
+            }
             let command = format!("{} {}", prefix, package);
             results.push(run_command(password, tool_name, &command).await);
         }
         Ok::<Vec<InstallResult>, String>(results)
     }.await;
+
+    if let Some(app) = app {
+        let _ = app.emit("operation-progress", ProgressPayload {
+            current: total,
+            total,
+            tool_name: String::new(),
+            status: "done".to_string(),
+        });
+    }
 
     crate::stats::set_operation_in_progress(false);
     CANCEL_FLAG.store(false, Ordering::SeqCst);
@@ -378,7 +406,7 @@ async fn sync_pacman_db(password: &str) {
     let _ = child.wait().await;
 }
 
-pub async fn install_tools(tool_names: &[String], password: &str) -> Result<Vec<InstallResult>, String> {
+pub async fn install_tools(tool_names: &[String], password: &str, app: Option<&tauri::AppHandle>) -> Result<Vec<InstallResult>, String> {
     if tool_names.len() == 1 && tool_names[0] == "__verify__" {
         password::verify_password(password).await?;
         return Ok(vec![InstallResult {
@@ -395,12 +423,12 @@ pub async fn install_tools(tool_names: &[String], password: &str) -> Result<Vec<
     if distro.package_manager == "pacman" {
         sync_pacman_db(password).await;
     }
-    run_tool_operation(tool_names, password, install_prefix).await
+    run_tool_operation(tool_names, password, install_prefix, app).await
 }
 
-pub async fn remove_tools(tool_names: &[String], password: &str) -> Result<Vec<InstallResult>, String> {
+pub async fn remove_tools(tool_names: &[String], password: &str, app: Option<&tauri::AppHandle>) -> Result<Vec<InstallResult>, String> {
     let (_, (_, remove_prefix)) = get_distro_and_prefix().await?;
-    run_tool_operation(tool_names, password, remove_prefix).await
+    run_tool_operation(tool_names, password, remove_prefix, app).await
 }
 
 fn get_update_command(pm: &str) -> &'static str {

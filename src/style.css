@@ -1532,6 +1532,37 @@ body {
   opacity: 1;
 }
 
+/* Progress Bar */
+.progress-area {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+}
+
+.progress-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #2a2a3e;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a9eff, #6cb4ff);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.78rem;
+  color: #aaa;
+  min-width: 3rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
 /* Help Tooltips */
 .help-tip {
   display: inline-flex;

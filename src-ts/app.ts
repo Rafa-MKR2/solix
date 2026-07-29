@@ -29,6 +29,7 @@ import {
   handleCheckUpdateClick,
   cancelOperation,
   retryLastOperation,
+  setupProgressListener,
   toolStatuses,
 } from './operations.js';
 import {
@@ -42,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNav();
   setupHelpTooltips();
   setupLockActions();
+  setupProgressListener();
   setRetryLastOperationFn(retryLastOperation);
   loadSystemInfo();
 

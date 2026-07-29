@@ -1,11 +1,12 @@
 import { getInvoke, showToast } from './utils.js';
 import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, toolStatuses, } from './operations.js';
+import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, toolStatuses, } from './operations.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './network.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
     setupHelpTooltips();
     setupLockActions();
+    setupProgressListener();
     setRetryLastOperationFn(retryLastOperation);
     loadSystemInfo();
     document.getElementById('password-input').addEventListener('keydown', (e) => {

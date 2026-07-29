@@ -71,13 +71,13 @@ async fn get_install_command(tool_name: String) -> Result<install::InstallComman
 }
 
 #[tauri::command]
-async fn install_tools(tool_names: Vec<String>, password: String) -> Result<Vec<install::InstallResult>, String> {
-    install::install_tools(&tool_names, &password).await
+async fn install_tools(app: tauri::AppHandle, tool_names: Vec<String>, password: String) -> Result<Vec<install::InstallResult>, String> {
+    install::install_tools(&tool_names, &password, Some(&app)).await
 }
 
 #[tauri::command]
-async fn remove_tools(tool_names: Vec<String>, password: String) -> Result<Vec<install::InstallResult>, String> {
-    install::remove_tools(&tool_names, &password).await
+async fn remove_tools(app: tauri::AppHandle, tool_names: Vec<String>, password: String) -> Result<Vec<install::InstallResult>, String> {
+    install::remove_tools(&tool_names, &password, Some(&app)).await
 }
 
 #[tauri::command]

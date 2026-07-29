@@ -7,6 +7,7 @@ import type {
   AppUpdateInfo,
   PendingAction,
 } from './types.js';
+import { listen } from '@tauri-apps/api/event';
 import { getInvoke, showToast, setText } from './utils.js';
 import {
   renderTools,
@@ -27,6 +28,24 @@ let lastPendingAction: PendingAction | null = null;
 let isOperating = false;
 let pendingPkgData: string | null = null;
 let pendingPkgFileName: string | null = null;
+
+export function setupProgressListener(): void {
+  listen<{ current: number; total: number; tool_name: string; status: string }>('operation-progress', (event) => {
+    const { current, total, tool_name, status } = event.payload;
+    const area = document.getElementById('progress-area');
+    const fill = document.getElementById('progress-bar-fill') as HTMLElement | null;
+    const text = document.getElementById('progress-text');
+    if (!area || !fill || !text) return;
+    if (status === 'done') {
+      area.classList.add('hidden');
+      return;
+    }
+    area.classList.remove('hidden');
+    const pct = Math.round((current / total) * 100);
+    fill.style.width = pct + '%';
+    text.textContent = tool_name ? `${tool_name} (${current}/${total})` : `${pct}%`;
+  });
+}
 
 export async function loadSystemInfo(): Promise<void> {
   const invoke = getInvoke();
