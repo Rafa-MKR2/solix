@@ -1023,6 +1023,22 @@ body {
   background: linear-gradient(145deg, #1e1e38 0%, #1a1a32 100%);
 }
 
+.pkg-upload-area.drag-over .pkg-file-label {
+  border-color: #00d4aa;
+  background: linear-gradient(145deg, #1a2a28 0%, #162220 100%);
+  box-shadow: 0 0 24px rgba(0, 212, 170, 0.15);
+  transform: scale(1.02);
+}
+
+.pkg-upload-area.drag-over .pkg-upload-icon {
+  animation: pkgFloat 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes pkgFloat {
+  from { transform: translateY(0); }
+  to { transform: translateY(-6px); }
+}
+
 .pkg-upload-icon {
   font-size: 2rem;
 }

@@ -194,13 +194,54 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── Package Installer ───
 
   const pkgFileInput = document.getElementById('pkg-file-input') as HTMLInputElement | null;
+  const pkgUploadArea = document.getElementById('pkg-upload-area');
+
   pkgFileInput?.addEventListener('change', () => {
     const file = pkgFileInput.files?.[0] || null;
     handlePkgFileSelect(file);
   });
 
-  document.getElementById('pkg-upload-area')?.addEventListener('click', () => {
-    pkgFileInput?.click();
+  pkgUploadArea?.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).tagName !== 'INPUT') {
+      pkgFileInput?.click();
+    }
+  });
+
+  // ─── Drag & Drop ───
+
+  pkgUploadArea?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    pkgUploadArea.classList.add('drag-over');
+  });
+
+  pkgUploadArea?.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    pkgUploadArea.classList.add('drag-over');
+  });
+
+  pkgUploadArea?.addEventListener('dragleave', (e) => {
+    const related = e.relatedTarget as Node | null;
+    if (!related || !pkgUploadArea.contains(related)) {
+      pkgUploadArea.classList.remove('drag-over');
+    }
+  });
+
+  pkgUploadArea?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    pkgUploadArea.classList.remove('drag-over');
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Update the file input so change event also fires
+      if (pkgFileInput) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        pkgFileInput.files = dt.files;
+        pkgFileInput.dispatchEvent(new Event('change'));
+      } else {
+        handlePkgFileSelect(file);
+      }
+    }
   });
 
   document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
