@@ -9,8 +9,12 @@
 set -euo pipefail
 
 APP_NAME="solix"
-VERSION="v2.1.0"
 REPO="Rafa-MKR2/solix"
+
+# Detect version from latest GitHub release tag
+# Fallback to v2.2.0 if detection fails
+VERSION="$(curl -sSL --max-time 5 "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": "\(.*\)".*/\1/' 2>/dev/null || echo "v2.2.0")"
+
 BIN_URL="https://github.com/$REPO/releases/download/$VERSION/$APP_NAME-x86_64-linux"
 ARCHIVE_URL="https://github.com/$REPO/releases/download/$VERSION/solix-assets.tar.gz"
 INSTALL_DIR="/opt/$APP_NAME"
