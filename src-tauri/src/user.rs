@@ -5,6 +5,7 @@
 
 use serde::Serialize;
 use std::path::Path;
+use crate::util::base64_encode;
 
 #[derive(Debug, Serialize)]
 pub struct UserInfo {
@@ -43,43 +44,35 @@ fn get_username() -> String {
         .unwrap_or_else(|_| "unknown".to_string())
 }
 
+fn find_passwd_entry(username: &str) -> Option<(String, String, String, String, String)> {
+    let content = std::fs::read_to_string("/etc/passwd").ok()?;
+    for line in content.lines() {
+        if line.starts_with(&format!("{}:", username)) {
+            return parse_passwd_line(line);
+        }
+    }
+    None
+}
+
 fn get_full_name(username: &str) -> String {
-    if let Ok(content) = std::fs::read_to_string("/etc/passwd") {
-        for line in content.lines() {
-            if line.starts_with(&format!("{}:", username)) {
-                if let Some((_, name, _, _, _)) = parse_passwd_line(line) {
-                    if !name.is_empty() {
-                        return name;
-                    }
-                }
-            }
+    if let Some((_, name, _, _, _)) = find_passwd_entry(username) {
+        if !name.is_empty() {
+            return name;
         }
     }
     username.to_string()
 }
 
 fn get_home_dir(username: &str) -> String {
-    if let Ok(content) = std::fs::read_to_string("/etc/passwd") {
-        for line in content.lines() {
-            if line.starts_with(&format!("{}:", username)) {
-                if let Some((_, _, home, _, _)) = parse_passwd_line(line) {
-                    return home;
-                }
-            }
-        }
+    if let Some((_, _, home, _, _)) = find_passwd_entry(username) {
+        return home;
     }
     format!("/home/{}", username)
 }
 
 fn get_shell(username: &str) -> String {
-    if let Ok(content) = std::fs::read_to_string("/etc/passwd") {
-        for line in content.lines() {
-            if line.starts_with(&format!("{}:", username)) {
-                if let Some((_, _, _, shell, _)) = parse_passwd_line(line) {
-                    return shell;
-                }
-            }
-        }
+    if let Some((_, _, _, shell, _)) = find_passwd_entry(username) {
+        return shell;
     }
     "—".to_string()
 }
@@ -102,16 +95,8 @@ fn is_admin(username: &str) -> bool {
     }
 
     // Check if UID is 0 (root)
-    if let Ok(content) = std::fs::read_to_string("/etc/passwd") {
-        for line in content.lines() {
-            if line.starts_with(&format!("{}:", username)) {
-                if let Some((_, _, _, _, uid)) = parse_passwd_line(line) {
-                    if uid == "0" {
-                        return true;
-                    }
-                }
-            }
-        }
+    if let Some((_, _, _, _, uid)) = find_passwd_entry(username) {
+        return uid == "0";
     }
 
     false
@@ -154,31 +139,6 @@ fn get_avatar_base64(username: &str) -> Option<String> {
     }
 
     None
-}
-
-fn base64_encode(data: &[u8]) -> String {
-    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut result = String::new();
-    for chunk in data.chunks(3) {
-        let b0 = chunk[0] as u32;
-        let b1 = chunk.get(1).copied().unwrap_or(0) as u32;
-        let b2 = chunk.get(2).copied().unwrap_or(0) as u32;
-        let triple = (b0 << 16) | (b1 << 8) | b2;
-
-        result.push(CHARS[((triple >> 18) & 0x3F) as usize] as char);
-        result.push(CHARS[((triple >> 12) & 0x3F) as usize] as char);
-        if chunk.len() > 1 {
-            result.push(CHARS[((triple >> 6) & 0x3F) as usize] as char);
-        } else {
-            result.push('=');
-        }
-        if chunk.len() > 2 {
-            result.push(CHARS[(triple & 0x3F) as usize] as char);
-        } else {
-            result.push('=');
-        }
-    }
-    result
 }
 
 pub fn get_user_info() -> UserInfo {

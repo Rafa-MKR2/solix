@@ -84,6 +84,10 @@ fn check_distro_compat(pkg_type: &str) -> (bool, String) {
 /// Obtém o tamanho do arquivo em formato legível
 fn format_file_size(path: &str) -> String {
     let len = std::fs::metadata(path).ok().map(|m| m.len()).unwrap_or(0);
+    format_bytes(len)
+}
+
+fn format_bytes(len: u64) -> String {
     if len > 1_000_000_000 {
         format!("{:.1} GB", len as f64 / 1_000_000_000.0)
     } else if len > 1_000_000 {
@@ -235,7 +239,7 @@ fn parse_rpm_field(output: &str, field: &str) -> Option<String> {
         .lines()
         .find_map(|l| {
             if l.to_uppercase().starts_with(&field.to_uppercase()) {
-                l.splitn(2, ':').nth(1).map(|v| v.trim().to_string())
+                l.split_once(':').map(|x| x.1).map(|v| v.trim().to_string())
             } else {
                 None
             }
@@ -342,30 +346,9 @@ pub fn inspect_package(path: &str) -> Result<LocalPackageInfo, String> {
     }
 }
 
-fn decode_base64(data: &str) -> Result<Vec<u8>, String> {
-    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let data = data.trim();
-    let mut bytes = Vec::new();
-    let mut buffer = 0u32;
-    let mut bits = 0;
-    for ch in data.chars() {
-        if ch == '=' { break; }
-        if let Some(pos) = CHARS.iter().position(|&c| c as char == ch) {
-            buffer = (buffer << 6) | pos as u32;
-            bits += 6;
-            if bits >= 8 {
-                bits -= 8;
-                bytes.push((buffer >> bits) as u8);
-                buffer &= (1 << bits) - 1;
-            }
-        }
-    }
-    Ok(bytes)
-}
-
 fn save_tmp_package(data: &str, file_name: &str) -> Result<String, String> {
     use std::io::Write;
-    let decoded = decode_base64(data)?;
+    let decoded = crate::util::base64_decode(data)?;
     // Sanitiza nome do arquivo para evitar path traversal
     let safe_name: String = file_name
         .chars()
@@ -404,38 +387,44 @@ pub async fn install_local_package(
     path: &str,
     password: &str,
 ) -> Result<crate::install::InstallResult, String> {
-    let lower = path.to_lowercase();
-    let (pkg_type, install_cmd) = if lower.ends_with(".deb") {
-        ("deb", format!("sudo -S dpkg -i '{}'", path))
-    } else if lower.ends_with(".rpm") {
-        ("rpm", format!("sudo -S rpm -i '{}'", path))
-    } else {
-        return Err("Formato não suportado.".into());
-    };
+    crate::stats::set_operation_in_progress(true);
+    crate::install::kill_readonly_pacman_queries();
+    let result = async {
+        let lower = path.to_lowercase();
+        let (pkg_type, install_cmd) = if lower.ends_with(".deb") {
+            ("deb", format!("sudo -S dpkg -i '{}'", path))
+        } else if lower.ends_with(".rpm") {
+            ("rpm", format!("sudo -S rpm -i '{}'", path))
+        } else {
+            return Err::<crate::install::InstallResult, String>("Formato não suportado.".into());
+        };
 
-    // Verifica compatibilidade antes de instalar
-    let info = inspect_package(path)?;
-    if !info.compatible {
-        return Err(format!(
-            "Instalação bloqueada: {}",
-            info.compat_message
-        ));
-    }
-
-    // Executa a instalação usando o sistema existente de run_command
-    let result = crate::install::run_command(password, &info.package_name, &install_cmd).await;
-
-    // Se falhou com dependências, tenta corrigir automaticamente
-    if !result.success && pkg_type == "deb" {
-        let fix_cmd = "sudo -S apt install -f -y".to_string();
-        let fix_result = crate::install::run_command(password, "fix-dependencies", &fix_cmd).await;
-        if fix_result.success {
-            // Tenta instalar novamente
-            return Ok(crate::install::run_command(password, &info.package_name, &install_cmd).await);
+        // Verifica compatibilidade antes de instalar
+        let info = inspect_package(path)?;
+        if !info.compatible {
+            return Err(format!(
+                "Instalação bloqueada: {}",
+                info.compat_message
+            ));
         }
-    }
 
-    Ok(result)
+        // Executa a instalação usando o sistema existente de run_command
+        let result = crate::install::run_command(password, &info.package_name, &install_cmd).await;
+
+        // Se falhou com dependências, tenta corrigir automaticamente
+        if !result.success && pkg_type == "deb" {
+            let fix_cmd = "sudo -S apt install -f -y".to_string();
+            let fix_result = crate::install::run_command(password, "fix-dependencies", &fix_cmd).await;
+            if fix_result.success {
+                // Tenta instalar novamente
+                return Ok(crate::install::run_command(password, &info.package_name, &install_cmd).await);
+            }
+        }
+
+        Ok(result)
+    }.await;
+    crate::stats::set_operation_in_progress(false);
+    result
 }
 
 #[cfg(test)]
@@ -548,4 +537,113 @@ mod tests {
         assert!(!info.compatible);
         assert!(info.compat_message.is_empty());
     }
+
+    // ─── Pure function tests ───
+
+    #[test]
+    fn test_format_bytes_bytes() {
+        assert_eq!(format_bytes(0), "0 bytes");
+        assert_eq!(format_bytes(1), "1 bytes");
+        assert_eq!(format_bytes(999), "999 bytes");
+    }
+
+    #[test]
+    fn test_format_bytes_kb() {
+        assert_eq!(format_bytes(1_001), "1 KB");
+        assert_eq!(format_bytes(10_000), "10 KB");
+        assert_eq!(format_bytes(999_999), "1000 KB");
+    }
+
+    #[test]
+    fn test_format_bytes_mb() {
+        assert_eq!(format_bytes(1_000_001), "1.0 MB");
+        assert_eq!(format_bytes(1_500_000), "1.5 MB");
+        assert_eq!(format_bytes(999_999_999), "1000.0 MB");
+    }
+
+    #[test]
+    fn test_format_bytes_gb() {
+        assert_eq!(format_bytes(1_000_000_001), "1.0 GB");
+        assert_eq!(format_bytes(2_500_000_000), "2.5 GB");
+        assert_eq!(format_bytes(10_000_000_000), "10.0 GB");
+    }
+
+    #[test]
+    fn test_extract_filename_simple() {
+        assert_eq!(extract_filename("/tmp/file.deb"), "file.deb");
+    }
+
+    #[test]
+    fn test_extract_filename_no_path() {
+        assert_eq!(extract_filename("package.rpm"), "package.rpm");
+    }
+
+    #[test]
+    fn test_extract_filename_deep() {
+        assert_eq!(extract_filename("/a/b/c/d/pkg.deb"), "pkg.deb");
+    }
+
+    #[test]
+    fn test_extract_filename_trailing_slash() {
+        let name = extract_filename("/tmp/");
+        assert!(name.is_empty() || name == "tmp");
+    }
+
+    #[test]
+    fn test_parse_control_field_simple() {
+        let content = "Package: myapp\nVersion: 1.0\nDescription: My App\n";
+        assert_eq!(parse_control_field(content, "Package"), Some("myapp"));
+        assert_eq!(parse_control_field(content, "Version"), Some("1.0"));
+        assert_eq!(parse_control_field(content, "Description"), Some("My App"));
+    }
+
+    #[test]
+    fn test_parse_control_field_no_space() {
+        let content = "Package:myapp\nVersion:1.0\n";
+        assert_eq!(parse_control_field(content, "Package"), Some("myapp"));
+        assert_eq!(parse_control_field(content, "Version"), Some("1.0"));
+    }
+
+    #[test]
+    fn test_parse_control_field_missing() {
+        let content = "Package: myapp\n";
+        assert_eq!(parse_control_field(content, "Version"), None);
+    }
+
+    #[test]
+    fn test_parse_control_field_empty() {
+        let content = "Package:\n";
+        assert_eq!(parse_control_field(content, "Package"), Some(""));
+    }
+
+    #[test]
+    fn test_parse_control_field_multi_line_value() {
+        let content = "Package: myapp\nVersion: 1.0\nDescription: A long\n description\n over multiple lines\n";
+        assert_eq!(parse_control_field(content, "Package"), Some("myapp"));
+        assert_eq!(parse_control_field(content, "Version"), Some("1.0"));
+        // parse_control_field only reads first line
+        assert_eq!(parse_control_field(content, "Description"), Some("A long"));
+    }
+
+    #[test]
+    fn test_parse_rpm_field_simple() {
+        let output = "Name        : myapp\nVersion     : 1.0\nRelease     : 1\nArchitecture: x86_64\n";
+        assert_eq!(parse_rpm_field(output, "Name"), Some("myapp".into()));
+        assert_eq!(parse_rpm_field(output, "Version"), Some("1.0".into()));
+        assert_eq!(parse_rpm_field(output, "Architecture"), Some("x86_64".into()));
+    }
+
+    #[test]
+    fn test_parse_rpm_field_case_insensitive() {
+        let output = "NAME        : myapp\n";
+        assert_eq!(parse_rpm_field(output, "name"), Some("myapp".into()));
+        assert_eq!(parse_rpm_field(output, "Name"), Some("myapp".into()));
+    }
+
+    #[test]
+    fn test_parse_rpm_field_missing() {
+        let output = "Name: myapp\n";
+        assert_eq!(parse_rpm_field(output, "Version"), None);
+    }
+
 }

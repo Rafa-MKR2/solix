@@ -15,7 +15,12 @@ DIST_DIR="$SCRIPT_DIR/dist"
 
 echo "=== Building Solix $VERSION for distribution ==="
 
-# Build
+# Compile TypeScript
+cd "$SCRIPT_DIR"
+npm ci --omit=optional 2>/dev/null || true
+npx tsc 2>/dev/null || echo "⚠️ TypeScript não encontrado, usando JS existente"
+
+# Build Rust
 cd "$SCRIPT_DIR/src-tauri"
 . "$HOME/.cargo/env"
 cargo build --release

@@ -5,7 +5,21 @@
 
 use serde::Serialize;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
+
+/// Flag compartilhada que indica se uma operação de instalação/remoção/atualização
+/// está em andamento. Quando ativa, as consultas do HomeStats (pacman -Q, -Qu)
+/// são puladas para evitar conflitos com o pacman.
+static OPERATION_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
+
+pub fn set_operation_in_progress(val: bool) {
+    OPERATION_IN_PROGRESS.store(val, Ordering::SeqCst);
+}
+
+pub fn is_operation_in_progress() -> bool {
+    OPERATION_IN_PROGRESS.load(Ordering::SeqCst)
+}
 
 static PREV_CPU: Mutex<Option<CpuTimes>> = Mutex::new(None);
 
@@ -137,10 +151,10 @@ fn get_memory_percent() -> f64 {
 
     for line in content.lines() {
         if let Some(val) = line.strip_prefix("MemTotal:") {
-            total = val.trim().split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            total = val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
         }
         if let Some(val) = line.strip_prefix("MemAvailable:") {
-            available = val.trim().split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            available = val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
         }
     }
 
@@ -163,7 +177,7 @@ fn get_total_mem_kb() -> u64 {
     let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
     for line in content.lines() {
         if let Some(val) = line.strip_prefix("MemTotal:") {
-            return val.trim().split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(1);
+            return val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(1);
         }
     }
     1
@@ -180,6 +194,10 @@ fn read_system_cpu_total() -> u64 {
 fn read_proc_stat(pid: u32) -> Option<(u64, char, String, u64)> {
     let stat_path = format!("/proc/{}/stat", pid);
     let content = std::fs::read_to_string(&stat_path).ok()?;
+    parse_proc_stat_line(&content)
+}
+
+fn parse_proc_stat_line(content: &str) -> Option<(u64, char, String, u64)> {
     let comm_end = content.rfind(')')?;
     let rest = content[comm_end + 2..].trim().to_string();
     let fields: Vec<&str> = rest.split_whitespace().collect();
@@ -201,7 +219,7 @@ fn get_process_user(pid: u32) -> String {
     if let Ok(content) = std::fs::read_to_string(&status_path) {
         for line in content.lines() {
             if let Some(val) = line.strip_prefix("Uid:") {
-                let uid_str = val.trim().split_whitespace().next().unwrap_or("0");
+                let uid_str = val.split_whitespace().next().unwrap_or("0");
                 if let Ok(uid) = uid_str.parse::<u32>() {
                     return get_username_for_uid(uid);
                 }
@@ -273,49 +291,48 @@ fn run_cmd(args: &[&str]) -> Option<String> {
         })
 }
 
-fn count_packages() -> (u64, String) {
-    // Arch
-    if let Some(out) = run_cmd(&["pacman", "-Q", "--noconfirm"]) {
-        let count = out.lines().filter(|l| !l.is_empty()).count() as u64;
-        let fmt = if count >= 1000 {
-            format!("{:.1}k", count as f64 / 1000.0)
-        } else {
-            count.to_string()
-        };
-        return (count, fmt);
+fn fmt_package_count(count: u64) -> String {
+    if count >= 1000 {
+        format!("{:.1}k", count as f64 / 1000.0)
+    } else {
+        count.to_string()
     }
-    // Debian/Ubuntu
+}
+
+fn count_packages() -> (u64, String) {
+    if is_operation_in_progress() {
+        return (0, "—".to_string());
+    }
+
+    if let Some(out) = run_cmd(&["timeout", "15", "pacman", "-Q", "--noconfirm"]) {
+        let count = out.lines().filter(|l| !l.is_empty()).count() as u64;
+        return (count, fmt_package_count(count));
+    }
     if let Some(out) = run_cmd(&["dpkg", "--list"]) {
         let count = out.lines().filter(|l| l.starts_with("ii")).count() as u64;
-        let fmt = if count >= 1000 {
-            format!("{:.1}k", count as f64 / 1000.0)
-        } else {
-            count.to_string()
-        };
-        return (count, fmt);
+        return (count, fmt_package_count(count));
     }
-    // Fedora/openSUSE
     if let Some(out) = run_cmd(&["rpm", "-qa"]) {
         let count = out.lines().filter(|l| !l.is_empty()).count() as u64;
-        let fmt = if count >= 1000 {
-            format!("{:.1}k", count as f64 / 1000.0)
-        } else {
-            count.to_string()
-        };
-        return (count, fmt);
+        return (count, fmt_package_count(count));
     }
     (0, "—".to_string())
 }
 
 fn count_updates() -> (u64, String) {
-    // Arch
-    if let Some(out) = run_cmd(&["pacman", "-Qu", "--noconfirm"]) {
+    // Se uma operação estiver em andamento, pula a consulta
+    if is_operation_in_progress() {
+        return (0, "—".to_string());
+    }
+
+    // Arch — com timeout de 15s
+    if let Some(out) = run_cmd(&["timeout", "15", "pacman", "-Qu", "--noconfirm"]) {
         let count = out.lines().filter(|l| !l.is_empty() && !l.contains("There is nothing to do")).count() as u64;
         return (count, if count == 0 { "Em dia".into() } else { format!("{}", count) });
     }
     // Debian/Ubuntu
-    if let Ok(out) = std::process::Command::new("apt")
-        .args(["list", "--upgradable"])
+    if let Ok(out) = std::process::Command::new("timeout")
+        .args(["15", "apt", "list", "--upgradable"])
         .output()
     {
         let text = String::from_utf8_lossy(&out.stdout);
@@ -325,9 +342,9 @@ fn count_updates() -> (u64, String) {
             .count() as u64;
         return (count, if count == 0 { "Em dia".into() } else { format!("{}", count) });
     }
-    // Fedora (dnf returns exit code 100 when updates exist, so read stdout directly)
-    if let Ok(out) = std::process::Command::new("dnf")
-        .args(["check-update", "-q"])
+    // Fedora — com timeout de 30s (dnf pode ser mais lento)
+    if let Ok(out) = std::process::Command::new("timeout")
+        .args(["30", "dnf", "check-update", "-q"])
         .output()
     {
         let text = String::from_utf8_lossy(&out.stdout);
@@ -354,16 +371,26 @@ fn get_load_average() -> String {
         .unwrap_or_else(|| "—".to_string())
 }
 
+fn fmt_kb(kb: u64) -> String {
+    if kb > 1_048_576 {
+        format!("{:.1} GB", kb as f64 / 1_048_576.0)
+    } else if kb > 1024 {
+        format!("{:.0} MB", kb as f64 / 1024.0)
+    } else {
+        format!("{} KB", kb)
+    }
+}
+
 fn get_swap_info() -> (String, String, f64) {
     let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
     let mut total_kb = 0u64;
     let mut free_kb = 0u64;
     for line in content.lines() {
         if let Some(v) = line.strip_prefix("SwapTotal:") {
-            total_kb = v.trim().split_whitespace().next().and_then(|s| s.parse().ok()).unwrap_or(0);
+            total_kb = v.split_whitespace().next().and_then(|s| s.parse().ok()).unwrap_or(0);
         }
         if let Some(v) = line.strip_prefix("SwapFree:") {
-            free_kb = v.trim().split_whitespace().next().and_then(|s| s.parse().ok()).unwrap_or(0);
+            free_kb = v.split_whitespace().next().and_then(|s| s.parse().ok()).unwrap_or(0);
         }
     }
     let used_kb = total_kb.saturating_sub(free_kb);
@@ -372,15 +399,6 @@ fn get_swap_info() -> (String, String, f64) {
     } else {
         0.0
     };
-    fn fmt_kb(kb: u64) -> String {
-        if kb > 1_048_576 {
-            format!("{:.1} GB", kb as f64 / 1_048_576.0)
-        } else if kb > 1024 {
-            format!("{:.0} MB", kb as f64 / 1024.0)
-        } else {
-            format!("{} KB", kb)
-        }
-    }
     (fmt_kb(used_kb), fmt_kb(total_kb), pct)
 }
 
@@ -443,15 +461,7 @@ pub fn get_processes() -> Vec<ProcessInfo> {
         };
         let (total_time, state_raw, comm, rss_kb) = sample;
 
-        let state = match state_raw {
-            'R' => "Exec".to_string(),
-            'S' => "Sleep".to_string(),
-            'D' => "Disk".to_string(),
-            'Z' => "Zomb".to_string(),
-            'T' | 't' => "Stop".to_string(),
-            'I' => "Idle".to_string(),
-            _ => state_raw.to_string(),
-        };
+        let state = map_state(state_raw);
 
         let user = get_process_user(pid);
 
@@ -492,6 +502,18 @@ pub fn get_processes() -> Vec<ProcessInfo> {
     result
 }
 
+fn map_state(c: char) -> String {
+    match c {
+        'R' => "Exec".to_string(),
+        'S' => "Sleep".to_string(),
+        'D' => "Disk".to_string(),
+        'Z' => "Zomb".to_string(),
+        'T' | 't' => "Stop".to_string(),
+        'I' => "Idle".to_string(),
+        _ => c.to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -514,15 +536,7 @@ mod tests {
             ('X', "X"),
         ];
         for (ch, expected) in &cases {
-            let state = match ch {
-                'R' => "Exec".to_string(),
-                'S' => "Sleep".to_string(),
-                'D' => "Disk".to_string(),
-                'Z' => "Zomb".to_string(),
-                'T' | 't' => "Stop".to_string(),
-                'I' => "Idle".to_string(),
-                _ => ch.to_string(),
-            };
+            let state = map_state(*ch);
             assert_eq!(state, *expected, "State mapping for '{}' failed", ch);
         }
     }
@@ -612,32 +626,14 @@ mod tests {
             ('P', "P"),
         ];
         for (ch, expected) in &cases {
-            let state = match ch {
-                'R' => "Exec".to_string(),
-                'S' => "Sleep".to_string(),
-                'D' => "Disk".to_string(),
-                'Z' => "Zomb".to_string(),
-                'T' | 't' => "Stop".to_string(),
-                'I' => "Idle".to_string(),
-                _ => ch.to_string(),
-            };
+            let state = map_state(*ch);
             assert_eq!(state, *expected, "State mapping for '{}' failed", ch);
         }
     }
 
     #[test]
     fn test_state_mapping_unknown() {
-        let ch = '?';
-        let state = match ch {
-            'R' => "Exec".to_string(),
-            'S' => "Sleep".to_string(),
-            'D' => "Disk".to_string(),
-            'Z' => "Zomb".to_string(),
-            'T' | 't' => "Stop".to_string(),
-            'I' => "Idle".to_string(),
-            _ => ch.to_string(),
-        };
-        assert_eq!(state, "?");
+        assert_eq!(map_state('?'), "?");
     }
 
     #[test]
@@ -666,6 +662,74 @@ mod tests {
         assert_eq!(p.state, "Zomb");
         assert_eq!(p.user, "root");
         assert!(p.cmd.is_empty());
+    }
+
+    #[test]
+    fn test_fmt_kb_kb() {
+        assert_eq!(fmt_kb(0), "0 KB");
+        assert_eq!(fmt_kb(1), "1 KB");
+        assert_eq!(fmt_kb(1024), "1024 KB");
+    }
+
+    #[test]
+    fn test_fmt_kb_mb() {
+        assert_eq!(fmt_kb(1025), "1 MB");
+        assert_eq!(fmt_kb(2048), "2 MB");
+        assert_eq!(fmt_kb(1_048_576), "1024 MB");
+    }
+
+    #[test]
+    fn test_fmt_kb_gb() {
+        assert_eq!(fmt_kb(1_048_577), "1.0 GB");
+        assert_eq!(fmt_kb(2_097_152), "2.0 GB");
+    }
+
+    #[test]
+    fn test_fmt_package_count_under_1000() {
+        assert_eq!(fmt_package_count(0), "0");
+        assert_eq!(fmt_package_count(1), "1");
+        assert_eq!(fmt_package_count(999), "999");
+    }
+
+    #[test]
+    fn test_fmt_package_count_over_1000() {
+        assert_eq!(fmt_package_count(1000), "1.0k");
+        assert_eq!(fmt_package_count(1500), "1.5k");
+        assert_eq!(fmt_package_count(99999), "100.0k");
+    }
+
+    #[test]
+    fn test_parse_proc_stat_line_normal() {
+        // Simulated content: pid (comm) state ...
+        // pid=1234, comm=(bash), state=R
+        // Format: pid (comm) state ppid pgrp session tty_nr tpgid flags minflt cminflt majflt cmajflt utime stime cutime cstime priority nice num_threads itrealvalue starttime vsize rss rsslim
+        let content = "1234 (bash) R 1233 1233 1233 34816 2036 4194308 12345 6789 0 0 100 50 0 0 20 0 1 0 123456 12345678 1234 0";
+        let (total_time, state, comm, rss_kb) = parse_proc_stat_line(content).unwrap();
+        assert_eq!(total_time, 150);
+        assert_eq!(state, 'R');
+        assert_eq!(comm, "bash");
+        assert_eq!(rss_kb, 4936);
+    }
+
+    #[test]
+    fn test_parse_proc_stat_line_no_close_paren() {
+        assert!(parse_proc_stat_line("1234 (bash R").is_none());
+    }
+
+    #[test]
+    fn test_parse_proc_stat_line_too_few_fields() {
+        let content = "1 (init) S 0 0 0 0 0 0 0 0 0 0";
+        assert!(parse_proc_stat_line(content).is_none());
+    }
+
+    #[test]
+    fn test_parse_proc_stat_line_comm_with_parens() {
+        let content = "42 (foo(bar)baz) S 0 0 0 0 0 0 0 0 0 0 100 50 0 0 20 0 1 0 0 99999999 42 0 0 0";
+        let (total_time, state, comm, rss_kb) = parse_proc_stat_line(content).unwrap();
+        assert_eq!(total_time, 150);
+        assert_eq!(state, 'S');
+        assert_eq!(comm, "foo(bar)baz");
+        assert_eq!(rss_kb, 168);
     }
 }
 

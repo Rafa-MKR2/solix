@@ -3,11 +3,13 @@
 // GitHub: https://github.com/Rafa-MKR2
 
 use serde::Serialize;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use crate::distribution;
+use crate::password;
 use crate::tool;
 
 #[derive(Debug, Serialize, Clone)]
@@ -50,98 +52,59 @@ fn get_command_prefixes() -> HashMap<&'static str, (&'static str, &'static str)>
     map
 }
 
-pub fn get_package_name(tool_name: &str) -> &str {
-    let package_map: HashMap<&str, &str> = [
-        ("git", "git"),
-        ("node", "nodejs"),
-        ("python3", "python3"),
-        ("gcc", "gcc"),
-        ("make", "make"),
-        ("java", "default-jre"),
-        ("code", "code"),
-        ("gh", "gh"),
-        ("rust", "rust"),
-        ("go", "go"),
-        ("dbeaver", "dbeaver"),
-        ("curl", "curl"),
-        ("wget", "wget"),
-        ("firefox", "firefox"),
-        ("chromium", "chromium"),
-        ("brave", "brave"),
-        ("docker", "docker"),
-        ("steam", "steam"),
-        ("lutris", "lutris"),
-        ("wine", "wine"),
-        ("heroic", "heroic-games-launcher"),
-        ("prismlauncher", "prismlauncher"),
-        ("vlc", "vlc"),
-        ("gimp", "gimp"),
-        ("obs-studio", "obs-studio"),
-        ("kdenlive", "kdenlive"),
-        ("audacity", "audacity"),
-        ("flameshot", "flameshot"),
-        ("inkscape", "inkscape"),
-        ("krita", "krita"),
-        ("libreoffice", "libreoffice"),
-        ("onlyoffice", "onlyoffice"),
-        ("obsidian", "obsidian"),
-        ("discord", "discord"),
-        ("telegram", "telegram-desktop"),
-        ("zoom", "zoom"),
-        ("p7zip", "p7zip"),
-        ("timeshift", "timeshift"),
-        ("vim", "vim"),
-        ("htop", "htop"),
-        ("fastfetch", "fastfetch"),
-        ("flatpak", "flatpak"),
-        ("gnome-tweaks", "gnome-tweaks"),
-        ("keepassxc", "keepassxc"),
-        ("gufw", "gufw"),
-        ("openssh", "openssh"),
-        ("pavucontrol", "pavucontrol"),
-        ("qbittorrent", "qbittorrent"),
-        ("thunderbird", "thunderbird"),
-        ("docker-compose", "docker-compose"),
-        ("virtualbox", "virtualbox"),
-        ("gamemode", "gamemode"),
-        ("mangohud", "mangohud"),
-        ("hydra", "hydra"),
-        ("blender", "blender"),
-        ("handbrake", "handbrake"),
-        ("mpv", "mpv"),
-        ("ffmpeg", "ffmpeg"),
-        ("arc-gtk-theme", "arc-gtk-theme"),
-        ("papirus-icon-theme", "papirus-icon-theme"),
-        ("materia-gtk-theme", "materia-gtk-theme"),
-        ("gtk-theme-windows10", "gtk-theme-windows10"),
-        ("fluent-gtk-theme", "fluent-gtk-theme"),
-        ("neovim", "neovim"),
-        ("lazygit", "lazygit"),
-        ("transmission-qt", "transmission-qt"),
-        ("filezilla", "filezilla"),
-        ("nextcloud-client", "nextcloud-client"),
-        ("signal-desktop", "signal-desktop"),
-        ("slack-desktop", "slack-desktop"),
-        ("element-desktop", "element-desktop"),
-        ("retroarch", "retroarch"),
-        ("dolphin-emu", "dolphin-emu"),
-        ("pcsx2", "pcsx2"),
-        ("0ad", "0ad"),
-        ("supertuxkart", "supertuxkart"),
-        ("spotify", "spotify"),
-        ("shotcut", "shotcut"),
-        ("digikam", "digikam"),
-        ("nano", "nano"),
-        ("btop", "btop"),
-        ("bleachbit", "bleachbit"),
-        ("stacer", "stacer"),
-        ("syncthing", "syncthing"),
-        ("tmux", "tmux"),
-        ("unzip", "unzip"),
-        ("unrar", "unrar"),
-        ("calibre", "calibre"),
-    ].iter().copied().collect();
-    package_map.get(tool_name).copied().unwrap_or(tool_name)
+pub fn get_package_name(tool_name: &str) -> Cow<'static, str> {
+    static PACKAGE_MAP: std::sync::OnceLock<HashMap<&'static str, &'static str>> = std::sync::OnceLock::new();
+    let map = PACKAGE_MAP.get_or_init(|| {
+        HashMap::from([
+            ("git", "git"), ("node", "nodejs"), ("python3", "python3"),
+            ("gcc", "gcc"), ("make", "make"), ("java", "default-jre"),
+            ("code", "code"), ("gh", "gh"), ("rust", "rust"), ("go", "go"),
+            ("dbeaver", "dbeaver"), ("curl", "curl"), ("wget", "wget"),
+            ("firefox", "firefox"), ("chromium", "chromium"), ("brave", "brave"),
+            ("docker", "docker"), ("steam", "steam"), ("lutris", "lutris"),
+            ("wine", "wine"), ("heroic", "heroic-games-launcher"),
+            ("prismlauncher", "prismlauncher"), ("vlc", "vlc"), ("gimp", "gimp"),
+            ("obs-studio", "obs-studio"), ("kdenlive", "kdenlive"),
+            ("audacity", "audacity"), ("flameshot", "flameshot"),
+            ("inkscape", "inkscape"), ("krita", "krita"),
+            ("libreoffice", "libreoffice"), ("onlyoffice", "onlyoffice"),
+            ("obsidian", "obsidian"), ("discord", "discord"),
+            ("telegram", "telegram-desktop"), ("zoom", "zoom"),
+            ("p7zip", "p7zip"), ("timeshift", "timeshift"),
+            ("vim", "vim"), ("htop", "htop"), ("fastfetch", "fastfetch"),
+            ("flatpak", "flatpak"), ("gnome-tweaks", "gnome-tweaks"),
+            ("keepassxc", "keepassxc"), ("gufw", "gufw"), ("openssh", "openssh"),
+            ("pavucontrol", "pavucontrol"), ("qbittorrent", "qbittorrent"),
+            ("thunderbird", "thunderbird"),
+            ("docker-compose", "docker-compose"), ("virtualbox", "virtualbox"),
+            ("gamemode", "gamemode"), ("mangohud", "mangohud"),
+            ("hydra", "hydra"), ("blender", "blender"),
+            ("handbrake", "handbrake"), ("mpv", "mpv"), ("ffmpeg", "ffmpeg"),
+            ("arc-gtk-theme", "arc-gtk-theme"),
+            ("papirus-icon-theme", "papirus-icon-theme"),
+            ("materia-gtk-theme", "materia-gtk-theme"),
+            ("gtk-theme-windows10", "gtk-theme-windows10"),
+            ("fluent-gtk-theme", "fluent-gtk-theme"),
+            ("neovim", "neovim"), ("lazygit", "lazygit"),
+            ("transmission-qt", "transmission-qt"), ("filezilla", "filezilla"),
+            ("nextcloud-client", "nextcloud-client"),
+            ("signal-desktop", "signal-desktop"),
+            ("slack-desktop", "slack-desktop"),
+            ("element-desktop", "element-desktop"),
+            ("retroarch", "retroarch"), ("dolphin-emu", "dolphin-emu"),
+            ("pcsx2", "pcsx2"), ("0ad", "0ad"),
+            ("supertuxkart", "supertuxkart"), ("spotify", "spotify"),
+            ("shotcut", "shotcut"), ("digikam", "digikam"),
+            ("nano", "nano"), ("btop", "btop"), ("bleachbit", "bleachbit"),
+            ("stacer", "stacer"), ("syncthing", "syncthing"),
+            ("tmux", "tmux"), ("unzip", "unzip"), ("unrar", "unrar"),
+            ("calibre", "calibre"),
+        ])
+    });
+    match map.get(tool_name) {
+        Some(&name) => Cow::Borrowed(name),
+        None => Cow::Owned(tool_name.to_string()),
+    }
 }
 
 async fn get_distro_and_prefix() -> Result<(distribution::LinuxDistribution, (&'static str, &'static str)), String> {
@@ -187,12 +150,7 @@ pub async fn run_command(password: &str, tool_name: &str, command: &str) -> Inst
                 *guard = Some(pid);
             }
 
-            if let Some(mut stdin) = c.stdin.take() {
-                use tokio::io::AsyncWriteExt;
-                let input = format!("{}\n", password);
-                let _ = stdin.write_all(input.as_bytes()).await;
-                let _ = stdin.shutdown().await;
-            }
+            let _ = password::pipe_password(&mut c, password).await;
 
             let output = c.wait_with_output().await;
 
@@ -246,30 +204,28 @@ pub async fn run_command(password: &str, tool_name: &str, command: &str) -> Inst
     }
 }
 
-pub async fn verify_password(password: &str) -> Result<(), String> {
-    let mut child = tokio::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo -S echo ok")
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Erro ao executar sudo: {}", e))?;
- 
-     if let Some(mut stdin) = child.stdin.take() {
-         use tokio::io::AsyncWriteExt;
-         let input = format!("{}\n", password);
-         stdin.write_all(input.as_bytes()).await.map_err(|e| format!("Erro ao enviar senha: {}", e))?;
-         stdin.shutdown().await.map_err(|e| format!("Erro ao fechar entrada: {}", e))?;
-     }
- 
-     let output = child.wait_with_output().await.map_err(|e| format!("Erro ao aguardar sudo: {}", e))?;
 
-    if output.status.success() {
-        Ok(())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(stderr.to_string())
+
+/// Mata processos pacman de consulta (read-only: pacman -Q, pacman -Qu) que
+/// estejam rodando, para evitar falso positivo de lock quando uma operação de
+/// escrita for iniciada. São processos iniciados pelo nosso próprio HomeStats
+/// e serão reiniciados no próximo ciclo de polling.
+///
+/// Usa SIGKILL (-9) para garantir que o processo termine imediatamente,
+/// mesmo se estiver travado (como vimos com pacman -Qu a 100% de CPU).
+/// Depois, faz polling no arquivo de lock por até 2 segundos.
+pub fn kill_readonly_pacman_queries() {
+    let _ = std::process::Command::new("sh")
+        .arg("-c")
+        .arg("pkill -9 -f 'pacman -Q[[:space:]]' 2>/dev/null; pkill -9 -f 'pacman -Qu[[:space:]]' 2>/dev/null; true")
+        .output();
+    // Polling: aguarda até 2s o lock ser liberado (em vez de sleep fixo)
+    let lock = "/var/lib/pacman/db.lck";
+    for _ in 0..20 {
+        if !std::path::Path::new(lock).exists() {
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
 }
 
@@ -351,20 +307,6 @@ pub fn check_pm_lock_sync() -> PmLockInfo {
     }
 }
 
-#[allow(dead_code)]
-pub fn semver_compare(a: &str, b: &str) -> bool {
-    let a_parts: Vec<u64> = a.split('.').filter_map(|s| s.parse().ok()).collect();
-    let b_parts: Vec<u64> = b.split('.').filter_map(|s| s.parse().ok()).collect();
-    for i in 0..a_parts.len().max(b_parts.len()) {
-        let av = a_parts.get(i).copied().unwrap_or(0);
-        let bv = b_parts.get(i).copied().unwrap_or(0);
-        if av != bv {
-            return av > bv;
-        }
-    }
-    false
-}
-
 pub async fn cancel_operation_inner() {
     CANCEL_FLAG.store(true, Ordering::SeqCst);
     if let Ok(mut guard) = CURRENT_CHILD_PID.lock() {
@@ -377,12 +319,47 @@ pub async fn cancel_operation_inner() {
     }
 }
 
-pub async fn install_tools(tool_names: &[String], password: &str) -> Result<Vec<InstallResult>, String> {
+async fn run_tool_operation(
+    tool_names: &[String],
+    password: &str,
+    prefix: &str,
+) -> Result<Vec<InstallResult>, String> {
     CANCEL_FLAG.store(false, Ordering::SeqCst);
 
-    // Se for apenas verificação de senha (__verify__), não tenta instalar nada
+    password::verify_password(password).await?;
+
+    crate::stats::set_operation_in_progress(true);
+    kill_readonly_pacman_queries();
+
+    let result = async {
+        let mut results = Vec::with_capacity(tool_names.len());
+        for tool_name in tool_names {
+            if CANCEL_FLAG.load(Ordering::SeqCst) {
+                results.push(InstallResult {
+                    tool_name: tool_name.to_string(),
+                    command: String::new(),
+                    success: false,
+                    cancelled: true,
+                    output: None,
+                    error: Some("Operação cancelada".to_string()),
+                });
+                continue;
+            }
+            let package = get_package_name(tool_name);
+            let command = format!("{} {}", prefix, package);
+            results.push(run_command(password, tool_name, &command).await);
+        }
+        Ok::<Vec<InstallResult>, String>(results)
+    }.await;
+
+    crate::stats::set_operation_in_progress(false);
+    CANCEL_FLAG.store(false, Ordering::SeqCst);
+    result
+}
+
+pub async fn install_tools(tool_names: &[String], password: &str) -> Result<Vec<InstallResult>, String> {
     if tool_names.len() == 1 && tool_names[0] == "__verify__" {
-        verify_password(password).await?;
+        password::verify_password(password).await?;
         return Ok(vec![InstallResult {
             tool_name: "__verify__".into(),
             command: String::new(),
@@ -393,54 +370,13 @@ pub async fn install_tools(tool_names: &[String], password: &str) -> Result<Vec<
         }]);
     }
 
-    verify_password(password).await?;
-
     let (_, (install_prefix, _)) = get_distro_and_prefix().await?;
-    let mut results = Vec::new();
-    for tool_name in tool_names {
-        if CANCEL_FLAG.load(Ordering::SeqCst) {
-            results.push(InstallResult {
-                tool_name: tool_name.to_string(),
-                command: String::new(),
-                success: false,
-                cancelled: true,
-                output: None,
-                error: Some("Operação cancelada".to_string()),
-            });
-            continue;
-        }
-        let package = get_package_name(tool_name);
-        let command = format!("{} {}", install_prefix, package);
-        results.push(run_command(password, tool_name, &command).await);
-    }
-    CANCEL_FLAG.store(false, Ordering::SeqCst);
-    Ok(results)
+    run_tool_operation(tool_names, password, install_prefix).await
 }
 
 pub async fn remove_tools(tool_names: &[String], password: &str) -> Result<Vec<InstallResult>, String> {
-    CANCEL_FLAG.store(false, Ordering::SeqCst);
-    verify_password(password).await?;
-
     let (_, (_, remove_prefix)) = get_distro_and_prefix().await?;
-    let mut results = Vec::new();
-    for tool_name in tool_names {
-        if CANCEL_FLAG.load(Ordering::SeqCst) {
-            results.push(InstallResult {
-                tool_name: tool_name.to_string(),
-                command: String::new(),
-                success: false,
-                cancelled: true,
-                output: None,
-                error: Some("Operação cancelada".to_string()),
-            });
-            continue;
-        }
-        let package = get_package_name(tool_name);
-        let command = format!("{} {}", remove_prefix, package);
-        results.push(run_command(password, tool_name, &command).await);
-    }
-    CANCEL_FLAG.store(false, Ordering::SeqCst);
-    Ok(results)
+    run_tool_operation(tool_names, password, remove_prefix).await
 }
 
 fn get_update_command(pm: &str) -> &'static str {
@@ -455,21 +391,30 @@ fn get_update_command(pm: &str) -> &'static str {
 
 pub async fn update_system(password: &str) -> Result<InstallResult, String> {
     CANCEL_FLAG.store(false, Ordering::SeqCst);
-    verify_password(password).await?;
 
-    let (distro, _) = get_distro_and_prefix().await?;
-    let command = get_update_command(&distro.package_manager);
-    let mut result = run_command(password, "system-update", command).await;
+    crate::stats::set_operation_in_progress(true);
+    kill_readonly_pacman_queries();
 
-    if result.success {
-        let fp = run_command(password, "flatpak-update", "flatpak update -y 2>/dev/null; echo done").await;
-        let out = result.output.unwrap_or_default();
-        let fp_out = fp.output.unwrap_or_default();
-        result.output = Some(format!("{out}\nFlatpak: {fp_out}"));
-    }
+    let result = async {
+        password::verify_password(password).await?;
 
+        let (distro, _) = get_distro_and_prefix().await?;
+        let command = get_update_command(&distro.package_manager);
+        let mut result = run_command(password, "system-update", command).await;
+
+        if result.success {
+            let fp = run_command(password, "flatpak-update", "flatpak update -y 2>/dev/null; echo done").await;
+            let out = result.output.unwrap_or_default();
+            let fp_out = fp.output.unwrap_or_default();
+            result.output = Some(format!("{out}\nFlatpak: {fp_out}"));
+        }
+
+        Ok::<InstallResult, String>(result)
+    }.await;
+
+    crate::stats::set_operation_in_progress(false);
     CANCEL_FLAG.store(false, Ordering::SeqCst);
-    Ok(result)
+    result
 }
 
 #[cfg(test)]
@@ -549,70 +494,6 @@ mod tests {
         assert_eq!(r.tool_name, "test");
     }
 
-    // ─── semver_compare tests ───
-
-    #[test]
-    fn test_semver_equal() {
-        assert!(!semver_compare("2.0.1", "2.0.1"));
-    }
-
-    #[test]
-    fn test_semver_major_newer() {
-        assert!(semver_compare("3.0.0", "2.0.0"));
-    }
-
-    #[test]
-    fn test_semver_major_older() {
-        assert!(!semver_compare("1.0.0", "2.0.0"));
-    }
-
-    #[test]
-    fn test_semver_minor_newer() {
-        assert!(semver_compare("2.1.0", "2.0.9"));
-    }
-
-    #[test]
-    fn test_semver_patch_newer() {
-        assert!(semver_compare("2.0.2", "2.0.1"));
-    }
-
-    #[test]
-    fn test_semver_patch_older() {
-        assert!(!semver_compare("2.0.1", "2.0.2"));
-    }
-
-    #[test]
-    fn test_semver_different_lengths() {
-        assert!(semver_compare("2.1", "2.0.9"));
-        assert!(!semver_compare("2.0", "2.0.1"));
-    }
-
-    #[test]
-    fn test_semver_with_v_prefix_stripped() {
-        assert!(semver_compare("2.1.0", "2.0.0"));
-        assert!(!semver_compare("1.9.0", "2.0.0"));
-    }
-
-    #[test]
-    fn test_semver_empty_strings() {
-        assert!(!semver_compare("", ""));
-        assert!(!semver_compare("", "1.0.0"));
-        assert!(semver_compare("1.0.0", ""));
-    }
-
-    #[test]
-    fn test_semver_single_part() {
-        assert!(semver_compare("5", "4"));
-        assert!(!semver_compare("4", "5"));
-        assert!(!semver_compare("1", "1"));
-    }
-
-    #[test]
-    fn test_semver_non_numeric_parts() {
-        assert!(!semver_compare("1.0.0-beta", "1.0.0"));
-        assert!(semver_compare("1.0.1", "1.0.0-beta"));
-    }
-
     // ─── PmLockInfo tests ───
 
     #[test]
@@ -660,21 +541,6 @@ mod tests {
         };
         assert!(r.success);
         assert_eq!(r.package_manager, "apt");
-    }
-
-    #[test]
-    fn test_semver_equal_explicit() {
-        assert!(!semver_compare("1.0.0", "1.0.0"));
-    }
-
-    #[test]
-    fn test_semver_major_newer_explicit() {
-        assert!(semver_compare("2.0.0", "1.9.9"));
-    }
-
-    #[test]
-    fn test_semver_different_lengths_equal() {
-        assert!(!semver_compare("1.0", "1.0.0"));
     }
 
     #[test]
@@ -809,6 +675,23 @@ mod tests {
         assert_eq!(get_package_name("unzip"), "unzip");
         assert_eq!(get_package_name("unrar"), "unrar");
         assert_eq!(get_package_name("calibre"), "calibre");
+    }
+
+    #[test]
+    fn test_get_package_name_returns_self_for_unknown() {
+        assert_eq!(get_package_name("nonexistent-tool"), "nonexistent-tool");
+    }
+
+    #[test]
+    fn test_get_package_name_returns_self_for_empty() {
+        assert_eq!(get_package_name(""), "");
+    }
+
+    #[test]
+    fn test_get_package_name_case_sensitive() {
+        // Map has lowercase keys only; mixed case should return self
+        assert_eq!(get_package_name("Node"), "Node");
+        assert_eq!(get_package_name("FIREFOX"), "FIREFOX");
     }
 }
 

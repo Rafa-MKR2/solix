@@ -8,6 +8,7 @@ use std::process::Command;
 
 use crate::distribution;
 use crate::install;
+use crate::util::base64_encode;
 
 fn find_icon(name: &str) -> Option<String> {
     // Check local filesystem first
@@ -193,21 +194,7 @@ fn download_icon(name: &str) -> Option<String> {
     None
 }
 
-fn base64_encode(data: &[u8]) -> String {
-    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut result = String::new();
-    for chunk in data.chunks(3) {
-        let b0 = chunk[0] as u32;
-        let b1 = chunk.get(1).copied().unwrap_or(0) as u32;
-        let b2 = chunk.get(2).copied().unwrap_or(0) as u32;
-        let triple = (b0 << 16) | (b1 << 8) | b2;
-        result.push(CHARS[((triple >> 18) & 0x3F) as usize] as char);
-        result.push(CHARS[((triple >> 12) & 0x3F) as usize] as char);
-        if chunk.len() > 1 { result.push(CHARS[((triple >> 6) & 0x3F) as usize] as char); } else { result.push('='); }
-        if chunk.len() > 2 { result.push(CHARS[(triple & 0x3F) as usize] as char); } else { result.push('='); }
-    }
-    result
-}
+
 
 #[derive(Debug, Serialize)]
 pub struct PackageDetail {
@@ -247,6 +234,10 @@ fn query_info(pm: &str, pkg: &str, installed: bool) -> (String, String, String) 
         if o.status.success() { Some(String::from_utf8_lossy(&o.stdout).to_string()) } else { None }
     }).unwrap_or_default();
 
+    parse_pm_output(pm, &text)
+}
+
+fn parse_pm_output(pm: &str, text: &str) -> (String, String, String) {
     let mut version = "—".to_string();
     let mut size = "—".to_string();
     let mut desc = "—".to_string();
@@ -259,8 +250,7 @@ fn query_info(pm: &str, pkg: &str, installed: bool) -> (String, String, String) 
                     let k = key.trim();
                     let v = val.trim();
                     if k == "Version" { version = v.to_string(); }
-                    else if k == "Installed Size" { size = v.to_string(); }
-                    else if k == "Download Size" && size == "—" { size = v.to_string(); }
+                    else if (k == "Installed Size") || (k == "Download Size" && size == "—") { size = v.to_string(); }
                     else if k == "Description" { desc = v.to_string(); }
                 }
             }
@@ -377,5 +367,107 @@ mod tests {
         assert!(!detail.installed);
         assert!(detail.icon_base64.is_none());
         assert_eq!(detail.description, "");
+    }
+
+    #[test]
+    fn test_parse_pm_output_pacman() {
+        let output = "\
+Name            : firefox
+Version         : 123.0
+Description     : Navegador web Firefox
+Architecture    : x86_64
+Installed Size  : 150.00 MiB
+Download Size   : 50.00 MiB
+";
+        let (ver, size, desc) = parse_pm_output("pacman", output);
+        assert_eq!(ver, "123.0");
+        assert_eq!(size, "150.00 MiB");
+        assert_eq!(desc, "Navegador web Firefox");
+    }
+
+    #[test]
+    fn test_parse_pm_output_pacman_not_installed() {
+        let output = "\
+Name            : firefox
+Version         : 124.0
+Description     : Navegador web Firefox
+Download Size   : 55.00 MiB
+";
+        let (ver, size, desc) = parse_pm_output("pacman", output);
+        assert_eq!(ver, "124.0");
+        assert_eq!(size, "55.00 MiB");
+        assert_eq!(desc, "Navegador web Firefox");
+    }
+
+    #[test]
+    fn test_parse_pm_output_apt() {
+        let output = "\
+Package: firefox
+Version: 123.0
+Installed-Size: 51200
+Description-en: Navegador web Firefox
+";
+        let (ver, size, desc) = parse_pm_output("apt", output);
+        assert_eq!(ver, "123.0");
+        assert_eq!(size, "50.0 MB");
+        assert_eq!(desc, "Navegador web Firefox");
+    }
+
+    #[test]
+    fn test_parse_pm_output_apt_small_size() {
+        let output = "\
+Package: nano
+Version: 7.2
+Installed-Size: 500
+Description: Editor de texto
+";
+        let (_, size, desc) = parse_pm_output("apt", output);
+        assert_eq!(size, "500 kB");
+        assert_eq!(desc, "Editor de texto");
+    }
+
+    #[test]
+    fn test_parse_pm_output_dnf() {
+        let output = "\
+Name         : firefox
+Version      : 123.0
+Size         : 150.00 MiB
+Description  : Navegador web Firefox
+";
+        let (ver, size, desc) = parse_pm_output("dnf", output);
+        assert_eq!(ver, "123.0");
+        assert_eq!(size, "150.00 MiB");
+        assert_eq!(desc, "Navegador web Firefox");
+    }
+
+    #[test]
+    fn test_parse_pm_output_zypper_portuguese() {
+        let output = "\
+Nome            : firefox
+Versão          : 123.0
+Tamanho         : 150.00 MiB
+Descrição       : Navegador web Firefox
+";
+        let (ver, size, desc) = parse_pm_output("zypper", output);
+        assert_eq!(ver, "123.0");
+        assert_eq!(size, "150.00 MiB");
+        assert_eq!(desc, "Navegador web Firefox");
+    }
+
+    #[test]
+    fn test_parse_pm_output_empty() {
+        let (ver, size, desc) = parse_pm_output("pacman", "");
+        assert_eq!(ver, "—");
+        assert_eq!(size, "—");
+        assert_eq!(desc, "—");
+    }
+
+    #[test]
+    fn test_parse_pm_output_unknown_pm() {
+        let output = "Version: 1.0\n";
+        let (ver, size, desc) = parse_pm_output("unknown", output);
+        assert_eq!(ver, "—");
+        assert_eq!(size, "—");
+        assert_eq!(desc, "—");
     }
 }

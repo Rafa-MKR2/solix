@@ -141,15 +141,15 @@ pub fn parse_meminfo(content: &str) -> (String, String) {
 
     for line in content.lines() {
         if let Some(val) = line.strip_prefix("MemTotal:") {
-            total_kb = val.trim().split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            total_kb = val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
         }
         if let Some(val) = line.strip_prefix("MemAvailable:") {
-            available_kb = val.trim().split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            available_kb = val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
         }
     }
 
     let total_gb = total_kb as f64 / 1_048_576.0;
-    let used_gb = (total_kb - available_kb) as f64 / 1_048_576.0;
+    let used_gb = total_kb.saturating_sub(available_kb) as f64 / 1_048_576.0;
     (format!("{:.1} GB", total_gb), format!("{:.1} GB", used_gb))
 }
 
@@ -382,6 +382,71 @@ model name\t: AMD Ryzen 5 3600\n";
         assert!(hw.gpu.is_empty());
         assert!(hw.kernel.is_empty());
         assert!(hw.uptime.is_empty());
+    }
+
+    #[test]
+    fn test_is_virtual_fs_common() {
+        assert!(is_virtual_fs("tmpfs"));
+        assert!(is_virtual_fs("proc"));
+        assert!(is_virtual_fs("sysfs"));
+        assert!(is_virtual_fs("devtmpfs"));
+        assert!(is_virtual_fs("overlay"));
+        assert!(is_virtual_fs("cgroup2"));
+    }
+
+    #[test]
+    fn test_is_virtual_fs_not_virtual() {
+        assert!(!is_virtual_fs("ext4"));
+        assert!(!is_virtual_fs("btrfs"));
+        assert!(!is_virtual_fs("ntfs"));
+        assert!(!is_virtual_fs("vfat"));
+        assert!(!is_virtual_fs("xfs"));
+        assert!(!is_virtual_fs("zfs"));
+    }
+
+    #[test]
+    fn test_is_virtual_fs_empty() {
+        assert!(!is_virtual_fs(""));
+    }
+
+    #[test]
+    fn test_is_virtual_fs_case_sensitive() {
+        assert!(!is_virtual_fs("Tmpfs"));
+        assert!(!is_virtual_fs("PROC"));
+    }
+
+    #[test]
+    fn test_parse_uptime_malformed() {
+        assert_eq!(parse_uptime("abc def"), "0h 0m");
+    }
+
+    #[test]
+    fn test_parse_uptime_partial() {
+        assert_eq!(parse_uptime("3600"), "1h 0m");
+    }
+
+    #[test]
+    fn test_parse_meminfo_negative_values() {
+        let content = "MemTotal:        -1 kB\nMemAvailable:    -5 kB\n";
+        let (total, used) = parse_meminfo(content);
+        assert_eq!(total, "0.0 GB");
+        assert_eq!(used, "0.0 GB");
+    }
+
+    #[test]
+    fn test_parse_cpuinfo_no_model_name() {
+        let content = "processor\t: 0\nvendor_id\t: GenuineIntel\n";
+        let (cpu, cores) = parse_cpuinfo(content);
+        assert_eq!(cpu, "Desconhecido");
+        assert_eq!(cores, "1 núcleos");
+    }
+
+    #[test]
+    fn test_parse_meminfo_available_greater_than_total() {
+        let content = "MemTotal:       1048576 kB\nMemAvailable:    2097152 kB\n";
+        let (total, used) = parse_meminfo(content);
+        assert_eq!(total, "1.0 GB");
+        assert_eq!(used, "0.0 GB");  // saturating at 0
     }
 }
 

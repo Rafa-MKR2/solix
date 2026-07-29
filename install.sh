@@ -19,6 +19,11 @@ else
   [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 fi
 
+echo "=== Compilando TypeScript ==="
+cd "$SCRIPT_DIR"
+npm ci --omit=optional 2>/dev/null || true
+npx tsc 2>/dev/null || echo "⚠️ TypeScript não encontrado, usando JS existente"
+
 echo "=== Compilando $APP_NAME ==="
 cd "$SCRIPT_DIR/src-tauri"
 cargo build --release

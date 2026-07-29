@@ -302,5 +302,58 @@ PRETTY_NAME="Ubuntu 22.04.3 LTS"
         let map = parse_os_release(content);
         assert!(map.is_empty());
     }
+
+    #[test]
+    fn test_find_mapping_garuda() {
+        let (family, pm) = find_mapping("garuda", "");
+        assert_eq!(family, "arch");
+        assert_eq!(pm, "pacman");
+    }
+
+    #[test]
+    fn test_find_mapping_manjaro() {
+        let (family, pm) = find_mapping("manjaro", "");
+        assert_eq!(family, "arch");
+        assert_eq!(pm, "pacman");
+    }
+
+    #[test]
+    fn test_find_mapping_debian() {
+        let (family, pm) = find_mapping("debian", "");
+        assert_eq!(family, "debian");
+        assert_eq!(pm, "apt");
+    }
+
+    #[test]
+    fn test_find_mapping_opensuse_direct() {
+        let (family, pm) = find_mapping("opensuse", "");
+        assert_eq!(family, "opensuse");
+        assert_eq!(pm, "zypper");
+    }
+
+    #[test]
+    fn test_unquote_trailing_whitespace() {
+        assert_eq!(unquote("  \"Ubuntu\"  "), "Ubuntu");
+    }
+
+    #[test]
+    fn test_unquote_partial_quote() {
+        assert_eq!(unquote("\"Ubuntu"), "\"Ubuntu");
+    }
+
+    #[test]
+    fn test_parse_os_release_unquoted_value() {
+        let content = "ID=arch\nVERSION_ID=rolling\n";
+        let map = parse_os_release(content);
+        assert_eq!(map.get("ID").unwrap(), "arch");
+        assert_eq!(map.get("VERSION_ID").unwrap(), "rolling");
+    }
+
+    #[test]
+    fn test_parse_os_release_value_with_equals() {
+        let content = "VERSION=\"ID=value\"\n";
+        let map = parse_os_release(content);
+        assert_eq!(map.get("VERSION").unwrap(), "ID=value");
+    }
 }
 
