@@ -341,6 +341,62 @@ async fn save_report_to_desktop(content: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn create_desktop_shortcut(name: String) -> Result<String, String> {
+    let home = std::env::var("HOME").map_err(|_| "HOME not found".to_string())?;
+
+    // Find binary
+    let which = tokio::process::Command::new("sh")
+        .arg("-c")
+        .arg(format!("which {} 2>/dev/null || echo ''", name))
+        .output()
+        .await
+        .map_err(|e| format!("Error finding binary: {}", e))?;
+    let exec_path = String::from_utf8_lossy(&which.stdout).trim().to_string();
+    if exec_path.is_empty() {
+        return Err(format!("Could not find binary for '{}'", name));
+    }
+
+    // Find desktop folder
+    let candidates = vec![
+        format!("{}/Área de Trabalho", home),
+        format!("{}/Desktop", home),
+        format!("{}/Escritorio", home),
+        home.clone(),
+    ];
+    let dest = candidates.into_iter()
+        .find(|p| std::path::Path::new(p).exists())
+        .unwrap_or(home);
+
+    let desktop_path = format!("{}/{}.desktop", dest, name);
+
+    // Check if shortcut already exists
+    if std::path::Path::new(&desktop_path).exists() {
+        return Ok(format!("Shortcut already exists: {}", desktop_path));
+    }
+
+    // Find icon (try common locations)
+    let icon = name.clone();
+
+    let content = format!(
+        "[Desktop Entry]\nName={}\nExec={}\nIcon={}\nTerminal=false\nType=Application\nCategories=Utility;\n",
+        name, exec_path, icon
+    );
+
+    tokio::fs::write(&desktop_path, &content)
+        .await
+        .map_err(|e| format!("Error writing shortcut: {}", e))?;
+
+    // Make executable
+    tokio::process::Command::new("chmod")
+        .args(["+x", &desktop_path])
+        .output()
+        .await
+        .map_err(|e| format!("Error making shortcut executable: {}", e))?;
+
+    Ok(desktop_path)
+}
+
+#[tauri::command]
 async fn get_app_version() -> Result<String, String> {
     Ok(env!("CARGO_PKG_VERSION").to_string())
 }
@@ -529,6 +585,7 @@ pub fn run() {
     install_repo_packages,
     create_backup,
     save_report_to_desktop,
+    create_desktop_shortcut,
 ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));
