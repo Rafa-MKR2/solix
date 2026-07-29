@@ -45,7 +45,7 @@ pub struct InstallResult {
 
 fn get_command_prefixes() -> HashMap<&'static str, (&'static str, &'static str)> {
     let mut map = HashMap::new();
-    map.insert("pacman", ("sudo -S pacman -Sy --noconfirm", "sudo -S pacman -R --noconfirm"));
+    map.insert("pacman", ("sudo -S pacman -S --noconfirm", "sudo -S pacman -R --noconfirm"));
     map.insert("apt", ("sudo -S apt install -y", "sudo -S apt remove -y"));
     map.insert("dnf", ("sudo -S dnf install -y", "sudo -S dnf remove -y"));
     map.insert("zypper", ("sudo -S zypper install -y", "sudo -S zypper remove -y"));
@@ -357,6 +357,27 @@ async fn run_tool_operation(
     result
 }
 
+async fn sync_pacman_db(password: &str) {
+    use tokio::io::AsyncWriteExt;
+
+    let mut child = match tokio::process::Command::new("sh")
+        .arg("-c")
+        .arg("sudo -S pacman -Sy --noconfirm 2>/dev/null")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    if let Some(stdin) = child.stdin.as_mut() {
+        let _ = stdin.write_all(format!("{}\n", password).as_bytes()).await;
+    }
+    let _ = child.wait().await;
+}
+
 pub async fn install_tools(tool_names: &[String], password: &str) -> Result<Vec<InstallResult>, String> {
     if tool_names.len() == 1 && tool_names[0] == "__verify__" {
         password::verify_password(password).await?;
@@ -370,7 +391,10 @@ pub async fn install_tools(tool_names: &[String], password: &str) -> Result<Vec<
         }]);
     }
 
-    let (_, (install_prefix, _)) = get_distro_and_prefix().await?;
+    let (distro, (install_prefix, _)) = get_distro_and_prefix().await?;
+    if distro.package_manager == "pacman" {
+        sync_pacman_db(password).await;
+    }
     run_tool_operation(tool_names, password, install_prefix).await
 }
 

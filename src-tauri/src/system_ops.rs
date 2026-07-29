@@ -107,7 +107,7 @@ pub async fn enable_zram(password: &str) -> Result<install::InstallResult, Strin
         let pm = distro.as_ref().map(|d| d.package_manager.as_str()).unwrap_or("pacman");
 
         let install_cmd = match pm {
-            "pacman" => "sudo -S pacman -Sy --noconfirm zram-generator 2>/dev/null || sudo -S pacman -Sy --noconfirm systemd/zram",
+            "pacman" => "sudo -S pacman -Sy --noconfirm 2>/dev/null; sudo -S pacman -S --noconfirm zram-generator 2>/dev/null || sudo -S pacman -S --noconfirm systemd/zram",
             "apt" => "sudo -S apt install -y zram-config",
             "dnf" => "sudo -S dnf install -y zram-generator",
             _ => "sudo -S zypper install -y zram-generator",
