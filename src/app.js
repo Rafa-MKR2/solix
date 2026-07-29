@@ -1182,6 +1182,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('report-btn')?.addEventListener('click', reportProblem);
   document.getElementById('update-banner')?.addEventListener('click', handleUpdateClick);
+document.getElementById('dev-github-link')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  window.open('https://github.com/Rafa-MKR2/solix', '_blank');
+});
 const SPEEDO_LENGTH = 367.6;
 let speedoAnimFrame = null;
 

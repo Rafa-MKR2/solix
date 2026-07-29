@@ -320,6 +320,142 @@ body {
   line-height: 1.2;
 }
 
+/* Developer Page */
+.dev-card {
+  background: linear-gradient(145deg, #1a1a32 0%, #18182e 100%);
+  border: 1px solid #252545;
+  border-radius: 16px;
+  padding: 2rem 2rem 1.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  animation: fadeIn 0.4s ease;
+}
+
+.dev-avatar {
+  display: block;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 3px solid #00d4aa44;
+  margin: 0 auto 0.8rem;
+  object-fit: cover;
+  transition: border-color 0.3s, transform 0.3s;
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+}
+
+.dev-avatar:hover {
+  border-color: #00d4aa;
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(0, 212, 170, 0.3);
+}
+
+.dev-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #00d4aa;
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #222244;
+  display: inline-block;
+}
+
+.dev-message {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.dev-message p {
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: #bbb;
+  margin-bottom: 0.8rem;
+}
+
+.dev-message p:last-child {
+  margin-bottom: 0;
+}
+
+.dev-message strong {
+  color: #4ae0a0;
+  font-weight: 600;
+}
+
+.dev-signature {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #222244;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.dev-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ddd;
+}
+
+.dev-role {
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* GitHub Section */
+.dev-github {
+  background: linear-gradient(145deg, #1a1a32 0%, #18182e 100%);
+  border: 1px solid #252545;
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  animation: fadeIn 0.4s ease 0.1s both;
+}
+
+.dev-github-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.dev-github-icon {
+  width: 22px;
+  height: 22px;
+  color: #888;
+}
+
+.dev-github-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ccc;
+}
+
+.dev-github-link {
+  display: block;
+  font-size: 0.85rem;
+  color: #4ae0a0;
+  text-decoration: none;
+  font-family: monospace;
+  padding: 0.5rem 0.7rem;
+  background: #0a0a18;
+  border: 1px solid #222244;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  transition: border-color 0.2s, color 0.2s;
+  word-break: break-all;
+}
+
+.dev-github-link:hover {
+  border-color: #00d4aa44;
+  color: #4ae0a0;
+  text-decoration: underline;
+}
+
+.dev-github-hint {
+  font-size: 0.7rem;
+  color: #555;
+  margin: 0;
+}
+
 .hgauge-label {
   fill: #888;
   font-size: 10px;

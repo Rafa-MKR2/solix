@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/icon.png" alt="Solix" width="80" height="80" />
+  <img src="src-tauri/icons/128x128.png" alt="Solix" width="80" height="80" />
 </p>
 
 <h1 align="center">✨ Solix</h1>

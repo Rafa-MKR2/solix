@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/tauri/refs/heads/dev/crates/tauri-config-schema/schema.json",
   "productName": "Solix",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "identifier": "com.solix.app",
   "build": {
     "frontendDist": "../src",
@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' data: https://github.com https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
