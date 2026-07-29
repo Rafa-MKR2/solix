@@ -14,19 +14,12 @@ mod stats;
 mod system_info;
 mod system_ops;
 mod tool;
+mod updater;
 mod user;
 mod util;
 
 use serde::Serialize;
-
-#[derive(Debug, Serialize)]
-pub struct AppUpdateInfo {
-    pub current_version: String,
-    pub latest_version: String,
-    pub update_available: bool,
-    pub release_url: String,
-    pub release_notes: String,
-}
+use tauri::Emitter;
 
 #[derive(Debug, Serialize)]
 pub struct DiskUsageItem {
@@ -311,75 +304,58 @@ async fn get_app_version() -> Result<String, String> {
     Ok(env!("CARGO_PKG_VERSION").to_string())
 }
 
-fn parse_semver(version: &str) -> Vec<u32> {
-    version
-        .trim_start_matches('v')
-        .split('.')
-        .filter_map(|s| s.parse::<u32>().ok())
-        .collect()
-}
-
-fn is_newer_version(latest: &str, current: &str) -> bool {
-    let latest_parts = parse_semver(latest);
-    let current_parts = parse_semver(current);
-    for (l, c) in latest_parts.iter().zip(current_parts.iter()) {
-        if l > c {
-            return true;
-        } else if l < c {
-            return false;
-        }
-    }
-    latest_parts.len() > current_parts.len()
+#[tauri::command]
+async fn check_app_update() -> Result<updater::UpdateInfo, String> {
+    updater::check_update().await
 }
 
 #[tauri::command]
-async fn check_app_update() -> Result<AppUpdateInfo, String> {
-    let current = env!("CARGO_PKG_VERSION").to_string();
-    let repo = "Rafa-MKR2/solix";
+async fn install_update(app: tauri::AppHandle, password: String) -> Result<(), String> {
+    let info = updater::check_update().await?;
 
-    let output = tokio::process::Command::new("sh")
-        .arg("-c")
-        .arg(format!(
-            "curl -sL --max-time 8 -H 'User-Agent: Solix/{}' https://api.github.com/repos/{}/releases/latest 2>/dev/null || echo '{{}}'",
-            current, repo
-        ))
-        .output()
-        .await
-        .map_err(|e| format!("Erro ao verificar atualizações: {}", e))?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    let tag_name;
-    let body;
-    let html_url;
-
-    match serde_json::from_str::<serde_json::Value>(&stdout) {
-        Ok(json) => {
-            tag_name = json.get("tag_name").and_then(|v| v.as_str()).unwrap_or("").trim_start_matches('v').to_string();
-            body = json.get("body").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            html_url = json.get("html_url").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        }
-        Err(_) => {
-            tag_name = String::new();
-            body = String::new();
-            html_url = String::new();
-        }
+    if !info.update_available {
+        return Err("Nenhuma atualização disponível.".to_string());
     }
 
-    let latest = tag_name;
-    let update_available = !latest.is_empty() && is_newer_version(&latest, &current);
+    let binary_path = updater::download_release(&info.download_url, &app).await?;
 
-    Ok(AppUpdateInfo {
-        current_version: current.clone(),
-        latest_version: if latest.is_empty() { current } else { latest },
-        update_available,
-        release_url: if html_url.is_empty() {
-            format!("https://github.com/{}/releases/latest", repo)
-        } else {
-            html_url
-        },
-        release_notes: if body.len() > 200 { body[..200].to_string() + "..." } else { body },
-    })
+    let _ = app.emit("update-progress", updater::UpdateProgress {
+        stage: "verify".into(),
+        percent: 0,
+        message: "Verificando integridade...".into(),
+    });
+
+    if !info.checksum_url.is_empty() {
+        let checksum_text = updater::download_checksum(&info.checksum_url).await?;
+        let expected = updater::parse_checksum(
+            &checksum_text,
+            &std::path::Path::new(&info.download_url)
+                .file_name()
+                .map(|f| f.to_string_lossy().to_string())
+                .unwrap_or_default(),
+        ).map_err(|_| "Checksum não encontrado para validação.".to_string())?;
+        updater::validate_checksum(&binary_path, &expected)?;
+    }
+
+    let _ = app.emit("update-progress", updater::UpdateProgress {
+        stage: "install".into(),
+        percent: 0,
+        message: "Instalando atualização...".into(),
+    });
+
+    updater::install_update(&binary_path, &password, &app).await?;
+
+    let _ = app.emit("update-progress", updater::UpdateProgress {
+        stage: "restart".into(),
+        percent: 100,
+        message: "Reiniciando Solix...".into(),
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    updater::restart_application()
+        .map_err(|e| format!("Erro ao reiniciar: {}", e))?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -393,127 +369,6 @@ async fn get_processes() -> Result<Vec<stats::ProcessInfo>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_parse_semver_empty() {
-        assert_eq!(parse_semver(""), [] as [u32; 0]);
-    }
-
-    #[test]
-    fn test_parse_semver_v_prefix() {
-        assert_eq!(parse_semver("v2.0.1"), vec![2, 0, 1]);
-    }
-
-    #[test]
-    fn test_parse_semver_no_prefix() {
-        assert_eq!(parse_semver("1.2.3"), vec![1, 2, 3]);
-    }
-
-    #[test]
-    fn test_parse_semver_major_only() {
-        assert_eq!(parse_semver("5"), vec![5]);
-    }
-
-    #[test]
-    fn test_parse_semver_non_numeric() {
-        assert_eq!(parse_semver("1.0.0-beta"), vec![1, 0]);
-    }
-
-    #[test]
-    fn test_parse_semver_all_non_numeric() {
-        assert_eq!(parse_semver("abc"), [] as [u32; 0]);
-    }
-
-    #[test]
-    fn test_parse_semver_leading_v_with_parts() {
-        assert_eq!(parse_semver("v1.2"), vec![1, 2]);
-    }
-
-    #[test]
-    fn test_is_newer_version_major() {
-        assert!(is_newer_version("3.0.0", "2.0.0"));
-    }
-
-    #[test]
-    fn test_is_newer_version_minor() {
-        assert!(is_newer_version("2.1.0", "2.0.0"));
-    }
-
-    #[test]
-    fn test_is_newer_version_patch() {
-        assert!(is_newer_version("2.0.1", "2.0.0"));
-    }
-
-    #[test]
-    fn test_is_newer_version_equal() {
-        assert!(!is_newer_version("2.0.1", "2.0.1"));
-    }
-
-    #[test]
-    fn test_is_newer_version_older() {
-        assert!(!is_newer_version("1.9.9", "2.0.0"));
-    }
-
-    #[test]
-    fn test_is_newer_version_with_v_prefix() {
-        assert!(is_newer_version("v2.0.0", "v1.0.0"));
-    }
-
-    #[test]
-    fn test_is_newer_version_different_lengths() {
-        assert!(is_newer_version("2.0.0.1", "2.0.0"));
-    }
-
-    #[test]
-    fn test_is_newer_version_shorter_latest() {
-        assert!(!is_newer_version("2.0", "2.0.1"));
-    }
-
-    #[test]
-    fn test_is_newer_version_both_empty() {
-        assert!(!is_newer_version("", ""));
-    }
-
-    #[test]
-    fn test_is_newer_version_one_empty() {
-        assert!(is_newer_version("1.0.0", ""));
-        assert!(!is_newer_version("", "1.0.0"));
-    }
-
-    #[test]
-    fn test_is_newer_version_non_numeric_skipped() {
-        assert!(is_newer_version("1.0.1", "1.0"));
-    }
-
-    #[test]
-    fn test_app_update_info_struct() {
-        let info = AppUpdateInfo {
-            current_version: "1.0.0".into(),
-            latest_version: "2.0.0".into(),
-            update_available: true,
-            release_url: "https://example.com".into(),
-            release_notes: "Bug fixes".into(),
-        };
-        assert_eq!(info.current_version, "1.0.0");
-        assert_eq!(info.latest_version, "2.0.0");
-        assert!(info.update_available);
-        assert_eq!(info.release_url, "https://example.com");
-        assert_eq!(info.release_notes, "Bug fixes");
-    }
-
-    #[test]
-    fn test_app_update_info_no_update() {
-        let info = AppUpdateInfo {
-            current_version: "1.0.0".into(),
-            latest_version: "1.0.0".into(),
-            update_available: false,
-            release_url: String::new(),
-            release_notes: String::new(),
-        };
-        assert!(!info.update_available);
-        assert!(info.release_url.is_empty());
-        assert!(info.release_notes.is_empty());
-    }
 
     #[test]
     fn test_report_info_struct() {
@@ -576,6 +431,7 @@ pub fn run() {
     get_home_stats,
     get_app_version,
     check_app_update,
+    install_update,
     check_pm_lock,
     open_file_manager,
     analyze_disk_usage,

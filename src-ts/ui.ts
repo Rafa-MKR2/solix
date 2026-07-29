@@ -659,37 +659,49 @@ export function switchToPage(pageName: string): void {
   navItem.click();
 }
 
-// ─── Update Banner ───
+// ─── Update Banner → Modal ───
 
 export function showUpdateBanner(info: AppUpdateInfo): void {
-  const existing = document.getElementById('update-banner');
-  if (existing) existing.remove();
+  const overlay = document.getElementById('update-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('hidden');
 
-  const banner = document.createElement('div');
-  banner.id = 'update-banner';
-  banner.className = 'show';
-  banner.innerHTML = `
-    <span class="update-banner-icon">⬆️</span>
-    <div class="update-banner-text">
-      <div>Nova versão disponível: <strong>v${info.latest_version}</strong></div>
-      <div class="update-banner-sub">Clique em baixar para obter a atualização</div>
-    </div>
-    <a href="${info.release_url}" target="_blank" class="update-banner-dl">📥 Baixar</a>
-    <button class="update-banner-close" id="update-banner-close">&times;</button>
-  `;
+  const currentEl = document.getElementById('update-current-version');
+  const latestEl = document.getElementById('update-latest-version');
+  const changelogEl = document.getElementById('update-changelog');
 
-  const topbar = document.getElementById('topbar');
-  if (topbar && topbar.parentNode) {
-    topbar.parentNode.insertBefore(banner, topbar.nextSibling);
-  }
+  if (currentEl) currentEl.textContent = `v${info.current_version}`;
+  if (latestEl) latestEl.textContent = `v${info.latest_version}`;
+  if (changelogEl) changelogEl.textContent = info.release_notes || 'Nenhuma informação disponível.';
 
-  document.getElementById('update-banner-close')?.addEventListener('click', () => {
-    banner.remove();
-  });
+  document.getElementById('update-info-view')?.classList.remove('hidden');
+  document.getElementById('update-progress-view')?.classList.add('hidden');
+  document.getElementById('update-now-btn')?.classList.remove('hidden');
+  document.getElementById('update-later-btn')?.classList.remove('hidden');
+}
 
-  setTimeout(() => {
-    if (banner.parentNode) banner.remove();
-  }, 30000);
+export function hideUpdateModal(): void {
+  const overlay = document.getElementById('update-overlay');
+  if (overlay) overlay.classList.add('hidden');
+}
+
+export function showUpdateProgress(stage: string, percent: number, message: string): void {
+  const infoView = document.getElementById('update-info-view');
+  const progressView = document.getElementById('update-progress-view');
+  const statusEl = document.getElementById('update-progress-status');
+  const fillEl = document.getElementById('update-progress-fill');
+  const textEl = document.getElementById('update-progress-text');
+  const nowBtn = document.getElementById('update-now-btn');
+  const laterBtn = document.getElementById('update-later-btn');
+
+  if (infoView) infoView.classList.add('hidden');
+  if (progressView) progressView.classList.remove('hidden');
+  if (nowBtn) nowBtn.classList.add('hidden');
+  if (laterBtn) laterBtn.classList.add('hidden');
+
+  if (statusEl) statusEl.textContent = message;
+  if (fillEl) fillEl.style.width = percent + '%';
+  if (textEl) textEl.textContent = percent + '%';
 }
 
 // ─── Info Modal ───

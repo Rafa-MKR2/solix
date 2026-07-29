@@ -1,12 +1,13 @@
 import { getInvoke, showToast } from './utils.js';
 import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, toolStatuses, } from './operations.js';
+import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, } from './operations.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './network.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
     setupHelpTooltips();
     setupLockActions();
     setupProgressListener();
+    setupUpdateListener();
     setRetryLastOperationFn(retryLastOperation);
     loadSystemInfo();
     document.getElementById('password-input').addEventListener('keydown', (e) => {
@@ -55,6 +56,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('test-ping-btn')?.addEventListener('click', handleTestPingClick);
     document.getElementById('test-speed-btn')?.addEventListener('click', handleTestSpeedClick);
+    document.getElementById('update-now-btn')?.addEventListener('click', () => {
+        showPasswordModal({ type: 'app-update' });
+    });
+    document.getElementById('update-later-btn')?.addEventListener('click', () => {
+        document.getElementById('update-overlay')?.classList.add('hidden');
+    });
+    document.getElementById('update-overlay-close')?.addEventListener('click', () => {
+        document.getElementById('update-overlay')?.classList.add('hidden');
+    });
     document.getElementById('lock-retry-btn')?.addEventListener('click', retryLastOperation);
     document.getElementById('lock-close-btn')?.addEventListener('click', () => {
         document.getElementById('lock-diagnosis')?.classList.add('hidden');

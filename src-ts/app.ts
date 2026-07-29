@@ -27,9 +27,11 @@ import {
   reportProblem,
   initFooter,
   handleCheckUpdateClick,
+  handleAppUpdate,
   cancelOperation,
   retryLastOperation,
   setupProgressListener,
+  setupUpdateListener,
   toolStatuses,
 } from './operations.js';
 import {
@@ -44,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupHelpTooltips();
   setupLockActions();
   setupProgressListener();
+  setupUpdateListener();
   setRetryLastOperationFn(retryLastOperation);
   loadSystemInfo();
 
@@ -93,6 +96,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('test-ping-btn')?.addEventListener('click', handleTestPingClick);
   document.getElementById('test-speed-btn')?.addEventListener('click', handleTestSpeedClick);
+
+  document.getElementById('update-now-btn')?.addEventListener('click', () => {
+    showPasswordModal({ type: 'app-update' });
+  });
+  document.getElementById('update-later-btn')?.addEventListener('click', () => {
+    document.getElementById('update-overlay')?.classList.add('hidden');
+  });
+  document.getElementById('update-overlay-close')?.addEventListener('click', () => {
+    document.getElementById('update-overlay')?.classList.add('hidden');
+  });
 
   document.getElementById('lock-retry-btn')?.addEventListener('click', retryLastOperation);
   document.getElementById('lock-close-btn')?.addEventListener('click', () => {

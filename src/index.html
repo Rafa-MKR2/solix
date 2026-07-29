@@ -569,6 +569,37 @@
     </div>
   </div>
 
+  <div id="update-overlay" class="overlay hidden">
+    <div class="update-modal">
+      <div class="update-modal-header">
+        <h3 id="update-modal-title">⬆️ Nova versão disponível</h3>
+        <span id="update-overlay-close" class="info-close-btn">&times;</span>
+      </div>
+      <div class="update-modal-body" id="update-body">
+        <div id="update-info-view">
+          <div class="update-version-row">
+            <span id="update-current-version"></span>
+            <span class="update-arrow">→</span>
+            <span id="update-latest-version" class="update-latest"></span>
+          </div>
+          <div class="update-changelog-label">📝 Novidades</div>
+          <pre id="update-changelog" class="update-changelog"></pre>
+        </div>
+        <div id="update-progress-view" class="hidden">
+          <div class="update-progress-status" id="update-progress-status">Baixando...</div>
+          <div class="update-progress-track">
+            <div id="update-progress-fill" class="update-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="update-progress-text" id="update-progress-text">0%</div>
+        </div>
+      </div>
+      <div class="update-modal-footer" id="update-buttons">
+        <button id="update-later-btn" class="btn-pw-cancel">Depois</button>
+        <button id="update-now-btn" class="btn-pw-confirm">⬇️ Atualizar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="disk-analysis-overlay" class="overlay hidden">
     <div class="disk-analysis-modal">
       <div class="disk-analysis-header">

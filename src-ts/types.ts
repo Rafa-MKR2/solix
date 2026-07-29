@@ -128,6 +128,15 @@ export interface AppUpdateInfo {
   update_available: boolean;
   release_url: string;
   release_notes: string;
+  download_url: string;
+  checksum_url: string;
+  download_size: number;
+}
+
+export interface UpdateProgress {
+  stage: string;
+  percent: number;
+  message: string;
 }
 
 export interface PmLockInfo {

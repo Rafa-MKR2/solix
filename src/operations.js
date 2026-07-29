@@ -1,5 +1,5 @@
 import { getInvoke, showToast, setText } from './utils.js';
-import { renderTools, renderDisks, selectedTools, removedTools, showLockDiagnosis, switchToPage, showUpdateBanner, } from './ui.js';
+import { renderTools, renderDisks, selectedTools, removedTools, showLockDiagnosis, switchToPage, showUpdateBanner, showUpdateProgress, hideUpdateModal, } from './ui.js';
 export let toolStatuses = [];
 export let systemDistro = '';
 let cachedPassword = '';
@@ -192,6 +192,13 @@ async function executePending() {
     const isInstall = pendingAction.type === 'install';
     const isRemove = pendingAction.type === 'remove';
     const isInstallPkg = pendingAction.type === 'install-package';
+    const isAppUpdate = pendingAction.type === 'app-update';
+    if (isAppUpdate) {
+        isOperating = false;
+        pendingAction = null;
+        handleAppUpdate();
+        return;
+    }
     if (outputLog) {
         if (isInstall)
             outputLog.textContent = '⏳ Instalando...\n';
@@ -426,6 +433,54 @@ function readFileAsBase64(file) {
         reader.onerror = () => reject('Erro ao ler arquivo');
         reader.readAsDataURL(file);
     });
+}
+export function setupUpdateListener() {
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    const tauri = window.__TAURI_INTERNALS__;
+    if (!tauri?.transformCallback)
+        return;
+    const handler = tauri.transformCallback((event) => {
+        const { stage, percent, message } = event.payload || event;
+        showUpdateProgress(stage, percent, message);
+        if (stage === 'restart') {
+            setTimeout(() => hideUpdateModal(), 1000);
+        }
+    });
+    invoke('plugin:event|listen', {
+        event: 'update-progress',
+        target: { kind: 'Any' },
+        handler,
+    }).catch(() => { });
+}
+export async function handleAppUpdate() {
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    showUpdateProgress('download', 0, 'Preparando...');
+    const doUpdate = async (password) => {
+        try {
+            await invoke('install_update', { password });
+        }
+        catch (e) {
+            const msg = (e + '').toLowerCase();
+            if (msg.includes('password') || msg.includes('senha') || msg.includes('incorrect')) {
+                cachedPassword = '';
+                showPasswordModal({ type: 'app-update' });
+                return;
+            }
+            showToast('error', (e + '') || 'Erro ao atualizar.');
+            showUpdateProgress('error', 0, (e + '') || 'Erro ao atualizar.');
+            setTimeout(() => hideUpdateModal(), 3000);
+        }
+    };
+    if (cachedPassword) {
+        await doUpdate(cachedPassword);
+    }
+    else {
+        showPasswordModal({ type: 'app-update' });
+    }
 }
 export async function initFooter() {
     const invoke = getInvoke();

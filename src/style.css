@@ -1937,6 +1937,120 @@ body {
   color: #e8d070;
 }
 
+/* Update Modal */
+.update-modal {
+  background: #18182e;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 480px;
+  border: 1px solid #2a2a44;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.update-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.update-modal-header h3 {
+  font-size: 1.1rem;
+  color: #eee;
+}
+
+.update-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.update-version-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #ccc;
+}
+
+.update-arrow {
+  color: #555;
+  font-size: 1.2rem;
+}
+
+.update-latest {
+  color: #00d4aa;
+  font-weight: 700;
+}
+
+.update-changelog-label {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 0.4rem;
+}
+
+.update-changelog {
+  background: #12122a;
+  border: 1px solid #222244;
+  border-radius: 6px;
+  padding: 0.8rem;
+  font-size: 0.8rem;
+  color: #bbb;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.update-progress-status {
+  font-size: 0.9rem;
+  color: #eee;
+  margin-bottom: 0.8rem;
+}
+
+.update-progress-track {
+  height: 8px;
+  background: #1a1a30;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.update-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a9eff, #6cb4ff);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.update-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shimmer 1.8s infinite;
+}
+
+.update-progress-text {
+  font-size: 0.8rem;
+  color: #777;
+  text-align: center;
+}
+
+.update-modal-footer {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
 /* Toast */
 #completion-toast {
   position: fixed;
