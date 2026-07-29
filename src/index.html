@@ -332,6 +332,14 @@
         </div>
         <p id="selected-count" class="counter">Nenhuma ferramenta selecionada</p>
       </div>
+
+      <div class="tools-bridge">
+        <span class="tools-bridge-icon">🔗</span>
+        <div class="tools-bridge-text">
+          Quer <strong>buscar pacotes específicos</strong> nos repositórios ou instalar arquivos <strong>.deb/.rpm</strong>?
+        </div>
+        <button id="tools-to-packages-btn" class="tools-bridge-btn">🔍 Buscar nos repositórios →</button>
+      </div>
     </div>
 
     <div class="page" id="page-desenvolvedor">
@@ -420,8 +428,9 @@
       <div class="pkg-stats-bar">
         <div class="pkg-stat"><span class="pkg-stat-icon">📦</span><span class="pkg-stat-val" id="pkg-total-count">—</span><span class="pkg-stat-label">instalados</span></div>
         <div class="pkg-stat"><span class="pkg-stat-icon">⬆️</span><span class="pkg-stat-val" id="pkg-update-count">—</span><span class="pkg-stat-label">atualizações</span></div>
-        <div class="pkg-stat"><span class="pkg-stat-icon">📏</span><span class="pkg-stat-val" id="pkg-total-size">—</span><span class="pkg-stat-label">tamanho total</span></div>
-      </div>
+      <div class="pkg-stat"><span class="pkg-stat-icon">📏</span><span class="pkg-stat-val" id="pkg-total-size">—</span><span class="pkg-stat-label">tamanho total</span></div>
+      <div class="pkg-stat"><span class="pkg-stat-icon">⭐</span><span class="pkg-stat-val" id="pkg-recommended-count">—</span><span class="pkg-stat-label">recomendados</span></div>
+    </div>
 
       <div class="pkg-tabs">
         <button class="pkg-tab active" data-pkg-tab="installed">📋 Instalados</button>

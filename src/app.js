@@ -1,5 +1,5 @@
 import { getInvoke, showToast } from './utils.js';
-import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, } from './ui.js';
+import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, switchToPage, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, } from './ui.js';
 import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './operations.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './network.js';
 document.addEventListener('DOMContentLoaded', () => {
@@ -48,6 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('cleanup-btn')?.addEventListener('click', () => {
         showPasswordModal({ type: 'cleanup' });
+    });
+    document.getElementById('tools-to-packages-btn')?.addEventListener('click', () => {
+        switchToPage('pacotes');
+        const searchTab = document.querySelector('[data-pkg-tab="search"]');
+        if (searchTab)
+            searchTab.click();
+        setTimeout(() => {
+            document.getElementById('pkg-search-input')?.focus();
+        }, 150);
     });
     document.getElementById('report-btn')?.addEventListener('click', reportProblem);
     document.getElementById('dev-github-link')?.addEventListener('click', (e) => {

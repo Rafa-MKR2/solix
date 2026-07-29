@@ -114,6 +114,7 @@ export async function loadSystemInfo(): Promise<void> {
     }
     toolStatuses = info.tools || [];
     renderTools(toolStatuses);
+    updateRecommendedCount();
   } catch (err) {
     console.error('loadSystemInfo failed:', err);
     showToast('error', 'Erro ao carregar informações do sistema.');
@@ -857,6 +858,15 @@ export async function loadPackageHistory(): Promise<void> {
     console.error('loadPackageHistory failed:', e);
     listEl.innerHTML = '<div class="pkg-empty">❌ Erro ao carregar histórico.</div>';
   }
+}
+
+// ─── Recommended Tools Count (bridge between pages) ───
+
+export function updateRecommendedCount(): void {
+  const installed = toolStatuses.filter(t => t.available).length;
+  const total = toolStatuses.length;
+  const el = document.getElementById('pkg-recommended-count');
+  if (el) el.textContent = `${installed}/${total}`;
 }
 
 // ─── Cancel ───

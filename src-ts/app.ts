@@ -94,6 +94,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cleanup-btn')?.addEventListener('click', () => {
     showPasswordModal({ type: 'cleanup' });
   });
+  document.getElementById('tools-to-packages-btn')?.addEventListener('click', () => {
+    switchToPage('pacotes');
+    // Activate search tab
+    const searchTab = document.querySelector<HTMLElement>('[data-pkg-tab="search"]');
+    if (searchTab) searchTab.click();
+    // Focus search input after UI renders
+    setTimeout(() => {
+      (document.getElementById('pkg-search-input') as HTMLInputElement)?.focus();
+    }, 150);
+  });
+
   document.getElementById('report-btn')?.addEventListener('click', reportProblem);
   document.getElementById('dev-github-link')?.addEventListener('click', (e) => {
     e.preventDefault();

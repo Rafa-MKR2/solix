@@ -96,6 +96,7 @@ export async function loadSystemInfo() {
         }
         toolStatuses = info.tools || [];
         renderTools(toolStatuses);
+        updateRecommendedCount();
     }
     catch (err) {
         console.error('loadSystemInfo failed:', err);
@@ -876,6 +877,13 @@ export async function loadPackageHistory() {
         console.error('loadPackageHistory failed:', e);
         listEl.innerHTML = '<div class="pkg-empty">❌ Erro ao carregar histórico.</div>';
     }
+}
+export function updateRecommendedCount() {
+    const installed = toolStatuses.filter(t => t.available).length;
+    const total = toolStatuses.length;
+    const el = document.getElementById('pkg-recommended-count');
+    if (el)
+        el.textContent = `${installed}/${total}`;
 }
 export async function cancelOperation() {
     const invoke = getInvoke();

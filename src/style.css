@@ -2754,6 +2754,60 @@ body {
   font-family: monospace;
 }
 
+/* ─── Bridge: Tools → Packages ─── */
+
+.tools-bridge {
+  margin-top: 1.5rem;
+  padding: 1rem 1.2rem;
+  background: linear-gradient(135deg, #1a1a32 0%, #1f1f3a 100%);
+  border: 1px solid #2a2a4a;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.tools-bridge-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.tools-bridge-text {
+  flex: 1;
+  color: #aaa;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  min-width: 180px;
+}
+
+.tools-bridge-text strong {
+  color: #ddd;
+}
+
+.tools-bridge-btn {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tools-bridge-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
+}
+
+.tools-bridge-btn:active {
+  transform: translateY(0);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   #sidebar {
