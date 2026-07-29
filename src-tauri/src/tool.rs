@@ -154,7 +154,7 @@ fn get_check_name(tool_name: &str) -> &str {
     // Mapeia nome da ferramenta para nome do binário no PATH
     // (alguns pacotes instalam binários com nome diferente do tool name)
     match tool_name {
-        "telegram" => "telegram-desktop",
+        "telegram" => "Telegram",
         "code" => "code",
         "discord" => "discord",
         _ => tool_name,
@@ -163,19 +163,28 @@ fn get_check_name(tool_name: &str) -> &str {
 
 pub async fn detect_development_tools() -> Vec<DevelopmentToolStatus> {
     let tools = get_development_tools();
+    // Tenta detectar cada ferramenta: primeiro pelo nome do binário mapeado,
+    // e se não achar, tenta pelo tool name original
     let check_names: Vec<&str> = tools.iter().map(|t| get_check_name(&t.name)).collect();
     let statuses = executable::detect_executables(&check_names).await;
 
+    // Fallback: se não achou pelo nome mapeado, tenta pelo nome original
+    let fallback_names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
+    let fallback = executable::detect_executables(&fallback_names).await;
+
     tools
         .into_iter()
-        .zip(statuses)
-        .map(|(tool, status)| DevelopmentToolStatus {
-            icon_base64: quick_icon(&tool.name),
-            name: tool.name,
-            description: tool.description,
-            category: tool.category,
-            available: status.available,
-            executable: status.executable,
+        .zip(statuses.into_iter().zip(fallback))
+        .map(|(tool, (primary, fb))| {
+            let status = if primary.available { primary } else { fb };
+            DevelopmentToolStatus {
+                icon_base64: quick_icon(&tool.name),
+                name: tool.name,
+                description: tool.description,
+                category: tool.category,
+                available: status.available,
+                executable: status.executable,
+            }
         })
         .collect()
 }
