@@ -10,7 +10,7 @@ use tokio::io::AsyncWriteExt;
 const GITHUB_API: &str = "https://api.github.com/repos/Rafa-MKR2/solix/releases/latest";
 const BINARY_PREFIX: &str = "solix-x86_64-linux";
 const CHECKSUM_FILENAME: &str = "SHA256SUMS";
-const USER_AGENT: &str = "Solix/2.0.2";
+const USER_AGENT: &str = "Solix/2.1.0";
 const INSTALL_PATH: &str = "/usr/local/bin/solix";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

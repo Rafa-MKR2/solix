@@ -9,7 +9,7 @@
 set -euo pipefail
 
 APP_NAME="solix"
-VERSION="v2.0.2"
+VERSION="v2.1.0"
 REPO="Rafa-MKR2/solix"
 BIN_URL="https://github.com/$REPO/releases/download/$VERSION/$APP_NAME-x86_64-linux"
 ARCHIVE_URL="https://github.com/$REPO/releases/download/$VERSION/solix-assets.tar.gz"

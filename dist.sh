@@ -46,6 +46,10 @@ tar czf solix-assets.tar.gz -C "$ASSETS_DIR" .
 rm -rf "$ASSETS_DIR"
 cd "$SCRIPT_DIR"
 
+# Generate SHA256SUMS for the binary
+BIN_NAME="$APP_NAME-x86_64-linux"
+(cd "$DIST_DIR" && sha256sum "$BIN_NAME" > SHA256SUMS && echo "$BIN_NAME checksum:" && cat SHA256SUMS)
+
 # Copy install scripts
 cp "$SCRIPT_DIR/quick-install.sh" "$DIST_DIR/"
 cp "$SCRIPT_DIR/install.sh" "$DIST_DIR/"
