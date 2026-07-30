@@ -2,7 +2,8 @@
 // Copyright (c) 2025 Rafa-MKR2
 
 import type { AppUpdateInfo, PackageDetail } from './types.js';
-import { getInvoke, showToast } from './utils.js';
+import { showToast } from './utils.js';
+import { systemService, packageService, miscService } from './shared/services/index.js';
 import {
   setupNav,
   setupHelpTooltips,
@@ -127,13 +128,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('dev-github-link')?.addEventListener('click', async (e) => {
     e.preventDefault();
-    const invoke = getInvoke();
-    if (invoke) {
-      try {
-        await invoke('open_url', { url: 'https://github.com/Rafa-MKR2/solix' });
-      } catch (err) {
-        window.open('https://github.com/Rafa-MKR2/solix', '_blank');
-      }
+    try {
+      await miscService.openUrl('https://github.com/Rafa-MKR2/solix');
+    } catch (err) {
+      window.open('https://github.com/Rafa-MKR2/solix', '_blank');
     }
   });
 
@@ -161,10 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('.tool-info-btn');
     if (!btn) return;
     const toolName = btn.dataset.tool!;
-    const invoke = getInvoke();
-    if (!invoke) return;
     try {
-      const info = await invoke<PackageDetail>('get_package_info', { toolName });
+      const info = await packageService.getPackageInfo(toolName);
       document.getElementById('info-name')!.textContent = toolName;
       document.getElementById('info-package')!.textContent = info.package_name || toolName;
       document.getElementById('info-desc')!.textContent = info.description || 'N/A';
@@ -209,9 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('footer-update-btn')?.addEventListener('click', (e) => {
     e.preventDefault();
-    const invoke = getInvoke();
-    if (!invoke) return;
-    invoke<AppUpdateInfo>('check_app_update').then(info => {
+    systemService.checkAppUpdate().then(info => {
       if (info.update_available) {
         showUpdateBanner(info);
       }
@@ -343,10 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = (e.target as HTMLElement).closest('#smart-install-btn');
     if (!btn) return;
     try {
-      const invoke = getInvoke();
-      if (invoke) {
-        await invoke('open_url', { url: 'https://www.smartmontools.org/' });
-      }
+      await miscService.openUrl('https://www.smartmontools.org/');
     } catch (err) {
       console.error('open smartmontools url failed:', err);
     }
