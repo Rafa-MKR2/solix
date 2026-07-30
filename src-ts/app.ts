@@ -294,17 +294,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   pkgUploadArea?.addEventListener('drop', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     pkgUploadArea.classList.remove('drag-over');
-    const files = e.dataTransfer?.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (pkgFileInput) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        pkgFileInput.files = dt.files;
-        pkgFileInput.dispatchEvent(new Event('change'));
-      } else {
-        handlePkgFileSelect(file);
+    const items = e.dataTransfer?.items;
+    if (items && items.length > 0) {
+      const item = items[0];
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) {
+          if (pkgFileInput) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            pkgFileInput.files = dt.files;
+            pkgFileInput.dispatchEvent(new Event('change'));
+          } else {
+            handlePkgFileSelect(file);
+          }
+        }
       }
     }
   });
@@ -359,17 +365,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   scriptUploadArea?.addEventListener('drop', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     scriptUploadArea.classList.remove('drag-over');
-    const files = e.dataTransfer?.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (scriptFileInput) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        scriptFileInput.files = dt.files;
-        scriptFileInput.dispatchEvent(new Event('change'));
-      } else {
-        handleScriptDrop(file);
+    const items = e.dataTransfer?.items;
+    if (items && items.length > 0) {
+      const item = items[0];
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) {
+          if (scriptFileInput) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            scriptFileInput.files = dt.files;
+            scriptFileInput.dispatchEvent(new Event('change'));
+          } else {
+            handleScriptDrop(file);
+          }
+        }
       }
     }
   });
