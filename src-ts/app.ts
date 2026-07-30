@@ -14,22 +14,16 @@ import {
   handleProcessSearch,
   setRetryLastOperationFn,
   loadProcesses,
-  hideReportModal,
 } from './ui.js';
 import {
   loadSystemInfo,
   confirmPassword,
   cancelPassword,
   showPasswordModal,
-  reportProblem,
   cancelOperation,
   retryLastOperation,
   setupProgressListener,
   toolStatuses,
-  handleCopyReport,
-  handleOpenIssue,
-  handleSaveReport,
-  handleEmailReport,
   handleScriptDrop,
   handleAnalyzeText,
   clearScriptAnalysis,
@@ -57,6 +51,14 @@ import {
   handleCheckUpdateClick,
   showUpdateBanner,
 } from './features/update/index.js';
+import {
+  reportProblem,
+  handleCopyReport,
+  handleOpenIssue,
+  handleSaveReport,
+  handleEmailReport,
+  hideReportModal,
+} from './features/report/index.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();

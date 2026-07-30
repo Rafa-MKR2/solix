@@ -4,7 +4,7 @@ import { showConfetti } from './animations.js';
 import { renderScriptAnalysis } from './ui.js';
 import { renderDisks } from './features/disks/index.js';
 import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
-import { showLockDiagnosis, switchToPage, showUpdateBanner, showUpdateProgress, hideUpdateModal, } from './ui.js';
+import { showLockDiagnosis, switchToPage, } from './ui.js';
 import { pendingPkg } from './features/packages/upload.js';
 export let toolStatuses = [];
 export let systemDistro = '';
@@ -16,6 +16,9 @@ function setPendingAction(action) {
     pendingAction = action;
 }
 export { setPendingAction };
+export function setPasswordVerified(v) {
+    passwordVerified = v;
+}
 export function setupProgressListener() {
     const invoke = getInvoke();
     if (!invoke)
@@ -183,7 +186,8 @@ async function executePending() {
     if (isAppUpdate) {
         isOperating = false;
         pendingAction = null;
-        handleAppUpdate();
+        const { handleAppUpdate: updateHandler } = await import('./features/update/index.js');
+        await updateHandler();
         return;
     }
     if (outputLog) {
@@ -321,240 +325,6 @@ export function retryLastOperation() {
     }
     else {
         showToast('error', 'Selecione a operação novamente.');
-    }
-}
-export function setupUpdateListener() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
-    const tauri = window.__TAURI_INTERNALS__;
-    if (!tauri?.transformCallback)
-        return;
-    const handler = tauri.transformCallback((event) => {
-        const { stage, percent, message } = event.payload || event;
-        showUpdateProgress(stage, percent, message);
-        if (stage === 'restart') {
-            setTimeout(() => hideUpdateModal(), 1000);
-        }
-    });
-    invoke('plugin:event|listen', {
-        event: 'update-progress',
-        target: { kind: 'Any' },
-        handler,
-    }).catch(() => { });
-}
-export async function handleAppUpdate() {
-    showUpdateProgress('download', 0, 'Preparando...');
-    const doUpdate = async () => {
-        try {
-            await systemService.installUpdate();
-        }
-        catch (e) {
-            const msg = (e + '').toLowerCase();
-            if (msg.includes('password') || msg.includes('senha') || msg.includes('incorrect')) {
-                passwordVerified = false;
-                showPasswordModal({ type: 'app-update' });
-                return;
-            }
-            showToast('error', (e + '') || 'Erro ao atualizar.');
-            showUpdateProgress('error', 0, (e + '') || 'Erro ao atualizar.');
-            setTimeout(() => hideUpdateModal(), 3000);
-        }
-    };
-    if (passwordVerified) {
-        await doUpdate();
-    }
-    else {
-        showPasswordModal({ type: 'app-update' });
-    }
-}
-export async function initFooter() {
-    try {
-        const version = await systemService.getAppVersion();
-        const footerEl = document.getElementById('footer-version');
-        if (footerEl)
-            footerEl.textContent = `Solix v${version}`;
-    }
-    catch (e) {
-        console.error('initFooter failed:', e);
-    }
-    setTimeout(checkForAppUpdate, 2000);
-}
-async function checkForAppUpdate() {
-    const checkLink = document.getElementById('footer-check-link');
-    if (checkLink)
-        checkLink.classList.add('checking');
-    try {
-        const info = await systemService.checkAppUpdate();
-        if (checkLink) {
-            checkLink.textContent = '🔍 Verificar atualizações';
-            checkLink.classList.remove('checking');
-        }
-        if (info.update_available) {
-            const footerVersion = document.getElementById('footer-version');
-            if (footerVersion)
-                footerVersion.textContent = `Solix v${info.current_version}`;
-            const updateBtn = document.getElementById('footer-update-btn');
-            const updateText = document.getElementById('footer-update-text');
-            if (updateBtn)
-                updateBtn.classList.remove('hidden');
-            if (updateText) {
-                updateText.classList.remove('hidden');
-                updateText.textContent = `v${info.latest_version} disponível!`;
-            }
-            showUpdateBanner(info);
-        }
-    }
-    catch (e) {
-        console.error('checkForAppUpdate failed:', e);
-        if (checkLink) {
-            checkLink.textContent = '🔍 Verificar atualizações';
-            checkLink.classList.remove('checking');
-        }
-    }
-}
-export async function handleCheckUpdateClick() {
-    const el = document.getElementById('footer-check-link');
-    if (el)
-        el.textContent = '⏳ Verificando...';
-    await checkForAppUpdate();
-    const checkLink = document.getElementById('footer-check-link');
-    if (checkLink && !checkLink.classList.contains('checking')) {
-        checkLink.textContent = '🔍 Verificar atualizações';
-    }
-}
-import { showReportModal, hideReportModal } from './ui.js';
-let lastReportText = '';
-let lastIssueUrl = '';
-export async function reportProblem() {
-    const btn = document.getElementById('report-btn');
-    if (btn)
-        btn.textContent = '⏳ Coletando...';
-    try {
-        const info = await systemService.getReportInfo();
-        const outputLog = document.getElementById('output-log');
-        const logText = outputLog?.textContent?.trim() || '(vazio)';
-        const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-        const report = [
-            '📋 Relatório do Solix — v' + info.app_version,
-            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-            '',
-            '🖥️  SISTEMA',
-            '  Distribuição : ' + info.distro_name + ' ' + info.distro_version,
-            '  Kernel       : ' + info.kernel,
-            '  Pacotes      : ' + info.package_manager,
-            '',
-            '📊  DESEMPENHO (no momento do relatório)',
-            '  CPU    : ' + Math.round(info.cpu_percent) + '%',
-            '  RAM    : ' + Math.round(info.memory_percent) + '%',
-            '  Temp.  : ' + Math.round(info.temperature) + '°C',
-            '',
-            '📜  ÚLTIMA OPERAÇÃO',
-            '  ' + logText.replace(/\n/g, '\n  '),
-            '',
-            '🕐  Gerado em: ' + now,
-        ].join('\n');
-        lastReportText = report;
-        lastIssueUrl = 'https://github.com/Rafa-MKR2/solix/issues/new?body=' +
-            encodeURIComponent('## Descrição do problema\n\n' +
-                '(Descreva aqui o que aconteceu)\n\n' +
-                '---\n' +
-                '```\n' + report + '\n```');
-        showReportModal(report);
-        if (btn)
-            btn.textContent = '🐛 Reportar Problema';
-    }
-    catch (e) {
-        console.error('reportProblem failed:', e);
-        showToast('error', 'Erro ao gerar relatório.');
-        if (btn)
-            btn.textContent = '🐛 Reportar Problema';
-    }
-}
-export function handleCopyReport() {
-    if (!lastReportText)
-        return;
-    navigator.clipboard.writeText(lastReportText).then(() => {
-        const resultEl = document.getElementById('report-result');
-        const resultText = document.getElementById('report-result-text');
-        const resultIcon = document.getElementById('report-result-icon');
-        if (resultIcon)
-            resultIcon.textContent = '✅';
-        if (resultEl)
-            resultEl.classList.remove('hidden');
-        if (resultText)
-            resultText.textContent = '📋 Relatório copiado! Cole onde quiser.';
-        setTimeout(() => {
-            if (resultEl)
-                resultEl.classList.add('hidden');
-        }, 3000);
-        showToast('success', 'Relatório copiado para a área de transferência!');
-    }).catch(() => {
-        const textEl = document.getElementById('report-text');
-        if (textEl) {
-            const range = document.createRange();
-            range.selectNodeContents(textEl);
-            const sel = window.getSelection();
-            sel?.removeAllRanges();
-            sel?.addRange(range);
-            showToast('info', 'Selecione o texto e copie (Ctrl+C)');
-        }
-    });
-}
-export async function handleOpenIssue() {
-    if (!lastIssueUrl)
-        return;
-    try {
-        await miscService.openUrl(lastIssueUrl);
-        hideReportModal();
-        showToast('success', '✅ GitHub aberto no navegador! Descreva o problema e envie.');
-    }
-    catch (e) {
-        console.error('open_url failed:', e);
-        showToast('error', 'Erro ao abrir o GitHub. Copie o relatório e abra manualmente.');
-    }
-}
-export async function handleSaveReport() {
-    if (!lastReportText)
-        return;
-    try {
-        const filePath = await miscService.saveReportToDesktop(lastReportText);
-        showToast('success', `💾 Relatório salvo! ${filePath}`);
-        const resultEl = document.getElementById('report-result');
-        const resultText = document.getElementById('report-result-text');
-        if (resultEl)
-            resultEl.classList.remove('hidden');
-        if (resultText)
-            resultText.textContent = `💾 Salvo em: ${filePath.split('/').pop()}`;
-        setTimeout(() => {
-            if (resultEl)
-                resultEl.classList.add('hidden');
-        }, 4000);
-    }
-    catch (e) {
-        console.error('save_report_to_desktop failed:', e);
-        showToast('error', 'Erro ao salvar relatório: ' + (e + ''));
-    }
-}
-export async function handleEmailReport() {
-    if (!lastReportText)
-        return;
-    const subject = encodeURIComponent('Relatório Solix - Problema');
-    const body = encodeURIComponent('Relatório do sistema gerado pelo Solix\n\n' +
-        '---\n\n' +
-        lastReportText +
-        '\n\n---\n\n' +
-        'Descreva seu problema acima.\n' +
-        'Obrigado por ajudar a melhorar o Solix!');
-    const mailto = `mailto:rafaeldocarmo.dev@gmail.com?subject=${subject}&body=${body}`;
-    try {
-        await miscService.openUrl(mailto);
-        hideReportModal();
-        showToast('success', '📧 Cliente de email aberto! Envie o relatório para o desenvolvedor.');
-    }
-    catch (e) {
-        console.error('open_url mailto failed:', e);
-        showToast('error', 'Erro ao abrir cliente de email. Copie o relatório e envie manualmente para rafaeldocarmo.dev@gmail.com');
     }
 }
 export function updateRecommendedCount() {

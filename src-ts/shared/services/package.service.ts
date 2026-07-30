@@ -11,22 +11,10 @@ function cmd(): ReturnType<typeof getInvoke> {
 }
 
 export const packageService = {
-  async getInstallCommand(toolName: string): Promise<string> {
-    const invoke = cmd();
-    if (!invoke) return '';
-    return invoke<string>('get_install_command', { toolName });
-  },
-
   async setPassword(password: string): Promise<void> {
     const invoke = cmd();
     if (!invoke) throw new Error('Tauri not available');
     await invoke('set_password', { password });
-  },
-
-  async clearPassword(): Promise<void> {
-    const invoke = cmd();
-    if (!invoke) return;
-    await invoke('clear_password');
   },
 
   async installTools(toolNames: string[]): Promise<InstallResult[]> {

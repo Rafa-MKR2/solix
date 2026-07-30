@@ -1,12 +1,14 @@
 import { showToast } from './utils.js';
 import { systemService, packageService, miscService } from './shared/services/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
-import { setupNav, setupHelpTooltips, setupLockActions, switchToPage, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, hideReportModal, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './operations.js';
+import { setupNav, setupHelpTooltips, setupLockActions, switchToPage, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, } from './ui.js';
+import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, cancelOperation, retryLastOperation, setupProgressListener, toolStatuses, handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './operations.js';
 import { handleStartBackup } from './features/disks/index.js';
 import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
 import { handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './features/packages/index.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './features/network/index.js';
+import { setupUpdateListener, initFooter, handleCheckUpdateClick, showUpdateBanner, } from './features/update/index.js';
+import { reportProblem, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, hideReportModal, } from './features/report/index.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
     setupHelpTooltips();

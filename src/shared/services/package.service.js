@@ -3,23 +3,11 @@ function cmd() {
     return getInvoke();
 }
 export const packageService = {
-    async getInstallCommand(toolName) {
-        const invoke = cmd();
-        if (!invoke)
-            return '';
-        return invoke('get_install_command', { toolName });
-    },
     async setPassword(password) {
         const invoke = cmd();
         if (!invoke)
             throw new Error('Tauri not available');
         await invoke('set_password', { password });
-    },
-    async clearPassword() {
-        const invoke = cmd();
-        if (!invoke)
-            return;
-        await invoke('clear_password');
     },
     async installTools(toolNames) {
         const invoke = cmd();

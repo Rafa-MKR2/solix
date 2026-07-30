@@ -13,7 +13,7 @@ function getBarColor(pct: number): string {
   return 'red';
 }
 
-export async function handleOpenFileManager(mountPoint: string): Promise<void> {
+async function handleOpenFileManager(mountPoint: string): Promise<void> {
   try {
     await diskService.openFileManager(mountPoint);
   } catch (e) {
@@ -22,7 +22,7 @@ export async function handleOpenFileManager(mountPoint: string): Promise<void> {
   }
 }
 
-export async function handleAnalyzeDisk(mountPoint: string): Promise<void> {
+async function handleAnalyzeDisk(mountPoint: string): Promise<void> {
   const modal = document.getElementById('disk-analysis-overlay');
   const list = document.getElementById('disk-analysis-list');
   const title = document.getElementById('disk-analysis-title');
@@ -60,7 +60,7 @@ export async function handleAnalyzeDisk(mountPoint: string): Promise<void> {
   }
 }
 
-export async function handleShowPartitions(device: string): Promise<void> {
+async function handleShowPartitions(device: string): Promise<void> {
   const modal = document.getElementById('disk-analysis-overlay');
   const list = document.getElementById('disk-analysis-list');
   const title = document.getElementById('disk-analysis-title');

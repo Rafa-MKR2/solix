@@ -11,7 +11,7 @@ function getBarColor(pct) {
         return 'orange';
     return 'red';
 }
-export async function handleOpenFileManager(mountPoint) {
+async function handleOpenFileManager(mountPoint) {
     try {
         await diskService.openFileManager(mountPoint);
     }
@@ -20,7 +20,7 @@ export async function handleOpenFileManager(mountPoint) {
         showToast('error', 'Erro ao abrir gerenciador de arquivos.');
     }
 }
-export async function handleAnalyzeDisk(mountPoint) {
+async function handleAnalyzeDisk(mountPoint) {
     const modal = document.getElementById('disk-analysis-overlay');
     const list = document.getElementById('disk-analysis-list');
     const title = document.getElementById('disk-analysis-title');
@@ -61,7 +61,7 @@ export async function handleAnalyzeDisk(mountPoint) {
         list.innerHTML = '<div class="hint" style="color:#e88">❌ Erro ao analisar disco.</div>';
     }
 }
-export async function handleShowPartitions(device) {
+async function handleShowPartitions(device) {
     const modal = document.getElementById('disk-analysis-overlay');
     const list = document.getElementById('disk-analysis-list');
     const title = document.getElementById('disk-analysis-title');

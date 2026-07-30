@@ -298,51 +298,6 @@ export function setupHelpTooltips() {
         helpTipEl = null;
     }, true);
 }
-export function showReportModal(reportText) {
-    const overlay = document.getElementById('report-overlay');
-    const status = document.getElementById('report-status');
-    const content = document.getElementById('report-content');
-    const textEl = document.getElementById('report-text');
-    const result = document.getElementById('report-result');
-    const githubBtn = document.getElementById('report-github-btn');
-    const copyBtn = document.getElementById('report-copy-btn');
-    if (!overlay)
-        return;
-    if (status) {
-        status.classList.remove('hidden');
-        status.classList.add('loading');
-    }
-    if (content)
-        content.classList.add('hidden');
-    if (result)
-        result.classList.add('hidden');
-    if (githubBtn)
-        githubBtn.disabled = true;
-    if (copyBtn)
-        copyBtn.disabled = true;
-    if (textEl)
-        textEl.textContent = '';
-    overlay.classList.remove('hidden');
-    setTimeout(() => {
-        if (status) {
-            status.classList.add('hidden');
-            status.classList.remove('loading');
-        }
-        if (content)
-            content.classList.remove('hidden');
-        if (textEl)
-            textEl.textContent = reportText;
-        if (githubBtn)
-            githubBtn.disabled = false;
-        if (copyBtn)
-            copyBtn.disabled = false;
-    }, 250);
-}
-export function hideReportModal() {
-    const overlay = document.getElementById('report-overlay');
-    if (overlay)
-        overlay.classList.add('hidden');
-}
 export function setupNav() {
     const hamburger = document.getElementById('hamburger');
     const sidebar = document.getElementById('sidebar');
@@ -447,51 +402,4 @@ export function renderScriptAnalysis(analysis) {
       </div>
     `;
     }).join('');
-}
-export function showUpdateBanner(info) {
-    const overlay = document.getElementById('update-overlay');
-    if (!overlay)
-        return;
-    overlay.classList.remove('hidden');
-    const currentEl = document.getElementById('update-current-version');
-    const latestEl = document.getElementById('update-latest-version');
-    const changelogEl = document.getElementById('update-changelog');
-    if (currentEl)
-        currentEl.textContent = `v${info.current_version}`;
-    if (latestEl)
-        latestEl.textContent = `v${info.latest_version}`;
-    if (changelogEl)
-        changelogEl.textContent = info.release_notes || 'Nenhuma informação disponível.';
-    document.getElementById('update-info-view')?.classList.remove('hidden');
-    document.getElementById('update-progress-view')?.classList.add('hidden');
-    document.getElementById('update-now-btn')?.classList.remove('hidden');
-    document.getElementById('update-later-btn')?.classList.remove('hidden');
-}
-export function hideUpdateModal() {
-    const overlay = document.getElementById('update-overlay');
-    if (overlay)
-        overlay.classList.add('hidden');
-}
-export function showUpdateProgress(stage, percent, message) {
-    const infoView = document.getElementById('update-info-view');
-    const progressView = document.getElementById('update-progress-view');
-    const statusEl = document.getElementById('update-progress-status');
-    const fillEl = document.getElementById('update-progress-fill');
-    const textEl = document.getElementById('update-progress-text');
-    const nowBtn = document.getElementById('update-now-btn');
-    const laterBtn = document.getElementById('update-later-btn');
-    if (infoView)
-        infoView.classList.add('hidden');
-    if (progressView)
-        progressView.classList.remove('hidden');
-    if (nowBtn)
-        nowBtn.classList.add('hidden');
-    if (laterBtn)
-        laterBtn.classList.add('hidden');
-    if (statusEl)
-        statusEl.textContent = message;
-    if (fillEl)
-        fillEl.style.width = percent + '%';
-    if (textEl)
-        textEl.textContent = percent + '%';
 }
