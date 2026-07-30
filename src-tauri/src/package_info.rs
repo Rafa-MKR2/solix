@@ -470,4 +470,231 @@ Descrição       : Navegador web Firefox
         assert_eq!(size, "—");
         assert_eq!(desc, "—");
     }
+
+    // --- Candidate generation tests (mirrors logic from find_icon_local) ---
+
+    fn icon_candidates(name: &str) -> Vec<String> {
+        let name_lower = name.to_lowercase();
+        let name_upper = {
+            let mut c = name.chars();
+            match c.next() {
+                None => String::new(),
+                Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+            }
+        };
+        vec![
+            name.to_string(),
+            name_lower.clone(),
+            name_upper,
+            format!("org.{name_lower}.{name_lower}"),
+            format!("org.{name_lower}.desktop"),
+        ]
+    }
+
+    #[test]
+    fn test_icon_candidates_simple() {
+        let c = icon_candidates("firefox");
+        assert_eq!(c.len(), 5);
+        assert_eq!(c[0], "firefox");
+        assert_eq!(c[1], "firefox");
+        assert_eq!(c[2], "Firefox");
+        assert_eq!(c[3], "org.firefox.firefox");
+        assert_eq!(c[4], "org.firefox.desktop");
+    }
+
+    #[test]
+    fn test_icon_candidates_uppercase_start() {
+        let c = icon_candidates("VLC");
+        assert_eq!(c[0], "VLC");
+        assert_eq!(c[1], "vlc");
+        assert_eq!(c[2], "VLC");
+        assert_eq!(c[3], "org.vlc.vlc");
+        assert_eq!(c[4], "org.vlc.desktop");
+    }
+
+    #[test]
+    fn test_icon_candidates_multiword() {
+        let c = icon_candidates("Visual Studio Code");
+        assert_eq!(c[0], "Visual Studio Code");
+        assert_eq!(c[1], "visual studio code");
+        assert_eq!(c[2], "Visual Studio Code");
+    }
+
+    #[test]
+    fn test_icon_candidates_empty() {
+        let c = icon_candidates("");
+        assert_eq!(c[0], "");
+        assert_eq!(c[1], "");
+        assert_eq!(c[2], "");
+        assert_eq!(c[3], "org..");
+        assert_eq!(c[4], "org..desktop");
+    }
+
+    #[test]
+    fn test_icon_candidates_single_char() {
+        let c = icon_candidates("a");
+        assert_eq!(c[0], "a");
+        assert_eq!(c[1], "a");
+        assert_eq!(c[2], "A");
+        assert_eq!(c[3], "org.a.a");
+        assert_eq!(c[4], "org.a.desktop");
+    }
+
+    #[test]
+    fn test_icon_candidates_non_ascii() {
+        let c = icon_candidates("Évince");
+        assert_eq!(c[0], "Évince");
+        assert_eq!(c[1], "évince");
+        assert_eq!(c[2], "Évince");
+    }
+
+    // --- Struct tests ---
+
+    #[test]
+    fn test_package_detail_debug_derive() {
+        let detail = PackageDetail {
+            tool_name: "test".into(),
+            package_name: "test-pkg".into(),
+            description: "desc".into(),
+            version: "1.0".into(),
+            size: "1 MB".into(),
+            installed: true,
+            icon_base64: None,
+        };
+        let debug = format!("{:?}", detail);
+        assert!(debug.contains("test"));
+        assert!(debug.contains("test-pkg"));
+        assert!(debug.contains("desc"));
+        assert!(debug.contains("1.0"));
+    }
+
+    #[test]
+    fn test_icon_info_partial_eq() {
+        #[derive(Debug, PartialEq)]
+        struct IconInfo {
+            pub name: String,
+            pub data: Option<String>,
+        }
+        let a = IconInfo { name: "firefox".into(), data: Some("abc".into()) };
+        let b = IconInfo { name: "firefox".into(), data: Some("abc".into()) };
+        assert_eq!(a, b);
+        let c = IconInfo { name: "firefox".into(), data: None };
+        assert_ne!(a, c);
+    }
+
+    // --- More parse_pm_output edge cases ---
+
+    #[test]
+    fn test_parse_pm_output_pacman_download_size_fallback() {
+        let output = "\
+Version         : 125.0
+Description     : Some browser
+Download Size   : 60.00 MiB
+";
+        let (ver, size, desc) = parse_pm_output("pacman", output);
+        assert_eq!(ver, "125.0");
+        assert_eq!(size, "60.00 MiB");
+        assert_eq!(desc, "Some browser");
+    }
+
+    #[test]
+    fn test_parse_pm_output_pacman_installed_size_overrides_download() {
+        let output = "\
+Download Size   : 60.00 MiB
+Installed Size  : 150.00 MiB
+";
+        let (_, size, _) = parse_pm_output("pacman", output);
+        assert_eq!(size, "150.00 MiB");
+    }
+
+    #[test]
+    fn test_parse_pm_output_apt_description_en_fallback() {
+        let output = "\
+Package: firefox
+Version: 123.0
+Installed-Size: 51200
+Description: Navegador web Firefox
+";
+        let (ver, size, desc) = parse_pm_output("apt", output);
+        assert_eq!(desc, "Navegador web Firefox");
+    }
+
+    #[test]
+    fn test_parse_pm_output_dnf_portuguese() {
+        let output = "\
+Nome         : firefox
+Versão       : 123.0
+Tamanho      : 150.00 MiB
+Descrição    : Navegador web Firefox
+";
+        let (ver, size, desc) = parse_pm_output("dnf", output);
+        assert_eq!(ver, "123.0");
+        assert_eq!(size, "150.00 MiB");
+        assert_eq!(desc, "Navegador web Firefox");
+    }
+
+    #[test]
+    fn test_parse_pm_output_zypper_english() {
+        let output = "\
+Name            : firefox
+Version         : 123.0
+Size            : 150.00 MiB
+Description     : Navegador web Firefox
+";
+        let (ver, size, desc) = parse_pm_output("zypper", output);
+        assert_eq!(ver, "123.0");
+        assert_eq!(size, "150.00 MiB");
+        assert_eq!(desc, "Navegador web Firefox");
+    }
+
+    #[test]
+    fn test_parse_pm_output_missing_fields() {
+        let output = "\
+Name: firefox
+Arch: x86_64
+";
+        let (ver, size, desc) = parse_pm_output("pacman", output);
+        assert_eq!(ver, "—");
+        assert_eq!(size, "—");
+        assert_eq!(desc, "—");
+    }
+
+    #[test]
+    fn test_parse_pm_output_whitespace_handling() {
+        let output = "  Version   :   2.0  \n  Description   :   A  test  \n";
+        let (ver, size, desc) = parse_pm_output("pacman", output);
+        assert_eq!(ver, "2.0");
+        assert_eq!(desc, "A  test");
+    }
+
+    #[test]
+    fn test_parse_pm_output_last_key_wins() {
+        let output = "\
+Version: 1.0
+Version: 2.0
+";
+        let (ver, _, _) = parse_pm_output("pacman", output);
+        assert_eq!(ver, "2.0");
+    }
+
+    #[test]
+    fn test_parse_pm_output_no_colon() {
+        let output = "Version 1.0\nDescription desc\n";
+        let (ver, size, desc) = parse_pm_output("pacman", output);
+        assert_eq!(ver, "—");
+        assert_eq!(size, "—");
+        assert_eq!(desc, "—");
+    }
+
+    #[test]
+    fn test_parse_pm_output_apt_zero_size() {
+        let output = "\
+Package: test
+Version: 1.0
+Installed-Size: 0
+Description: test pkg
+";
+        let (_, size, _) = parse_pm_output("apt", output);
+        assert_eq!(size, "0 kB");
+    }
 }

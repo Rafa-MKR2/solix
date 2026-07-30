@@ -133,6 +133,7 @@ body {
   opacity: 0;
   cursor: pointer;
   z-index: 2;
+  pointer-events: none;
 }
 
 .script-file-label {
@@ -1346,6 +1347,7 @@ body {
   opacity: 0;
   cursor: pointer;
   z-index: 2;
+  pointer-events: none;
 }
 
 .pkg-file-label {
@@ -2542,6 +2544,389 @@ body {
 @keyframes toastSlide {
   from { transform: translateX(-50%) translateY(20px); opacity: 0; }
   to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* ─── SMART Health Modal ─── */
+
+.smart-modal {
+  background: #18182e;
+  border: 1px solid #2a2a44;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 620px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.smart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid #222244;
+}
+
+.smart-header h3 {
+  font-size: 1rem;
+  color: #eee;
+  margin: 0;
+}
+
+.smart-body {
+  padding: 1rem 1.2rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.smart-footer {
+  padding: 0.7rem 1.2rem;
+  border-top: 1px solid #222244;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Loading */
+.smart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.smart-loading-icon {
+  font-size: 2rem;
+  animation: smartSpin 1s linear infinite;
+}
+
+@keyframes smartSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.smart-loading-text {
+  font-size: 0.95rem;
+  color: #ddd;
+  font-weight: 500;
+}
+
+.smart-loading-sub {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+/* Section Labels */
+.smart-section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.3rem 0 0.4rem;
+  border-bottom: 1px solid #222244;
+  margin-bottom: 0.3rem;
+}
+
+/* Commands (educational) */
+.smart-commands-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.smart-cmd-item {
+  background: #12122a;
+  border: 1px solid #252545;
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.smart-cmd-item:hover {
+  border-color: #4a9eff44;
+}
+
+.smart-cmd-code {
+  margin-bottom: 0.3rem;
+}
+
+.smart-cmd-code code {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #6cb4ff;
+  background: #0a0a18;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.smart-cmd-desc {
+  font-size: 0.75rem;
+  color: #888;
+  line-height: 1.5;
+}
+
+/* Health Card */
+.smart-health-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid #00d4aa44;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #1a1a32 0%, #18182e 100%);
+}
+
+.smart-health-icon {
+  font-size: 2rem;
+}
+
+.smart-health-info {
+  flex: 1;
+}
+
+.smart-health-status {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #4ae0a0;
+  margin-bottom: 0.15rem;
+}
+
+.smart-health-model {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.smart-health-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.smart-health-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.smart-stat-icon {
+  font-size: 1rem;
+}
+
+.smart-stat-label {
+  color: #777;
+  font-size: 0.7rem;
+  margin-right: 0.2rem;
+}
+
+.smart-stat-value {
+  color: #eee;
+  font-weight: 600;
+}
+
+/* Error Card */
+.smart-error-card {
+  display: flex;
+  gap: 0.8rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid #e84a4a44;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #2a1a1a 0%, #1a1818 100%);
+  align-items: flex-start;
+}
+
+.smart-error-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.smart-error-msg {
+  font-size: 0.85rem;
+  color: #bbb;
+  line-height: 1.6;
+}
+
+/* Install button in error */
+.btn-smart-install {
+  background: #00d4aa;
+  color: #0a0a1a;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.15s;
+}
+
+.btn-smart-install:hover {
+  background: #00e8ba;
+}
+
+/* Attributes Table */
+.smart-legend-row {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.7rem;
+  color: #888;
+}
+
+.smart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.smart-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.smart-dot-good {
+  background: #4ae0a0;
+}
+
+.smart-dot-warn {
+  background: #e8c547;
+}
+
+.smart-dot-bad {
+  background: #e84a4a;
+}
+
+.smart-table-wrap {
+  overflow-x: auto;
+}
+
+.smart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.smart-table th {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid #222244;
+  white-space: nowrap;
+}
+
+.smart-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #1e1e30;
+}
+
+.smart-attr-row:hover {
+  background: #1a1a30;
+}
+
+.smart-attr-good td {
+  color: #bbb;
+}
+
+.smart-attr-warn td {
+  color: #e8c547;
+}
+
+.smart-attr-bad td {
+  color: #e88;
+  background: #2a1414;
+}
+
+.smart-th-id { width: 2rem; }
+.smart-th-name { }
+.smart-th-val { width: 2.5rem; text-align: center; }
+.smart-th-pior { width: 2.5rem; text-align: center; }
+.smart-th-lim { width: 2.5rem; text-align: center; }
+.smart-th-raw { }
+.smart-th-status { width: 1.5rem; text-align: center; }
+
+.smart-td-id {
+  color: #555;
+  font-family: monospace;
+  font-size: 0.65rem;
+}
+
+.smart-td-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.smart-td-val, .smart-td-worst, .smart-td-thresh {
+  text-align: center;
+  font-family: monospace;
+}
+
+.smart-td-raw {
+  font-family: monospace;
+  font-size: 0.68rem;
+  color: #777;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smart-td-status {
+  text-align: center;
+}
+
+.smart-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.smart-dot-good { background: #4ae0a0; }
+.smart-dot-warn { background: #e8c547; }
+.smart-dot-bad { background: #e84a4a; animation: smartDotPulse 0.8s ease infinite; }
+
+@keyframes smartDotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+/* Desktop shortcut prompt */
+#shortcut-prompt {
+  animation: fadeIn 0.3s ease;
+}
+
+.disk-btn-health {
+  background: #222244;
+  border: 1px solid #2a2a44;
+  color: #999;
+  padding: 0.25rem 0.55rem;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.disk-btn-health:hover {
+  background: #1a2a2a;
+  border-color: #4ae0a044;
+  color: #4ae0a0;
 }
 
 .toast-icon {

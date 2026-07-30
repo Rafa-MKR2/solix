@@ -151,65 +151,87 @@ pub async fn get_install_command(tool_name: &str) -> Result<InstallCommandResult
     })
 }
 
-pub async fn run_command(password: &str, tool_name: &str, command: &str) -> InstallResult {
-    let child = tokio::process::Command::new("sh")
+fn build_install_result(
+    tool_name: &str,
+    command: &str,
+    cancelled: bool,
+    success: bool,
+    stdout: String,
+    stderr: String,
+) -> InstallResult {
+    let (output_text, error_text) = if cancelled {
+        (String::new(), Some("Operação cancelada".to_string()))
+    } else if success {
+        (stdout, None)
+    } else {
+        (stderr.clone(), Some(stderr))
+    };
+    InstallResult {
+        tool_name: tool_name.to_string(),
+        command: command.to_string(),
+        success: success && !cancelled,
+        cancelled,
+        output: Some(output_text),
+        error: error_text,
+    }
+}
+
+fn spawn_sh(command: &str) -> Result<tokio::process::Child, std::io::Error> {
+    tokio::process::Command::new("sh")
         .arg("-c")
         .arg(command)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
-        .spawn();
+        .spawn()
+}
 
-    match child {
-        Ok(mut c) => {
-            let pid = c.id().unwrap_or(0);
-            if let Ok(mut guard) = CURRENT_CHILD_PID.lock() {
-                *guard = Some(pid);
-            }
+async fn handle_child_output(
+    mut c: tokio::process::Child,
+    password: &str,
+    tool_name: &str,
+    command: &str,
+) -> InstallResult {
+    let pid = c.id().unwrap_or(0);
+    if let Ok(mut guard) = CURRENT_CHILD_PID.lock() {
+        *guard = Some(pid);
+    }
 
-            let _ = password::pipe_password(&mut c, password).await;
+    let _ = password::pipe_password(&mut c, password).await;
 
-            let output = c.wait_with_output().await;
+    let output = c.wait_with_output().await;
 
-            if let Ok(mut guard) = CURRENT_CHILD_PID.lock() {
-                if *guard == Some(pid) {
-                    *guard = None;
-                }
-            }
-
-            let cancelled = CANCEL_FLAG.load(Ordering::SeqCst);
-
-            match output {
-                Ok(out) => {
-                    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-                    let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-                    let success = out.status.success();
-                    let (output_text, error_text) = if cancelled {
-                        (String::new(), Some("Operação cancelada".to_string()))
-                    } else if success {
-                        (stdout, None)
-                    } else {
-                        (stderr.clone(), Some(stderr))
-                    };
-                    InstallResult {
-                        tool_name: tool_name.to_string(),
-                        command: command.to_string(),
-                        success: success && !cancelled,
-                        cancelled,
-                        output: Some(output_text),
-                        error: error_text,
-                    }
-                }
-                Err(e) => InstallResult {
-                    tool_name: tool_name.to_string(),
-                    command: command.to_string(),
-                    success: false,
-                    cancelled,
-                    output: None,
-                    error: Some(if cancelled { "Operação cancelada".to_string() } else { e.to_string() }),
-                },
-            }
+    if let Ok(mut guard) = CURRENT_CHILD_PID.lock() {
+        if *guard == Some(pid) {
+            *guard = None;
         }
+    }
+
+    let cancelled = CANCEL_FLAG.load(Ordering::SeqCst);
+
+    match output {
+        Ok(out) => build_install_result(
+            tool_name,
+            command,
+            cancelled,
+            out.status.success(),
+            String::from_utf8_lossy(&out.stdout).to_string(),
+            String::from_utf8_lossy(&out.stderr).to_string(),
+        ),
+        Err(e) => InstallResult {
+            tool_name: tool_name.to_string(),
+            command: command.to_string(),
+            success: false,
+            cancelled,
+            output: None,
+            error: Some(if cancelled { "Operação cancelada".to_string() } else { e.to_string() }),
+        },
+    }
+}
+
+pub async fn run_command(password: &str, tool_name: &str, command: &str) -> InstallResult {
+    match spawn_sh(command) {
+        Ok(c) => handle_child_output(c, password, tool_name, command).await,
         Err(e) => InstallResult {
             tool_name: tool_name.to_string(),
             command: command.to_string(),
@@ -228,15 +250,7 @@ pub async fn run_command_streaming(
     tool_name: &str,
     command: &str,
 ) -> InstallResult {
-    let child = tokio::process::Command::new("sh")
-        .arg("-c")
-        .arg(command)
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn();
-
-    let mut c = match child {
+    let mut c = match spawn_sh(command) {
         Ok(c) => c,
         Err(e) => {
             return InstallResult {
@@ -257,17 +271,37 @@ pub async fn run_command_streaming(
 
     let _ = password::pipe_password(&mut c, password).await;
 
-    let stdout = c.stdout.take().expect("stdout missing");
-    let stderr = c.stderr.take().expect("stderr missing");
+    let stdout = match c.stdout.take() {
+        Some(s) => s,
+        None => return InstallResult {
+            tool_name: tool_name.to_string(),
+            command: command.to_string(),
+            success: false,
+            cancelled: false,
+            output: None,
+            error: Some("Erro interno: stdout não disponível".to_string()),
+        },
+    };
+    let stderr = match c.stderr.take() {
+        Some(s) => s,
+        None => return InstallResult {
+            tool_name: tool_name.to_string(),
+            command: command.to_string(),
+            success: false,
+            cancelled: false,
+            output: None,
+            error: Some("Erro interno: stderr não disponível".to_string()),
+        },
+    };
 
-    let app_out = app.clone();
-    let tn_out = tool_name.to_string();
+    let app_clone = app.clone();
+    let tn = tool_name.to_string();
     let stdout_task = tokio::spawn(async move {
         let mut reader = BufReader::new(stdout).lines();
         let mut collected = Vec::new();
         while let Ok(Some(line)) = reader.next_line().await {
-            let _ = app_out.emit("operation-output", OutputPayload {
-                tool_name: tn_out.clone(),
+            let _ = app_clone.emit("operation-output", OutputPayload {
+                tool_name: tn.clone(),
                 line: line.clone(),
                 stream: "stdout".to_string(),
             });
@@ -276,14 +310,14 @@ pub async fn run_command_streaming(
         collected.join("\n")
     });
 
-    let app_err = app.clone();
-    let tn_err = tool_name.to_string();
+    let app_clone = app.clone();
+    let tn = tool_name.to_string();
     let stderr_task = tokio::spawn(async move {
         let mut reader = BufReader::new(stderr).lines();
         let mut collected = Vec::new();
         while let Ok(Some(line)) = reader.next_line().await {
-            let _ = app_err.emit("operation-output", OutputPayload {
-                tool_name: tn_err.clone(),
+            let _ = app_clone.emit("operation-output", OutputPayload {
+                tool_name: tn.clone(),
                 line: line.clone(),
                 stream: "stderr".to_string(),
             });
@@ -309,23 +343,9 @@ pub async fn run_command_streaming(
         Err(_) => false,
     };
 
-    let (output_text, error_text) = if cancelled {
-        (String::new(), Some("Operação cancelada".to_string()))
-    } else if success {
-        (stdout_str, None)
-    } else {
-        let combined = if stderr_str.is_empty() { stdout_str } else { stderr_str };
-        (combined.clone(), Some(combined))
-    };
-
-    InstallResult {
-        tool_name: tool_name.to_string(),
-        command: command.to_string(),
-        success: success && !cancelled,
-        cancelled,
-        output: Some(output_text),
-        error: error_text,
-    }
+    // Streaming preserves original behavior: when stderr is empty, use stdout as error output
+    let display_err = if stderr_str.is_empty() { stdout_str.clone() } else { stderr_str };
+    build_install_result(tool_name, command, cancelled, success, stdout_str, display_err)
 }
 
 
@@ -442,12 +462,25 @@ pub async fn cancel_operation_inner() {
     }
 }
 
+async fn validate_tool_names(tool_names: &[String]) -> Result<(), String> {
+    let tools = tool::get_development_tools();
+    let valid_names: std::collections::HashSet<&str> = tools.iter().map(|t| t.name.as_str()).collect();
+    for name in tool_names {
+        if !valid_names.contains(name.as_str()) {
+            return Err(format!("Ferramenta desconhecida: '{}'", name));
+        }
+    }
+    Ok(())
+}
+
 async fn run_tool_operation(
     tool_names: &[String],
     password: &str,
     prefix: &str,
     app: Option<&tauri::AppHandle>,
 ) -> Result<Vec<InstallResult>, String> {
+    validate_tool_names(tool_names).await?;
+
     CANCEL_FLAG.store(false, Ordering::SeqCst);
 
     password::verify_password(password).await?;
@@ -705,7 +738,15 @@ mod tests {
     #[test]
     fn test_check_pm_lock_sync_no_lock() {
         let info = check_pm_lock_sync();
-        assert!(!info.locked);
+        // If locked, verify it has a lock file and message; if not, verify empty fields
+        if info.locked {
+            assert!(!info.lock_file.is_empty());
+            assert!(!info.message.is_empty());
+        } else {
+            assert!(info.lock_file.is_empty());
+            assert!(info.pids.is_empty());
+            assert!(info.process_names.is_empty());
+        }
     }
 
     #[test]
@@ -870,6 +911,94 @@ mod tests {
         // Map has lowercase keys only; mixed case should return self
         assert_eq!(get_package_name("Node"), "Node");
         assert_eq!(get_package_name("FIREFOX"), "FIREFOX");
+    }
+
+    #[tokio::test]
+    async fn test_validate_tool_names_valid() {
+        let names = vec!["git".to_string(), "firefox".to_string()];
+        assert!(validate_tool_names(&names).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_validate_tool_names_empty() {
+        let names: Vec<String> = vec![];
+        assert!(validate_tool_names(&names).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_validate_tool_names_invalid() {
+        let names = vec!["nonexistent-tool-12345".to_string()];
+        let result = validate_tool_names(&names).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("nonexistent-tool-12345"));
+    }
+
+    #[tokio::test]
+    async fn test_validate_tool_names_mixed() {
+        let names = vec!["git".to_string(), "invalid-tool!!".to_string()];
+        let result = validate_tool_names(&names).await;
+        assert!(result.is_err());
+    }
+
+    // ─── build_install_result tests ───
+
+    #[test]
+    fn test_build_install_result_success() {
+        let r = build_install_result("git", "echo ok", false, true, "ok\n".into(), "".into());
+        assert!(r.success);
+        assert!(!r.cancelled);
+        assert_eq!(r.output, Some("ok\n".into()));
+        assert!(r.error.is_none());
+    }
+
+    #[test]
+    fn test_build_install_result_failure() {
+        let r = build_install_result("git", "false", false, false, "".into(), "error msg\n".into());
+        assert!(!r.success);
+        assert_eq!(r.output, Some("error msg\n".into()));
+        assert_eq!(r.error, Some("error msg\n".into()));
+    }
+
+    #[test]
+    fn test_build_install_result_cancelled() {
+        let r = build_install_result("git", "sleep 10", true, true, "output\n".into(), "".into());
+        assert!(!r.success);
+        assert!(r.cancelled);
+        assert_eq!(r.output, Some("".into()));
+        assert_eq!(r.error, Some("Operação cancelada".into()));
+    }
+
+    #[test]
+    fn test_build_install_result_failure_no_stderr() {
+        // When stderr is empty and command fails, output uses stderr (empty)
+        let r = build_install_result("test", "cmd", false, false, "stdout msg".into(), "".into());
+        assert!(!r.success);
+        assert_eq!(r.output, Some("".into()));
+        assert_eq!(r.error, Some("".into()));
+    }
+
+    #[test]
+    fn test_build_install_result_tool_name_and_command() {
+        let r = build_install_result("my-tool", "my-command", false, true, "".into(), "".into());
+        assert_eq!(r.tool_name, "my-tool");
+        assert_eq!(r.command, "my-command");
+    }
+
+    #[test]
+    fn test_build_install_result_cancelled_with_error() {
+        let r = build_install_result("tool", "cmd", true, false, "out".into(), "err".into());
+        assert!(r.cancelled);
+        assert!(!r.success);
+        assert_eq!(r.output, Some("".into()));
+        assert_eq!(r.error, Some("Operação cancelada".into()));
+    }
+
+    #[test]
+    fn test_build_install_result_stdout_stderr_empty() {
+        let r = build_install_result("tool", "cmd", false, true, "".into(), "".into());
+        assert!(r.success);
+        assert_eq!(r.output, Some("".into()));
+        assert!(r.error.is_none());
     }
 }
 

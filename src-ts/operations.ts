@@ -27,7 +27,7 @@ import {
 
 export let toolStatuses: DevelopmentToolStatus[] = [];
 export let systemDistro = '';
-let cachedPassword = '';
+let passwordVerified = false;
 let pendingAction: PendingAction | null = null;
 let lastPendingAction: PendingAction | null = null;
 let isOperating = false;
@@ -134,11 +134,7 @@ export async function confirmPassword(): Promise<void> {
   const invoke = getInvoke();
   if (!invoke) return;
   try {
-    const result = await invoke<InstallResult[]>('install_tools', { toolNames: ['__verify__'], password });
-    if (result && result[0] && !result[0].success) {
-      if (error) error.classList.remove('hidden');
-      return;
-    }
+    await invoke('set_password', { password });
   } catch (e) {
     const msg = (e + '').toLowerCase();
     if (msg.includes('senha') || msg.includes('password') || msg.includes('incorrect') || msg.includes('tentativa')) {
@@ -149,7 +145,7 @@ export async function confirmPassword(): Promise<void> {
     showToast('error', 'Erro ao verificar senha. Tente novamente.');
     return;
   }
-  cachedPassword = password;
+  passwordVerified = true;
   document.getElementById('password-overlay')!.classList.add('hidden');
   if (error) error.classList.add('hidden');
   if (input) input.value = '';
@@ -166,18 +162,9 @@ export function cancelPassword(): void {
 
 export async function showPasswordModal(action: PendingAction): Promise<void> {
   pendingAction = action;
-  if (cachedPassword) {
-    const invoke = getInvoke();
-    if (invoke) {
-      try {
-        await invoke<InstallResult[]>('install_tools', { toolNames: ['__verify__'], password: cachedPassword });
-        executePending();
-        return;
-      } catch (e) {
-        console.error('cached password verification failed:', e);
-        cachedPassword = '';
-      }
-    }
+  if (passwordVerified) {
+    executePending();
+    return;
   }
   document.getElementById('password-overlay')!.classList.remove('hidden');
   const input = document.getElementById('password-input') as HTMLInputElement | null;
@@ -223,20 +210,19 @@ async function executePending(): Promise<void> {
   try {
     let result: InstallResult[] | InstallResult | undefined;
     if (isUpdate) {
-      result = await invoke<InstallResult>('update_system', { password: cachedPassword });
+      result = await invoke<InstallResult>('update_system');
     } else if (isZram) {
-      result = await invoke<InstallResult>('enable_zram', { password: cachedPassword });
+      result = await invoke<InstallResult>('enable_zram');
     } else if (isCleanup) {
-      result = await invoke<InstallResult>('cleanup_system', { password: cachedPassword });
+      result = await invoke<InstallResult>('cleanup_system');
     } else if (isInstall) {
-      result = await invoke<InstallResult[]>('install_tools', { toolNames: pendingAction.tools, password: cachedPassword });
+      result = await invoke<InstallResult[]>('install_tools', { toolNames: pendingAction.tools });
     } else if (isRemove) {
-      result = await invoke<InstallResult[]>('remove_tools', { toolNames: pendingAction.tools, password: cachedPassword });
+      result = await invoke<InstallResult[]>('remove_tools', { toolNames: pendingAction.tools });
     } else if (isInstallPkg) {
       result = await invoke<InstallResult>('install_package_data', {
         data: pendingPkgData!,
         fileName: pendingPkgFileName!,
-        password: cachedPassword,
       });
     }
     if (outputLog) {
@@ -330,11 +316,11 @@ async function executePending(): Promise<void> {
 
 export function retryLastOperation(): void {
   const action = pendingAction || lastPendingAction;
-  if (!action && !cachedPassword) return;
+  if (!action && !passwordVerified) return;
   document.getElementById('lock-diagnosis')?.classList.add('hidden');
   if (action) {
     showPasswordModal(action);
-  } else if (cachedPassword) {
+  } else {
     showToast('error', 'Selecione a operação novamente.');
   }
 }
@@ -461,13 +447,13 @@ export async function handleAppUpdate(): Promise<void> {
 
   showUpdateProgress('download', 0, 'Preparando...');
 
-  const doUpdate = async (password: string): Promise<void> => {
+  const doUpdate = async (): Promise<void> => {
     try {
-      await invoke('install_update', { password });
+      await invoke('install_update');
     } catch (e) {
       const msg = (e + '').toLowerCase();
       if (msg.includes('password') || msg.includes('senha') || msg.includes('incorrect')) {
-        cachedPassword = '';
+        passwordVerified = false;
         showPasswordModal({ type: 'app-update' });
         return;
       }
@@ -477,8 +463,8 @@ export async function handleAppUpdate(): Promise<void> {
     }
   };
 
-  if (cachedPassword) {
-    await doUpdate(cachedPassword);
+  if (passwordVerified) {
+    await doUpdate();
   } else {
     showPasswordModal({ type: 'app-update' });
   }
@@ -814,11 +800,11 @@ export async function handleRemovePackages(): Promise<void> {
   if (selectedInstalledPkgs.size === 0) return;
   const names = Array.from(selectedInstalledPkgs);
 
-  const doRemove = async (password: string): Promise<void> => {
+  const doRemove = async (): Promise<void> => {
     const invoke = getInvoke();
     if (!invoke) return;
     try {
-      const results = await invoke<string[]>('remove_system_packages', { password, packageNames: names });
+      const results = await invoke<string[]>('remove_system_packages', { packageNames: names });
       // Show results
       const listEl = document.getElementById('pkg-installed-list');
       if (listEl) {
@@ -833,8 +819,8 @@ export async function handleRemovePackages(): Promise<void> {
     }
   };
 
-  if (cachedPassword) {
-    await doRemove(cachedPassword);
+  if (passwordVerified) {
+    await doRemove();
   } else {
     pendingAction = { type: 'remove', tools: names };
     showPasswordModal({ type: 'remove', tools: names });
@@ -925,11 +911,11 @@ export async function handleInstallRepoPackages(): Promise<void> {
   if (selectedRepoPkgs.size === 0) return;
   const names = Array.from(selectedRepoPkgs);
 
-  const doInstall = async (password: string): Promise<void> => {
+  const doInstall = async (): Promise<void> => {
     const invoke = getInvoke();
     if (!invoke) return;
     try {
-      const results = await invoke<string[]>('install_repo_packages', { password, packageNames: names });
+      const results = await invoke<string[]>('install_repo_packages', { packageNames: names });
       const listEl = document.getElementById('pkg-search-list');
       if (listEl) {
         listEl.innerHTML = `<div class="pkg-history-log">${results.map(r => `<div>${r}</div>`).join('')}</div>`;
@@ -941,8 +927,8 @@ export async function handleInstallRepoPackages(): Promise<void> {
     }
   };
 
-  if (cachedPassword) {
-    await doInstall(cachedPassword);
+  if (passwordVerified) {
+    await doInstall();
   } else {
     showPasswordModal({ type: 'install', tools: names });
   }

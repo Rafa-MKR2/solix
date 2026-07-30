@@ -238,6 +238,32 @@ export interface ScriptAnalysis {
   ai_explanation: string | null;
 }
 
+export interface SmartAttribute {
+  id: number;
+  name: string;
+  value: number;
+  worst: number;
+  threshold: number;
+  raw: string;
+  status: string; // 'good' | 'warn' | 'bad'
+}
+
+export interface SmartInfo {
+  device: string;
+  device_model: string;
+  health: string; // 'PASSED' | 'FAILED' | 'UNKNOWN'
+  temperature: string;
+  power_on_hours: string;
+  attributes: SmartAttribute[];
+  smart_available: boolean;
+  error_message: string;
+  // Educational info about what commands were run
+  commands_used: {
+    command: string;
+    description: string;
+  }[];
+}
+
 export interface BackupProgress {
   stage: string;
   message: string;

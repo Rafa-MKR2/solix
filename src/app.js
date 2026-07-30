@@ -211,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     pkgUploadArea?.addEventListener('dragover', (e) => {
         e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
         pkgUploadArea.classList.add('drag-over');
     });
     pkgUploadArea?.addEventListener('dragenter', (e) => {
@@ -227,22 +228,17 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         e.stopPropagation();
         pkgUploadArea.classList.remove('drag-over');
-        const items = e.dataTransfer?.items;
-        if (items && items.length > 0) {
-            const item = items[0];
-            if (item.kind === 'file') {
-                const file = item.getAsFile();
-                if (file) {
-                    if (pkgFileInput) {
-                        const dt = new DataTransfer();
-                        dt.items.add(file);
-                        pkgFileInput.files = dt.files;
-                        pkgFileInput.dispatchEvent(new Event('change'));
-                    }
-                    else {
-                        handlePkgFileSelect(file);
-                    }
-                }
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            if (pkgFileInput) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                pkgFileInput.files = dt.files;
+                pkgFileInput.dispatchEvent(new Event('change'));
+            }
+            else {
+                handlePkgFileSelect(file);
             }
         }
     });
@@ -255,6 +251,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('backup-close-btn')?.addEventListener('click', () => {
         document.getElementById('backup-overlay')?.classList.add('hidden');
+    });
+    document.getElementById('smart-close-btn')?.addEventListener('click', () => {
+        document.getElementById('smart-overlay')?.classList.add('hidden');
+    });
+    document.getElementById('smart-close-btn-2')?.addEventListener('click', () => {
+        document.getElementById('smart-overlay')?.classList.add('hidden');
+    });
+    document.getElementById('smart-overlay')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            e.currentTarget.classList.add('hidden');
+        }
+    });
+    document.getElementById('smart-overlay')?.addEventListener('click', async (e) => {
+        const btn = e.target.closest('#smart-install-btn');
+        if (!btn)
+            return;
+        try {
+            const invoke = getInvoke();
+            if (invoke) {
+                await invoke('open_url', { url: 'https://www.smartmontools.org/' });
+            }
+        }
+        catch (err) {
+            console.error('open smartmontools url failed:', err);
+        }
     });
     document.getElementById('pkg-clear-btn')?.addEventListener('click', () => {
         if (pkgFileInput)
@@ -274,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     scriptUploadArea?.addEventListener('dragover', (e) => {
         e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
         scriptUploadArea.classList.add('drag-over');
     });
     scriptUploadArea?.addEventListener('dragenter', (e) => {
@@ -290,22 +312,17 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         e.stopPropagation();
         scriptUploadArea.classList.remove('drag-over');
-        const items = e.dataTransfer?.items;
-        if (items && items.length > 0) {
-            const item = items[0];
-            if (item.kind === 'file') {
-                const file = item.getAsFile();
-                if (file) {
-                    if (scriptFileInput) {
-                        const dt = new DataTransfer();
-                        dt.items.add(file);
-                        scriptFileInput.files = dt.files;
-                        scriptFileInput.dispatchEvent(new Event('change'));
-                    }
-                    else {
-                        handleScriptDrop(file);
-                    }
-                }
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            if (scriptFileInput) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                scriptFileInput.files = dt.files;
+                scriptFileInput.dispatchEvent(new Event('change'));
+            }
+            else {
+                handleScriptDrop(file);
             }
         }
     });

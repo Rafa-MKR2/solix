@@ -497,5 +497,175 @@ mod tests {
         assert!(mbps < 0.0);
         assert!(!fmt.is_empty());
     }
+
+    // ─── ConnectivityInfo edge cases ───
+
+    #[test]
+    fn test_connectivity_info_default_false() {
+        let info = ConnectivityInfo {
+            internet: false,
+            ping_latency_ms: 0.0,
+            ethernet: false,
+            ip_address: String::new(),
+            bluetooth: false,
+            wifi_present: false,
+            wifi_ssid: String::new(),
+            wifi_signal: 0,
+        };
+        assert!(!info.internet);
+        assert!(!info.ethernet);
+        assert!(!info.bluetooth);
+        assert!(!info.wifi_present);
+    }
+
+    #[test]
+    fn test_connectivity_info_all_true() {
+        let info = ConnectivityInfo {
+            internet: true,
+            ping_latency_ms: 10.0,
+            ethernet: true,
+            ip_address: "10.0.0.1".into(),
+            bluetooth: true,
+            wifi_present: true,
+            wifi_ssid: "CorpNet".into(),
+            wifi_signal: 95,
+        };
+        assert!(info.internet);
+        assert!(info.ethernet);
+        assert!(info.bluetooth);
+        assert!(info.wifi_present);
+        assert_eq!(info.wifi_signal, 95);
+        assert_eq!(info.ip_address, "10.0.0.1");
+    }
+
+    #[test]
+    fn test_connectivity_info_max_ping() {
+        let info = ConnectivityInfo {
+            internet: true,
+            ping_latency_ms: f64::MAX,
+            ethernet: true,
+            ip_address: "192.168.0.1".into(),
+            bluetooth: false,
+            wifi_present: false,
+            wifi_ssid: String::new(),
+            wifi_signal: 0,
+        };
+        assert_eq!(info.ping_latency_ms, f64::MAX);
+    }
+
+    #[test]
+    fn test_connectivity_info_empty_ip() {
+        let info = ConnectivityInfo {
+            internet: false,
+            ping_latency_ms: 0.0,
+            ethernet: false,
+            ip_address: String::new(),
+            bluetooth: false,
+            wifi_present: false,
+            wifi_ssid: String::new(),
+            wifi_signal: 0,
+        };
+        assert!(info.ip_address.is_empty());
+    }
+
+    #[test]
+    fn test_connectivity_info_min_signal() {
+        let info = ConnectivityInfo {
+            internet: true,
+            ping_latency_ms: 5.0,
+            ethernet: false,
+            ip_address: String::new(),
+            bluetooth: true,
+            wifi_present: true,
+            wifi_ssid: "Guest".into(),
+            wifi_signal: -100,
+        };
+        assert_eq!(info.wifi_signal, -100);
+    }
+
+    // ─── ExternalNetworkInfo edge cases ───
+
+    #[test]
+    fn test_external_network_info_empty() {
+        let info = ExternalNetworkInfo {
+            external_ip: String::new(),
+            isp: String::new(),
+            city: String::new(),
+            region: String::new(),
+        };
+        assert!(info.external_ip.is_empty());
+        assert!(info.isp.is_empty());
+    }
+
+    #[test]
+    fn test_external_network_info_max_length() {
+        let info = ExternalNetworkInfo {
+            external_ip: "2001:0db8:85a3:0000:0000:8a2e:0370:7334".into(),
+            isp: "A".repeat(255),
+            city: "A".repeat(100),
+            region: "XX".into(),
+        };
+        assert_eq!(info.isp.len(), 255);
+        assert_eq!(info.city.len(), 100);
+    }
+
+    // ─── SpeedTestResult edge cases ───
+
+    #[test]
+    fn test_speed_test_result_zero() {
+        let r = SpeedTestResult { mbps: 0.0, formatted: "0 Kbps".into() };
+        assert_eq!(r.mbps, 0.0);
+    }
+
+    #[test]
+    fn test_speed_test_result_max() {
+        let r = SpeedTestResult { mbps: 10_000.0, formatted: "10000 Mbps".into() };
+        assert!((r.mbps - 10_000.0).abs() < 0.01);
+    }
+
+    // ─── format_speed edge cases ───
+
+    #[test]
+    fn test_format_speed_exact_10mbps() {
+        let (mbps, fmt) = format_speed(1_250_000.0 * 8.0 / 8.0); // 10 Mbps = 1,250,000 B/s
+        let bps = 1_250_000.0;
+        let (mbps, fmt) = format_speed(bps);
+        assert!((mbps - 10.0).abs() < 0.01);
+        assert_eq!(fmt, "10 Mbps");
+    }
+
+    #[test]
+    fn test_format_speed_exact_1gbps() {
+        let (mbps, _) = format_speed(125_000_000.0); // 1 Gbps
+        assert!((mbps - 1000.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_format_speed_exact_100kbps() {
+        let (mbps, fmt) = format_speed(12_500.0);
+        assert!((mbps - 0.1).abs() < 0.001);
+        assert_eq!(fmt, "100 Kbps");
+    }
+
+    // ─── Real system function smoke tests ───
+
+    #[test]
+    fn test_check_wifi_present_no_panic() {
+        // Should not panic, regardless of system state
+        let present = check_wifi_present();
+        assert!(present == true || present == false);
+    }
+
+    #[test]
+    fn test_check_bluetooth_no_panic() {
+        let bt = check_bluetooth();
+        assert!(bt == true || bt == false);
+    }
+
+    #[test]
+    fn test_check_internet_no_panic() {
+        let online = check_internet();
+        assert!(online == true || online == false);
+    }
 }
 

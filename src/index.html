@@ -835,6 +835,89 @@
     </div>
   </div>
 
+  <!-- 🩺 SMART Health Modal -->
+  <div id="smart-overlay" class="overlay hidden">
+    <div class="smart-modal">
+      <div class="smart-header">
+        <h3 id="smart-title">🩺 Saúde do Disco</h3>
+        <span id="smart-close-btn" class="info-close-btn">&times;</span>
+      </div>
+      <div class="smart-body" id="smart-body">
+        <div class="smart-loading" id="smart-loading">
+          <span class="smart-loading-icon">⏳</span>
+          <span class="smart-loading-text">Consultando S.M.A.R.T...</span>
+          <div class="smart-loading-sub">Executando smartctl com privilégios administrativos</div>
+        </div>
+
+        <!-- Commands Used (Educational) -->
+        <div class="smart-commands-section" id="smart-commands-section" style="display:none">
+          <div class="smart-section-label">📖 Comandos executados</div>
+          <div class="smart-commands-list" id="smart-commands-list"></div>
+        </div>
+
+        <!-- Health Summary -->
+        <div class="smart-health-section" id="smart-health-section" style="display:none">
+          <div class="smart-health-card" id="smart-health-card">
+            <div class="smart-health-icon" id="smart-health-icon">✅</div>
+            <div class="smart-health-info">
+              <div class="smart-health-status" id="smart-health-status">APROVADO</div>
+              <div class="smart-health-model" id="smart-health-model">—</div>
+            </div>
+            <div class="smart-health-stats">
+              <div class="smart-health-stat">
+                <span class="smart-stat-icon">🌡️</span>
+                <span class="smart-stat-label">Temperatura</span>
+                <span class="smart-stat-value" id="smart-temp">—</span>
+              </div>
+              <div class="smart-health-stat">
+                <span class="smart-stat-icon">⏱️</span>
+                <span class="smart-stat-label">Horas ligado</span>
+                <span class="smart-stat-value" id="smart-hours">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error / Not Available -->
+        <div class="smart-error-section" id="smart-error-section" style="display:none">
+          <div class="smart-error-card">
+            <div class="smart-error-icon">⚠️</div>
+            <div class="smart-error-msg" id="smart-error-msg"></div>
+          </div>
+        </div>
+
+        <!-- Attributes Table -->
+        <div class="smart-attributes-section" id="smart-attributes-section" style="display:none">
+          <div class="smart-section-label">📊 Atributos S.M.A.R.T.</div>
+          <div class="smart-legend-row">
+            <span class="smart-legend-item"><span class="smart-legend-dot smart-dot-good"></span>Bom</span>
+            <span class="smart-legend-item"><span class="smart-legend-dot smart-dot-warn"></span>Atenção</span>
+            <span class="smart-legend-item"><span class="smart-legend-dot smart-dot-bad"></span>Ruim</span>
+          </div>
+          <div class="smart-table-wrap">
+            <table class="smart-table">
+              <thead>
+                <tr>
+                  <th class="smart-th-id">#</th>
+                  <th class="smart-th-name">Atributo</th>
+                  <th class="smart-th-val">Valor</th>
+                  <th class="smart-th-pior">Pior</th>
+                  <th class="smart-th-lim">Limite</th>
+                  <th class="smart-th-raw">Bruto</th>
+                  <th class="smart-th-status"></th>
+                </tr>
+              </thead>
+              <tbody id="smart-attributes-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="smart-footer">
+        <button id="smart-close-btn-2" class="btn-pw-confirm">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="completion-toast">
     <div class="toast-icon">✅</div>
     <div class="toast-title">Concluído!</div>

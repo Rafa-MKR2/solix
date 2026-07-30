@@ -731,6 +731,207 @@ mod tests {
         assert_eq!(comm, "foo(bar)baz");
         assert_eq!(rss_kb, 168);
     }
+
+    // ─── set_operation_in_progress / is_operation_in_progress ───
+
+    #[test]
+    fn test_operation_in_progress_default() {
+        assert!(!is_operation_in_progress());
+    }
+
+    #[test]
+    fn test_operation_in_progress_set_true() {
+        set_operation_in_progress(true);
+        assert!(is_operation_in_progress());
+        set_operation_in_progress(false);
+    }
+
+    #[test]
+    fn test_operation_in_progress_toggle() {
+        set_operation_in_progress(true);
+        assert!(is_operation_in_progress());
+        set_operation_in_progress(false);
+        assert!(!is_operation_in_progress());
+    }
+
+    // ─── fmt_kb edge cases ───
+
+    #[test]
+    fn test_fmt_kb_exact_boundaries() {
+        assert_eq!(fmt_kb(1024), "1024 KB");
+        assert_eq!(fmt_kb(1025), "1 MB");
+        assert_eq!(fmt_kb(1_048_576), "1024 MB");
+        assert_eq!(fmt_kb(1_048_577), "1.0 GB");
+    }
+
+    // ─── fmt_package_count edge cases ───
+
+    #[test]
+    fn test_fmt_package_count_exact_1000() {
+        assert_eq!(fmt_package_count(1000), "1.0k");
+    }
+
+    #[test]
+    fn test_fmt_package_count_large() {
+        assert_eq!(fmt_package_count(1_234_567), "1234.6k");
+    }
+
+    // ─── map_state edge cases ───
+
+    #[test]
+    fn test_map_state_all_variants() {
+        assert_eq!(map_state('R'), "Exec");
+        assert_eq!(map_state('S'), "Sleep");
+        assert_eq!(map_state('D'), "Disk");
+        assert_eq!(map_state('Z'), "Zomb");
+        assert_eq!(map_state('T'), "Stop");
+        assert_eq!(map_state('t'), "Stop");
+        assert_eq!(map_state('I'), "Idle");
+        assert_eq!(map_state('W'), "W");
+        assert_eq!(map_state('P'), "P");
+        assert_eq!(map_state('?'), "?");
+    }
+
+    // ─── get_swap_info parsing ───
+
+    #[test]
+    fn test_get_swap_info_zero_total() {
+        // When no meminfo, swap should be zero
+        let (used, total, pct) = get_swap_info();
+        // This reads from /proc/meminfo so results vary, just ensure it returns
+        assert!(!used.is_empty() || used == "0 KB");
+        assert!(pct >= 0.0);
+    }
+
+    // ─── get_load_average ───
+
+    #[test]
+    fn test_get_load_average_format() {
+        let la = get_load_average();
+        // Should return either "—" or "x.xx y.yy z.zz" format
+        if la != "—" {
+            let parts: Vec<&str> = la.split_whitespace().collect();
+            assert_eq!(parts.len(), 3);
+        }
+    }
+
+    // ─── get_system_stats struct ───
+
+    #[test]
+    fn test_system_stats_default() {
+        let s = SystemStats {
+            cpu_percent: 0.0,
+            temperature: 0.0,
+            memory_percent: 0.0,
+        };
+        assert!((s.cpu_percent - 0.0).abs() < 0.01);
+        assert!((s.temperature - 0.0).abs() < 0.01);
+        assert!((s.memory_percent - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_system_stats_max_values() {
+        let s = SystemStats {
+            cpu_percent: 100.0,
+            temperature: 100.0,
+            memory_percent: 100.0,
+        };
+        assert!((s.cpu_percent - 100.0).abs() < 0.01);
+        assert!((s.memory_percent - 100.0).abs() < 0.01);
+    }
+
+    // ─── HomeStats default ───
+
+    #[test]
+    fn test_home_stats_default() {
+        let h = HomeStats {
+            packages_installed: 0,
+            packages_formatted: "0".into(),
+            updates_available: 0,
+            updates_formatted: "—".into(),
+            load_average: "—".into(),
+            swap_used: "0 KB".into(),
+            swap_total: "0 KB".into(),
+            swap_percent: 0.0,
+            services_active: 0,
+        };
+        assert_eq!(h.packages_installed, 0);
+        assert_eq!(h.updates_available, 0);
+        assert_eq!(h.services_active, 0);
+    }
+
+    // ─── ProcessInfo edge cases ───
+
+    #[test]
+    fn test_process_info_max_values() {
+        let p = ProcessInfo {
+            pid: u32::MAX,
+            name: "max".into(),
+            cpu_percent: 100.0,
+            mem_percent: 100.0,
+            mem_kb: u64::MAX,
+            state: "Exec".into(),
+            user: "root".into(),
+            cmd: "/bin/max".into(),
+        };
+        assert_eq!(p.pid, u32::MAX);
+        assert!((p.cpu_percent - 100.0).abs() < 0.01);
+        assert_eq!(p.mem_kb, u64::MAX);
+    }
+
+    #[test]
+    fn test_process_info_zero_values() {
+        let p = ProcessInfo {
+            pid: 0,
+            name: String::new(),
+            cpu_percent: 0.0,
+            mem_percent: 0.0,
+            mem_kb: 0,
+            state: String::new(),
+            user: String::new(),
+            cmd: String::new(),
+        };
+        assert_eq!(p.pid, 0);
+        assert!(p.name.is_empty());
+        assert!((p.cpu_percent - 0.0).abs() < 0.01);
+        assert_eq!(p.mem_kb, 0);
+        assert!(p.state.is_empty());
+        assert!(p.user.is_empty());
+    }
+
+    // ─── read_proc_stat error handling ───
+
+    #[test]
+    fn test_read_proc_stat_nonexistent() {
+        // PID 99999999 should not exist
+        let result = read_proc_stat(99999999);
+        assert!(result.is_none());
+    }
+
+    // ─── get_process_user ───
+
+    #[test]
+    fn test_get_process_user_nonexistent() {
+        let user = get_process_user(99999999);
+        assert_eq!(user, "?");
+    }
+
+    // ─── get_temperature ───
+
+    #[test]
+    fn test_get_temperature_no_thermal() {
+        // Should return 0.0 gracefully even without thermal zones
+        let temp = get_temperature();
+        assert!(temp >= 0.0);
+    }
+
+    // ─── get_memory_percent ───
+
+    #[test]
+    fn test_get_memory_percent_range() {
+        let pct = get_memory_percent();
+        assert!(pct >= 0.0 && pct <= 100.0);
+    }
 }
 
 

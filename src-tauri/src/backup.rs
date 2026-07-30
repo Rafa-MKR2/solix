@@ -199,4 +199,161 @@ mod tests {
         assert_eq!(p.percent, 100);
         assert!(p.file_path.is_some());
     }
+
+    #[test]
+    fn test_format_bytes_exact_boundaries() {
+        assert_eq!(format_bytes(1024), "1 KB");
+        assert_eq!(format_bytes(1_048_576), "1.0 MB");
+        assert_eq!(format_bytes(1_073_741_824), "1.00 GB");
+    }
+
+    #[test]
+    fn test_format_bytes_one_less_than_boundary() {
+        assert_eq!(format_bytes(1023), "1023 B");
+        assert_eq!(format_bytes(1_048_575), "1024 KB");
+        assert_eq!(format_bytes(1_073_741_823), "1024.0 MB");
+    }
+
+    #[test]
+    fn test_format_bytes_fractional_values() {
+        assert_eq!(format_bytes(1536), "2 KB");
+        assert_eq!(format_bytes(1_572_864), "1.5 MB");
+        assert_eq!(format_bytes(1_610_612_736), "1.50 GB");
+    }
+
+    #[test]
+    fn test_format_bytes_large_values() {
+        assert_eq!(format_bytes(5_497_558_138_880), "5120.00 GB");
+        assert_eq!(format_bytes(1_099_511_627_776), "1024.00 GB");
+    }
+
+    #[test]
+    fn test_backup_result_all_fields_none() {
+        let r = BackupResult {
+            success: true,
+            file_path: String::new(),
+            file_size: String::new(),
+            duration_secs: 0,
+            error: None,
+        };
+        assert!(r.success);
+        assert!(r.file_path.is_empty());
+        assert!(r.file_size.is_empty());
+        assert_eq!(r.duration_secs, 0);
+        assert!(r.error.is_none());
+    }
+
+    #[test]
+    fn test_backup_result_max_duration() {
+        let r = BackupResult {
+            success: true,
+            file_path: "/path/to/backup.tar.gz".into(),
+            file_size: "999.99 GB".into(),
+            duration_secs: u64::MAX,
+            error: None,
+        };
+        assert_eq!(r.duration_secs, u64::MAX);
+        assert_eq!(r.file_size, "999.99 GB");
+    }
+
+    #[test]
+    fn test_backup_result_error_with_fields() {
+        let r = BackupResult {
+            success: false,
+            file_path: "/failed/path".into(),
+            file_size: "0 B".into(),
+            duration_secs: 5,
+            error: Some("Disk full".into()),
+        };
+        assert!(!r.success);
+        assert_eq!(r.file_path, "/failed/path");
+        assert_eq!(r.error.as_deref(), Some("Disk full"));
+        assert_eq!(r.duration_secs, 5);
+    }
+
+    #[test]
+    fn test_backup_result_serializable() {
+        let r = BackupResult {
+            success: true,
+            file_path: "/backup.tar.gz".into(),
+            file_size: "10.5 MB".into(),
+            duration_secs: 42,
+            error: None,
+        };
+        let json = serde_json::to_string(&r).unwrap();
+        assert!(json.contains("\"success\":true"));
+        assert!(json.contains("\"file_path\":\"/backup.tar.gz\""));
+        assert!(json.contains("\"duration_secs\":42"));
+    }
+
+    #[test]
+    fn test_backup_result_serializable_with_error() {
+        let r = BackupResult {
+            success: false,
+            file_path: String::new(),
+            file_size: String::new(),
+            duration_secs: 0,
+            error: Some("error msg".into()),
+        };
+        let json = serde_json::to_string(&r).unwrap();
+        assert!(json.contains("\"error\":\"error msg\""));
+        assert!(json.contains("\"success\":false"));
+    }
+
+    #[test]
+    fn test_backup_progress_all_stages() {
+        for (stage, percent) in [("start", 0), ("tar", 50), ("done", 100), ("error", 0)] {
+            let p = BackupProgress {
+                stage: stage.into(),
+                message: String::new(),
+                percent,
+                file_path: None,
+                file_size: None,
+            };
+            assert_eq!(p.stage, stage);
+            assert_eq!(p.percent, percent);
+        }
+    }
+
+    #[test]
+    fn test_backup_progress_edge_percent() {
+        let p = BackupProgress {
+            stage: "start".into(),
+            message: "Iniciando".into(),
+            percent: 0,
+            file_path: None,
+            file_size: None,
+        };
+        assert_eq!(p.percent, 0);
+        assert!(p.file_path.is_none());
+        assert!(p.file_size.is_none());
+    }
+
+    #[test]
+    fn test_backup_progress_full_info() {
+        let p = BackupProgress {
+            stage: "tar".into(),
+            message: "Compactando arquivos...".into(),
+            percent: 50,
+            file_path: Some("/tmp/test".into()),
+            file_size: Some("500 MB".into()),
+        };
+        assert_eq!(p.percent, 50);
+        assert_eq!(p.file_path.as_deref(), Some("/tmp/test"));
+        assert_eq!(p.file_size.as_deref(), Some("500 MB"));
+    }
+
+    #[test]
+    fn test_backup_progress_serializable() {
+        let p = BackupProgress {
+            stage: "tar".into(),
+            message: "processing".into(),
+            percent: 75,
+            file_path: Some("/f".into()),
+            file_size: None,
+        };
+        let json = serde_json::to_string(&p).unwrap();
+        assert!(json.contains("\"stage\":\"tar\""));
+        assert!(json.contains("\"percent\":75"));
+    }
 }

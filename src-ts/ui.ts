@@ -5,6 +5,7 @@ import type {
   DiskUsageItem,
   PmLockInfo,
   AppUpdateInfo,
+  SmartInfo,
 } from './types.js';
 import { getInvoke, escapeHtml, showToast, setText } from './utils.js';
 
@@ -213,6 +214,7 @@ export function renderDisks(disks: DiskInfo[]): void {
       <td class="dtd-actions">
         <button class="dtd-btn dtd-btn-open" title="Abrir" data-mount="${d.mount_point}">📂</button>
         <button class="dtd-btn dtd-btn-analyze" title="Analisar pastas" data-mount="${d.mount_point}">🔍</button>
+        <button class="dtd-btn dtd-btn-health" title="Saúde S.M.A.R.T." data-device="${deviceName}">🩺</button>
         <button class="dtd-btn dtd-btn-backup" title="Backup" data-source="${d.mount_point}">💾</button>
         <button class="dtd-btn dtd-btn-partitions" title="Partições" data-device="${d.filesystem}">📋</button>
       </td>
@@ -221,6 +223,7 @@ export function renderDisks(disks: DiskInfo[]): void {
 
     row.querySelector('.dtd-btn-open')!.addEventListener('click', () => handleOpenFileManager(d.mount_point));
     row.querySelector('.dtd-btn-analyze')!.addEventListener('click', () => handleAnalyzeDisk(d.mount_point));
+    row.querySelector('.dtd-btn-health')!.addEventListener('click', () => handleShowSmartInfo(deviceName));
     row.querySelector('.dtd-btn-backup')!.addEventListener('click', () => showBackupModal(d.mount_point));
     row.querySelector('.dtd-btn-partitions')!.addEventListener('click', () => handleShowPartitions(d.filesystem));
   }
@@ -229,6 +232,123 @@ export function renderDisks(disks: DiskInfo[]): void {
 }
 
 // ─── Backup Modal ───
+
+// ─── SMART Health ───
+
+export async function handleShowSmartInfo(device: string): Promise<void> {
+  const invoke = getInvoke();
+  if (!invoke) return;
+
+  const overlay = document.getElementById('smart-overlay');
+  const loadingEl = document.getElementById('smart-loading');
+  const healthSection = document.getElementById('smart-health-section');
+  const attrsSection = document.getElementById('smart-attributes-section');
+  const commandsSection = document.getElementById('smart-commands-section');
+  const errorSection = document.getElementById('smart-error-section');
+  const titleEl = document.getElementById('smart-title');
+
+  if (!overlay) return;
+
+  // Reset all sections
+  if (loadingEl) loadingEl.style.display = '';
+  if (healthSection) healthSection.style.display = 'none';
+  if (attrsSection) attrsSection.style.display = 'none';
+  if (commandsSection) commandsSection.style.display = 'none';
+  if (errorSection) errorSection.style.display = 'none';
+  if (titleEl) titleEl.textContent = `🩺 Saúde: /dev/${device}`;
+
+  overlay.classList.remove('hidden');
+
+  try {
+    const info = await invoke<SmartInfo>('get_disk_smart_info', { device });
+
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    // Show commands used (educational)
+    if (commandsSection && info.commands_used?.length > 0) {
+      commandsSection.style.display = '';
+      const listEl = document.getElementById('smart-commands-list');
+      if (listEl) {
+        listEl.innerHTML = info.commands_used.map(c => `
+          <div class="smart-cmd-item">
+            <div class="smart-cmd-code"><code>${escapeHtml(c.command)}</code></div>
+            <div class="smart-cmd-desc">${escapeHtml(c.description)}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Not available?
+    if (!info.smart_available) {
+      if (errorSection) {
+        errorSection.style.display = '';
+        const msgEl = document.getElementById('smart-error-msg');
+        if (msgEl) {
+          let msg = info.error_message || 'S.M.A.R.T. não disponível para este dispositivo.';
+          if (info.health === 'NOT_AVAILABLE') {
+            msg = '⚠️ ' + msg + '<br><br><button class="btn-smart-install" id="smart-install-btn">📦 Instalar smartmontools</button>';
+          }
+          msgEl.innerHTML = msg;
+        }
+      }
+      return;
+    }
+
+    // Health summary
+    if (healthSection) {
+      healthSection.style.display = '';
+      const iconEl = document.getElementById('smart-health-icon');
+      const statusEl = document.getElementById('smart-health-status');
+      const modelEl = document.getElementById('smart-health-model');
+      const tempEl = document.getElementById('smart-temp');
+      const hoursEl = document.getElementById('smart-hours');
+
+      const isPassed = info.health === 'PASSED';
+      if (iconEl) iconEl.textContent = isPassed ? '✅' : '❌';
+      if (statusEl) {
+        statusEl.textContent = isPassed ? '✅ APROVADO' : '❌ REPROVADO';
+        statusEl.style.color = isPassed ? '#4ae0a0' : '#e88';
+      }
+      if (modelEl) modelEl.textContent = info.device_model || '—';
+      if (tempEl) tempEl.textContent = info.temperature || '—';
+      if (hoursEl) hoursEl.textContent = info.power_on_hours || '—';
+
+      // Set card border color based on health
+      const card = document.getElementById('smart-health-card');
+      if (card) {
+        card.style.borderColor = isPassed ? '#00d4aa44' : '#e84a4a44';
+      }
+    }
+
+    // Attributes table
+    if (attrsSection && info.attributes?.length > 0) {
+      attrsSection.style.display = '';
+      const tbody = document.getElementById('smart-attributes-body');
+      if (tbody) {
+        tbody.innerHTML = info.attributes.map(a => `
+          <tr class="smart-attr-row smart-attr-${a.status}">
+            <td class="smart-td-id">${a.id}</td>
+            <td class="smart-td-name" title="${escapeHtml(a.name)}">${escapeHtml(a.name.replace(/_/g, ' '))}</td>
+            <td class="smart-td-val">${a.value}</td>
+            <td class="smart-td-worst">${a.worst}</td>
+            <td class="smart-td-thresh">${a.threshold > 0 ? a.threshold : '—'}</td>
+            <td class="smart-td-raw" title="Valor bruto">${escapeHtml(a.raw)}</td>
+            <td class="smart-td-status">
+              <span class="smart-dot smart-dot-${a.status}" title="${a.status === 'good' ? 'Bom' : a.status === 'warn' ? 'Atenção' : 'Crítico!'}"></span>
+            </td>
+          </tr>`).join('');
+      }
+    }
+  } catch (e) {
+    console.error('get_disk_smart_info failed:', e);
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (errorSection) {
+      errorSection.style.display = '';
+      const msgEl = document.getElementById('smart-error-msg');
+      if (msgEl) msgEl.innerHTML = `❌ Erro ao consultar S.M.A.R.T.: ${escapeHtml(e + '')}<br><br>Verifique se o pacote smartmontools está instalado.`;
+    }
+  }
+}
 
 export function showBackupModal(mountPoint: string): void {
   const overlay = document.getElementById('backup-overlay');
@@ -259,7 +379,8 @@ export function showBackupModal(mountPoint: string): void {
   const destInput = document.getElementById('backup-destination') as HTMLInputElement | null;
   if (destInput) {
     if (mountPoint === '/home') {
-      destInput.value = '/home/rafaeldc/backups';
+      destInput.placeholder = 'ex: /home/seu usuario/backups';
+      destInput.value = '';
     } else if (mountPoint === '/') {
       destInput.value = '/root/backups';
     } else if (mountPoint.startsWith('/media') || mountPoint.startsWith('/mnt')) {
@@ -542,31 +663,23 @@ export function setupLockActions(): void {
       const invoke = getInvoke();
       switch (action) {
         case 'pamac':
-          showToast('info', 'Feche o Pamac manualmente ou execute: pkill pamac');
-          try { await invoke!('run_simple_command', { command: 'pkill -f pamac 2>/dev/null; pkill -f pamac-manager 2>/dev/null; echo done' }); } catch (e) { console.error(e); }
+          showToast('info', 'Fechando Pamac...');
+          try { await invoke!('kill_process', { name: 'pamac' }); } catch (e) { console.error(e); }
           break;
         case 'discover':
-          showToast('info', 'Feche o Discover manualmente ou execute: pkill discover');
-          try { await invoke!('run_simple_command', { command: 'pkill -f discover 2>/dev/null; echo done' }); } catch (e) { console.error(e); }
+          showToast('info', 'Fechando Discover...');
+          try { await invoke!('kill_process', { name: 'discover' }); } catch (e) { console.error(e); }
           break;
         case 'terminals':
           showToast('info', 'Feche terminais rodando pacman/apt/dnf');
           break;
-        case 'restart-pm': {
-          const pmEl = document.getElementById('distro-pm');
-          const pm = pmEl?.textContent?.trim().toLowerCase() || 'pacman';
-          try {
-            await invoke!('run_simple_command', { command: `sudo systemctl restart ${pm} 2>/dev/null; echo done` });
-            showToast('info', `Comando executado: sudo systemctl restart ${pm}`);
-          } catch (e) {
-            showToast('error', 'Não foi possível reiniciar o gerenciador');
-          }
+        case 'restart-pm':
+          showToast('info', 'Para reiniciar o gerenciador, execute no terminal: sudo systemctl restart <pm>');
           break;
-        }
         case 'kill-lock': {
           if (!confirm('Remover o arquivo de trava manualmente pode corromper o banco de dados do gerenciador. Tem certeza?')) return;
           try {
-            await invoke!('run_simple_command', { command: 'sudo rm -f /var/lib/pacman/db.lck /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock 2>/dev/null; echo done' });
+            await invoke!('remove_lock_files');
             showToast('success', 'Trava removida. Tente novamente.');
           } catch (e) {
             showToast('error', 'Não foi possível remover a trava');

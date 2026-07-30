@@ -646,4 +646,106 @@ mod tests {
         assert_eq!(parse_rpm_field(output, "Version"), None);
     }
 
+    #[test]
+    fn test_parse_rpm_field_extra_whitespace() {
+        let output = "Name        :   myapp   
+Version     :   1.0   
+";
+        assert_eq!(parse_rpm_field(output, "Name"), Some("myapp".into()));
+        assert_eq!(parse_rpm_field(output, "Version"), Some("1.0".into()));
+    }
+
+    #[test]
+    fn test_parse_control_field_extra_whitespace() {
+        let content = "Package:   myapp   
+Version:   1.0   
+";
+        assert_eq!(parse_control_field(content, "Package"), Some("myapp"));
+        assert_eq!(parse_control_field(content, "Version"), Some("1.0"));
+    }
+
+    #[test]
+    fn test_parse_control_field_case_sensitive() {
+        let content = "package: myapp\n";
+        assert_eq!(parse_control_field(content, "Package"), None);
+        assert_eq!(parse_control_field(content, "package"), Some("myapp"));
+    }
+
+    #[test]
+    fn test_parse_control_field_colon_in_value() {
+        let content = "Description: foo: bar\n";
+        assert_eq!(parse_control_field(content, "Description"), Some("foo: bar"));
+    }
+
+    #[test]
+    fn test_extract_filename_with_special_chars() {
+        assert_eq!(extract_filename("/path/to/my app_1.0.deb"), "my app_1.0.deb");
+        assert_eq!(extract_filename("/downloads/firefox-128.0-1.x86_64.rpm"), "firefox-128.0-1.x86_64.rpm");
+    }
+
+    #[test]
+    fn test_extract_filename_root() {
+        assert_eq!(extract_filename("/"), "/");
+    }
+
+    #[test]
+    fn test_extract_filename_dotdot() {
+        assert_eq!(extract_filename("../file.deb"), "file.deb");
+    }
+
+    #[test]
+    fn test_format_bytes_exact_boundary() {
+        assert_eq!(format_bytes(1_000_000), "1000 KB");
+        assert_eq!(format_bytes(1_000_000_001), "1.0 GB");
+    }
+
+    #[test]
+    fn test_format_bytes_zero() {
+        assert_eq!(format_bytes(0), "0 bytes");
+    }
+
+    #[test]
+    fn test_format_bytes_large() {
+        assert_eq!(format_bytes(1_000_000_000_000), "1000.0 GB");
+    }
+
+    #[test]
+    fn test_inspect_package_data_invalid_base64() {
+        let result = inspect_package_data("invalid-base64!!!", "test.deb");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_inspect_package_data_empty() {
+        let result = inspect_package_data("", "test.deb");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_detect_extension_methods() {
+        // Test detect_extension directly via inspect_package
+        let result_deb = inspect_package("/tmp/test.deb");
+        assert!(result_deb.is_err()); // File not found
+        let result_rpm = inspect_package("/tmp/test.rpm");
+        assert!(result_rpm.is_err());
+    }
+
+    #[test]
+    fn test_local_package_info_debug() {
+        let info = LocalPackageInfo {
+            file_name: "test.deb".into(),
+            file_size: "1 MB".into(),
+            package_name: "test".into(),
+            version: "1.0".into(),
+            description: "Test".into(),
+            architecture: "amd64".into(),
+            dependencies: vec!["libc".into()],
+            package_type: "deb".into(),
+            compatible: true,
+            compat_message: "OK".into(),
+        };
+        let debug = format!("{:?}", info);
+        assert!(debug.contains("test.deb"));
+        assert!(debug.contains("test"));
+    }
 }

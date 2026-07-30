@@ -294,5 +294,104 @@ mod tests {
         };
         assert!(b.time_remaining.is_empty());
     }
+
+    // ─── BatteryInfo edge cases ───
+
+    #[test]
+    fn test_battery_info_min_percentage() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 0,
+            status: "Full".into(),
+            time_remaining: String::new(),
+        };
+        assert_eq!(b.percentage, 0);
+    }
+
+    #[test]
+    fn test_battery_info_max_percentage() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 100,
+            status: "Charging".into(),
+            time_remaining: "0:30".into(),
+        };
+        assert_eq!(b.percentage, 100);
+    }
+
+    #[test]
+    fn test_battery_info_status_charging() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 50,
+            status: "Charging".into(),
+            time_remaining: "until charged".into(),
+        };
+        assert_eq!(b.status, "Charging");
+        assert_eq!(b.time_remaining, "until charged");
+    }
+
+    #[test]
+    fn test_battery_info_long_time() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 10,
+            status: "Discharging".into(),
+            time_remaining: "5:30".into(),
+        };
+        assert_eq!(b.time_remaining, "5:30");
+    }
+
+    // ─── find_battery_path ───
+
+    #[test]
+    fn test_find_battery_path_type() {
+        let path = find_battery_path();
+        // May or may not find a battery depending on environment
+        if let Some(p) = path {
+            assert!(p.to_string_lossy().contains("power_supply"));
+        }
+    }
+
+    // ─── get_battery_time_remaining ───
+
+    #[test]
+    fn test_get_battery_time_remaining_format() {
+        let time = get_battery_time_remaining();
+        // Returns empty string or a time string
+        assert!(time.is_empty() || time.contains(':') || time.contains("until") || time.contains("hour"));
+    }
+
+    // ─── get_battery_info integration ───
+
+    #[test]
+    fn test_get_battery_info_valid() {
+        let info = get_battery_info();
+        // Should always return a valid BatteryInfo (present or not)
+        assert!(info.percentage <= 100);
+        if info.present {
+            assert!(!info.status.is_empty());
+        }
+    }
+
+    // ─── enable_zram / cleanup_system error paths ───
+
+    #[test]
+    fn test_enable_zram_wrong_password() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let result = enable_zram("wrong-password", None).await;
+            assert!(result.is_err());
+        });
+    }
+
+    #[test]
+    fn test_cleanup_system_wrong_password() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let result = cleanup_system("wrong-password", None).await;
+            assert!(result.is_err());
+        });
+    }
 }
 
