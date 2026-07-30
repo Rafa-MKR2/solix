@@ -3,15 +3,19 @@ import { systemService, packageService, miscService, scriptService } from './sha
 import { showConfetti } from './animations.js';
 import { renderScriptAnalysis } from './ui.js';
 import { renderDisks } from './features/disks/index.js';
-import { renderTools, selectedTools, removedTools, showLockDiagnosis, switchToPage, showUpdateBanner, showUpdateProgress, hideUpdateModal, } from './ui.js';
+import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
+import { showLockDiagnosis, switchToPage, showUpdateBanner, showUpdateProgress, hideUpdateModal, } from './ui.js';
+import { pendingPkg } from './features/packages/upload.js';
 export let toolStatuses = [];
 export let systemDistro = '';
-let passwordVerified = false;
-let pendingAction = null;
+export let passwordVerified = false;
+export let pendingAction = null;
 let lastPendingAction = null;
 let isOperating = false;
-let pendingPkgData = null;
-let pendingPkgFileName = null;
+function setPendingAction(action) {
+    pendingAction = action;
+}
+export { setPendingAction };
 export function setupProgressListener() {
     const invoke = getInvoke();
     if (!invoke)
@@ -214,7 +218,7 @@ async function executePending() {
             result = await packageService.removeTools(pendingAction.tools);
         }
         else if (isInstallPkg) {
-            result = await packageService.installPackageData(pendingPkgData, pendingPkgFileName);
+            result = await packageService.installPackageData(pendingPkg.data, pendingPkg.fileName);
         }
         if (outputLog) {
             if (Array.isArray(result)) {
@@ -302,8 +306,8 @@ async function executePending() {
                 pkgBtn.disabled = false;
                 pkgBtn.textContent = '⬇️ Instalar Pacote';
             }
-            pendingPkgData = null;
-            pendingPkgFileName = null;
+            pendingPkg.data = null;
+            pendingPkg.fileName = null;
         }
     }
 }
@@ -318,103 +322,6 @@ export function retryLastOperation() {
     else {
         showToast('error', 'Selecione a operação novamente.');
     }
-}
-export async function handlePkgFileSelect(file) {
-    const infoCard = document.getElementById('pkg-info');
-    const nameEl = document.getElementById('pkg-name');
-    const versionEl = document.getElementById('pkg-version');
-    const sizeEl = document.getElementById('pkg-size');
-    const archEl = document.getElementById('pkg-arch');
-    const depsEl = document.getElementById('pkg-deps');
-    const descEl = document.getElementById('pkg-desc');
-    const compatEl = document.getElementById('pkg-compat');
-    const installBtn = document.getElementById('pkg-install-btn');
-    const typeEl = document.getElementById('pkg-type');
-    pendingPkgData = null;
-    pendingPkgFileName = null;
-    if (!file) {
-        if (infoCard)
-            infoCard.classList.add('hidden');
-        return;
-    }
-    if (installBtn) {
-        installBtn.disabled = true;
-        installBtn.textContent = '⏳ Analisando...';
-    }
-    if (infoCard)
-        infoCard.classList.remove('hidden');
-    if (nameEl)
-        nameEl.textContent = file.name;
-    if (versionEl)
-        versionEl.textContent = 'Analisando...';
-    if (sizeEl)
-        sizeEl.textContent = '—';
-    if (archEl)
-        archEl.textContent = '—';
-    if (depsEl)
-        depsEl.textContent = '—';
-    if (descEl)
-        descEl.textContent = '—';
-    if (compatEl)
-        compatEl.className = 'pkg-compat';
-    if (typeEl)
-        typeEl.textContent = file.name.endsWith('.deb') ? '📦' : '📀';
-    try {
-        const base64 = await readFileAsBase64(file);
-        const info = await packageService.inspectPackageData(base64, file.name);
-        pendingPkgData = base64;
-        pendingPkgFileName = file.name;
-        if (nameEl)
-            nameEl.textContent = info.package_name || file.name;
-        if (versionEl)
-            versionEl.textContent = info.version;
-        if (sizeEl)
-            sizeEl.textContent = info.file_size;
-        if (archEl)
-            archEl.textContent = info.architecture;
-        if (descEl)
-            descEl.textContent = info.description || 'Sem descrição';
-        if (typeEl)
-            typeEl.textContent = info.package_type === 'deb' ? '📦' : '📀';
-        if (depsEl) {
-            depsEl.textContent = info.dependencies && info.dependencies.length > 0
-                ? info.dependencies.join(', ')
-                : 'Nenhuma dependência listada';
-        }
-        if (compatEl) {
-            compatEl.textContent = info.compat_message;
-            compatEl.className = 'pkg-compat ' + (info.compatible ? 'compatible' : 'incompatible');
-        }
-        if (installBtn) {
-            installBtn.disabled = !info.compatible;
-            installBtn.textContent = info.compatible ? '⬇️ Instalar Pacote' : '🚫 Incompatível';
-        }
-    }
-    catch (e) {
-        console.error('inspect_package_data failed:', e);
-        if (versionEl)
-            versionEl.textContent = '❌ Erro';
-        if (compatEl) {
-            compatEl.textContent = '❌ ' + (e + '');
-            compatEl.className = 'pkg-compat incompatible';
-        }
-        if (installBtn) {
-            installBtn.disabled = true;
-            installBtn.textContent = '⬇️ Instalar Pacote';
-        }
-    }
-}
-function readFileAsBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const result = reader.result;
-            const base64 = result.split(',')[1] || result;
-            resolve(base64);
-        };
-        reader.onerror = () => reject('Erro ao ler arquivo');
-        reader.readAsDataURL(file);
-    });
 }
 export function setupUpdateListener() {
     const invoke = getInvoke();
@@ -648,274 +555,6 @@ export async function handleEmailReport() {
     catch (e) {
         console.error('open_url mailto failed:', e);
         showToast('error', 'Erro ao abrir cliente de email. Copie o relatório e envie manualmente para rafaeldocarmo.dev@gmail.com');
-    }
-}
-let selectedInstalledPkgs = new Set();
-let selectedRepoPkgs = new Set();
-function formatBytes(bytes) {
-    if (bytes >= 1073741824)
-        return (bytes / 1073741824).toFixed(1) + ' GB';
-    if (bytes >= 1048576)
-        return (bytes / 1048576).toFixed(1) + ' MB';
-    if (bytes >= 1024)
-        return (bytes / 1024).toFixed(0) + ' KB';
-    return bytes + ' B';
-}
-export async function loadInstalledPackages() {
-    const listEl = document.getElementById('pkg-installed-list');
-    if (!listEl)
-        return;
-    listEl.innerHTML = '<div class="pkg-loading">⏳ Carregando pacotes...</div>';
-    try {
-        const pkgs = await packageService.listInstalled();
-        renderInstalledPackages(pkgs);
-        document.getElementById('pkg-total-count').textContent = pkgs.length.toString();
-        let totalBytes = 0;
-        for (const p of pkgs) {
-            const sizeStr = p.size;
-            if (sizeStr.includes('MiB') || sizeStr.includes('MB')) {
-                totalBytes += parseFloat(sizeStr) * 1048576;
-            }
-            else if (sizeStr.includes('KiB') || sizeStr.includes('kB')) {
-                totalBytes += parseFloat(sizeStr) * 1024;
-            }
-            else if (sizeStr.includes('GB') || sizeStr.includes('GiB')) {
-                totalBytes += parseFloat(sizeStr) * 1073741824;
-            }
-        }
-        document.getElementById('pkg-total-size').textContent = formatBytes(totalBytes);
-    }
-    catch (e) {
-        console.error('loadInstalledPackages failed:', e);
-        listEl.innerHTML = '<div class="pkg-empty">❌ Erro ao carregar pacotes.</div>';
-    }
-}
-function renderInstalledPackages(pkgs) {
-    const listEl = document.getElementById('pkg-installed-list');
-    if (!listEl)
-        return;
-    const query = (document.getElementById('pkg-installed-search')?.value || '').toLowerCase().trim();
-    const filtered = query
-        ? pkgs.filter(p => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query))
-        : pkgs;
-    document.getElementById('pkg-installed-count').textContent = `${filtered.length} pacotes`;
-    if (filtered.length === 0) {
-        listEl.innerHTML = '<div class="pkg-empty">🔍 Nenhum pacote encontrado.</div>';
-        return;
-    }
-    filtered.sort((a, b) => {
-        const aSel = selectedInstalledPkgs.has(a.name) ? 0 : 1;
-        const bSel = selectedInstalledPkgs.has(b.name) ? 0 : 1;
-        if (aSel !== bSel)
-            return aSel - bSel;
-        return a.name.localeCompare(b.name);
-    });
-    listEl.innerHTML = `<table class="pkg-table">
-    <thead><tr>
-      <th class="pkg-th-check"></th>
-      <th class="pkg-th-name">Pacote</th>
-      <th class="pkg-th-version">Versão</th>
-      <th class="pkg-th-size">Tamanho</th>
-      <th class="pkg-th-desc">Descrição</th>
-    </tr></thead>
-    <tbody>${filtered.map(p => `
-      <tr class="pkg-row ${selectedInstalledPkgs.has(p.name) ? 'selected' : ''}" data-pkg="${p.name}">
-        <td><input type="checkbox" class="pkg-check" ${selectedInstalledPkgs.has(p.name) ? 'checked' : ''} /></td>
-        <td class="pkg-cell-name">${p.name}</td>
-        <td class="pkg-cell-version">${p.version}</td>
-        <td class="pkg-cell-size">${p.size || '—'}</td>
-        <td class="pkg-cell-desc">${p.description || '—'}</td>
-      </tr>
-    `).join('')}</tbody></table>`;
-    listEl.querySelectorAll('.pkg-row').forEach(row => {
-        row.addEventListener('click', (e) => {
-            if (e.target.tagName === 'INPUT')
-                return;
-            const cb = row.querySelector('.pkg-check');
-            cb.checked = !cb.checked;
-            cb.dispatchEvent(new Event('change'));
-        });
-        const cb = row.querySelector('.pkg-check');
-        cb.addEventListener('change', () => {
-            const name = row.dataset.pkg;
-            if (cb.checked) {
-                selectedInstalledPkgs.add(name);
-                row.classList.add('selected');
-            }
-            else {
-                selectedInstalledPkgs.delete(name);
-                row.classList.remove('selected');
-            }
-            updateRemoveButton();
-        });
-    });
-    updateRemoveButton();
-}
-function updateRemoveButton() {
-    const btn = document.getElementById('pkg-remove-btn');
-    if (!btn)
-        return;
-    const count = selectedInstalledPkgs.size;
-    if (count > 0) {
-        btn.style.display = '';
-        btn.textContent = `🗑️ Remover (${count})`;
-        btn.disabled = false;
-    }
-    else {
-        btn.style.display = 'none';
-    }
-}
-export async function handleRemovePackages() {
-    if (selectedInstalledPkgs.size === 0)
-        return;
-    const names = Array.from(selectedInstalledPkgs);
-    const doRemove = async () => {
-        try {
-            const results = await packageService.removeSystem(names);
-            const listEl = document.getElementById('pkg-installed-list');
-            if (listEl) {
-                listEl.innerHTML = `<div class="pkg-history-log">${results.map(r => `<div>${r}</div>`).join('')}</div>`;
-            }
-            showToast('success', `${names.length} pacote(s) removido(s)!`);
-            selectedInstalledPkgs.clear();
-            setTimeout(() => loadInstalledPackages(), 2000);
-        }
-        catch (e) {
-            showToast('error', (e + '') || 'Erro ao remover pacotes.');
-        }
-    };
-    if (passwordVerified) {
-        await doRemove();
-    }
-    else {
-        pendingAction = { type: 'remove', tools: names };
-        showPasswordModal({ type: 'remove', tools: names });
-    }
-}
-export async function handleSearchRepoPackages(query) {
-    const listEl = document.getElementById('pkg-search-list');
-    if (!listEl)
-        return;
-    if (!query.trim()) {
-        listEl.innerHTML = '<div class="pkg-empty">Digite um nome para buscar nos repositórios</div>';
-        document.getElementById('pkg-search-actions').style.display = 'none';
-        return;
-    }
-    listEl.innerHTML = '<div class="pkg-loading">⏳ Buscando...</div>';
-    selectedRepoPkgs.clear();
-    try {
-        const pkgs = await packageService.searchRepo(query.trim());
-        renderRepoPackages(pkgs);
-    }
-    catch (e) {
-        console.error('search_repo_packages failed:', e);
-        listEl.innerHTML = '<div class="pkg-empty">❌ Erro ao buscar pacotes.</div>';
-    }
-}
-function renderRepoPackages(pkgs) {
-    const listEl = document.getElementById('pkg-search-list');
-    if (!listEl)
-        return;
-    if (pkgs.length === 0) {
-        listEl.innerHTML = '<div class="pkg-empty">Nenhum pacote encontrado nos repositórios.</div>';
-        document.getElementById('pkg-search-actions').style.display = 'none';
-        return;
-    }
-    document.getElementById('pkg-search-actions').style.display = '';
-    listEl.innerHTML = `<table class="pkg-table">
-    <thead><tr>
-      <th class="pkg-th-check"></th>
-      <th class="pkg-th-name">Pacote</th>
-      <th class="pkg-th-version">Versão</th>
-      <th class="pkg-th-repo">Repositório</th>
-      <th class="pkg-th-desc">Descrição</th>
-    </tr></thead>
-    <tbody>${pkgs.map(p => `
-      <tr class="pkg-row ${selectedRepoPkgs.has(p.name) ? 'selected' : ''}" data-repo-pkg="${p.name}">
-        <td><input type="checkbox" class="pkg-check" /></td>
-        <td class="pkg-cell-name">${p.name}</td>
-        <td class="pkg-cell-version">${p.version}</td>
-        <td class="pkg-cell-repo">${p.repo}</td>
-        <td class="pkg-cell-desc">${p.description || '—'}</td>
-      </tr>
-    `).join('')}</tbody></table>`;
-    listEl.querySelectorAll('.pkg-row').forEach(row => {
-        row.addEventListener('click', (e) => {
-            if (e.target.tagName === 'INPUT')
-                return;
-            const cb = row.querySelector('.pkg-check');
-            cb.checked = !cb.checked;
-            cb.dispatchEvent(new Event('change'));
-        });
-        const cb = row.querySelector('.pkg-check');
-        cb.addEventListener('change', () => {
-            const name = row.dataset.repoPkg;
-            if (cb.checked) {
-                selectedRepoPkgs.add(name);
-                row.classList.add('selected');
-            }
-            else {
-                selectedRepoPkgs.delete(name);
-                row.classList.remove('selected');
-            }
-            const btn = document.getElementById('pkg-install-repo-btn');
-            if (btn) {
-                btn.disabled = selectedRepoPkgs.size === 0;
-                btn.textContent = selectedRepoPkgs.size > 0 ? `⬇️ Instalar (${selectedRepoPkgs.size})` : '⬇️ Instalar Selecionados';
-            }
-        });
-    });
-}
-export async function handleInstallRepoPackages() {
-    if (selectedRepoPkgs.size === 0)
-        return;
-    const names = Array.from(selectedRepoPkgs);
-    const doInstall = async () => {
-        try {
-            const results = await packageService.installRepo(names);
-            const listEl = document.getElementById('pkg-search-list');
-            if (listEl) {
-                listEl.innerHTML = `<div class="pkg-history-log">${results.map(r => `<div>${r}</div>`).join('')}</div>`;
-            }
-            showToast('success', `${names.length} pacote(s) instalado(s)!`);
-            selectedRepoPkgs.clear();
-        }
-        catch (e) {
-            showToast('error', (e + '') || 'Erro ao instalar pacotes.');
-        }
-    };
-    if (passwordVerified) {
-        await doInstall();
-    }
-    else {
-        showPasswordModal({ type: 'install', tools: names });
-    }
-}
-export async function loadPackageHistory() {
-    const listEl = document.getElementById('pkg-history-list');
-    if (!listEl)
-        return;
-    try {
-        const entries = await packageService.getHistory();
-        if (entries.length === 0) {
-            listEl.innerHTML = '<div class="pkg-empty">Nenhum histórico encontrado.</div>';
-            return;
-        }
-        listEl.innerHTML = `<div class="pkg-history-log">${entries.map(e => {
-            const icon = e.action === 'install' ? '⬆️' : e.action === 'remove' ? '🗑️' : '🔄';
-            const date = e.timestamp.slice(0, 19).replace('T', ' ');
-            const pkgInfo = e.package_name ? `${e.package_name} ${e.version}` : '';
-            return `<div class="pkg-history-item">
-        <span class="pkg-history-icon">${icon}</span>
-        <span class="pkg-history-action">${e.action}</span>
-        <span class="pkg-history-pkg">${pkgInfo}</span>
-        <span class="pkg-history-date">${date}</span>
-      </div>`;
-        }).join('')}</div>`;
-    }
-    catch (e) {
-        console.error('loadPackageHistory failed:', e);
-        listEl.innerHTML = '<div class="pkg-empty">❌ Erro ao carregar histórico.</div>';
     }
 }
 export function updateRecommendedCount() {

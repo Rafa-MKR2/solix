@@ -54,7 +54,7 @@ import {
   loadExternalInfo,
   handleTestPingClick,
   handleTestSpeedClick,
-} from './network.js';
+} from './features/network/index.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();

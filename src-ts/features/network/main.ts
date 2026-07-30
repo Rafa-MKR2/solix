@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-import { showToast } from './utils.js';
-import { networkService } from './shared/services/index.js';
-import { animateSpeedometerReach, setSpeedometer } from './animations.js';
+import { networkService } from '../../shared/services/index.js';
 
 export async function loadConnectivity(): Promise<void> {
   try {
@@ -19,25 +17,25 @@ export async function loadConnectivity(): Promise<void> {
     const wifiIcon = document.getElementById('net-wifi-icon');
     const wifiSignal = document.getElementById('net-wifi-signal');
     if (internet) {
-      internet.textContent = c.internet ? 'Conectado ✓' : 'Desconectado ✗';
+      internet.textContent = c.internet ? 'Conectado \u2713' : 'Desconectado \u2717';
       internet.style.color = c.internet ? '#4ae0a0' : '#e88';
     }
-    if (internetIcon) internetIcon.textContent = c.internet ? '🌐' : '🚫';
+    if (internetIcon) internetIcon.textContent = c.internet ? '\uD83C\uDF10' : '\uD83D\uDEAB';
     if (pingEl) {
       pingEl.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : '';
       pingEl.style.color = c.ping_latency_ms > 0 && c.ping_latency_ms < 100 ? '#4ae0a0' : c.ping_latency_ms >= 100 ? '#e8a040' : '';
     }
     if (ethernet) {
-      ethernet.textContent = c.ethernet ? 'Conectado ✓' : 'Desconectado ✗';
+      ethernet.textContent = c.ethernet ? 'Conectado \u2713' : 'Desconectado \u2717';
       ethernet.style.color = c.ethernet ? '#4ae0a0' : '#666';
     }
-    if (ethernetIcon) ethernetIcon.textContent = c.ethernet ? '🔌' : '🔌';
+    if (ethernetIcon) ethernetIcon.textContent = '\uD83D\uDD0C';
     if (ipEl) ipEl.textContent = c.ip_address || '';
     if (bluetooth) {
-      bluetooth.textContent = c.bluetooth ? 'Ativo ✓' : 'Inativo ✗';
+      bluetooth.textContent = c.bluetooth ? 'Ativo \u2713' : 'Inativo \u2717';
       bluetooth.style.color = c.bluetooth ? '#4ae0a0' : '#666';
     }
-    if (bluetoothIcon) bluetoothIcon.textContent = c.bluetooth ? '🔵' : '⚫';
+    if (bluetoothIcon) bluetoothIcon.textContent = c.bluetooth ? '\uD83D\uDD35' : '\u26AB';
     if (wifi) {
       if (c.wifi_ssid) {
         wifi.textContent = c.wifi_ssid;
@@ -50,7 +48,7 @@ export async function loadConnectivity(): Promise<void> {
         wifi.style.color = '#666';
       }
     }
-    if (wifiIcon) wifiIcon.textContent = c.wifi_ssid ? '📶' : c.wifi_present ? '📡' : '📵';
+    if (wifiIcon) wifiIcon.textContent = c.wifi_ssid ? '\uD83D\uDCF6' : c.wifi_present ? '\uD83D\uDCE1' : '\uD83D\uDCF5';
     if (wifiSignal) {
       if (c.wifi_ssid && c.wifi_signal > 0) {
         wifiSignal.textContent = `${c.wifi_signal}%`;
@@ -68,13 +66,13 @@ export async function loadConnectivity(): Promise<void> {
       const invite = await networkService.getBattery();
       if (invite.present && invite.percentage > 0) {
         const charging = invite.status === 'Charging';
-        bat.textContent = charging ? `🔌 ${invite.percentage}% (${invite.time_remaining || 'N/A'})` : `${invite.percentage}% (${invite.time_remaining || 'N/A'})`;
+        bat.textContent = charging ? `\uD83D\uDD0C ${invite.percentage}% (${invite.time_remaining || 'N/A'})` : `${invite.percentage}% (${invite.time_remaining || 'N/A'})`;
         bat.style.color = '#4ae0a0';
-        if (batIcon) batIcon.textContent = charging ? '🔌' : '🔋';
+        if (batIcon) batIcon.textContent = charging ? '\uD83D\uDD0C' : '\uD83D\uDD0B';
       } else {
         bat.textContent = 'Sem bateria';
         bat.style.color = '#666';
-        if (batIcon) batIcon.textContent = '🔌';
+        if (batIcon) batIcon.textContent = '\uD83D\uDD0C';
       }
     }
   } catch (e) {
@@ -88,14 +86,14 @@ export async function loadExternalInfo(): Promise<void> {
     const ipEl = document.getElementById('info-external-ip');
     const ispEl = document.getElementById('info-isp');
     const locEl = document.getElementById('info-location');
-    if (ipEl) ipEl.textContent = info.external_ip || '—';
+    if (ipEl) ipEl.textContent = info.external_ip || '\u2014';
     if (ispEl) {
       const org = info.isp || '';
-      ispEl.textContent = org.replace(/^AS\d+\s*/, '') || '—';
+      ispEl.textContent = org.replace(/^AS\d+\s*/, '') || '\u2014';
     }
     if (locEl) {
       const parts = [info.city, info.region].filter(Boolean);
-      locEl.textContent = parts.join(', ') || '—';
+      locEl.textContent = parts.join(', ') || '\u2014';
     }
   } catch (_) {}
 
@@ -103,58 +101,8 @@ export async function loadExternalInfo(): Promise<void> {
     const c = await networkService.getConnectivity();
     const pingEl = document.getElementById('info-ping-display');
     if (pingEl) {
-      pingEl.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : '—';
+      pingEl.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : '\u2014';
       pingEl.style.color = c.ping_latency_ms > 0 && c.ping_latency_ms < 100 ? '#4ae0a0' : c.ping_latency_ms >= 100 ? '#e8a040' : '';
     }
   } catch (_) {}
-}
-
-export function handleTestPingClick(): void {
-  (async () => {
-    const btn = document.getElementById('test-ping-btn') as HTMLButtonElement | null;
-    if (btn) btn.textContent = '⏳';
-    const speedResult = document.getElementById('speed-result');
-    try {
-      const c = await networkService.getConnectivity();
-      if (speedResult) speedResult.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : 'Sem resposta';
-      if (speedResult) speedResult.className = 'pulse';
-      setTimeout(() => { if (speedResult) speedResult.className = ''; }, 2000);
-    } catch (_) {
-      if (speedResult) speedResult.textContent = 'Falhou';
-    }
-    if (btn) btn.textContent = '📡';
-  })();
-}
-
-export function handleTestSpeedClick(): void {
-  (async () => {
-    const btn = document.getElementById('test-speed-btn') as HTMLButtonElement | null;
-    const speedResult = document.getElementById('speed-result');
-    if (btn) { btn.classList.add('measuring'); btn.textContent = '⏳ Medindo...'; }
-    if (speedResult) speedResult.textContent = 'Testando...';
-    setSpeedometer(0);
-    setTimeout(() => {
-      animateSpeedometerReach(700);
-    }, 200);
-    try {
-      const result = await networkService.testSpeed();
-      if (speedResult) {
-        speedResult.textContent = `Download: ${result.formatted}`;
-        speedResult.className = 'pulse';
-        setTimeout(() => { if (speedResult) speedResult.className = ''; }, 2000);
-      }
-      animateSpeedometerReach(result.mbps);
-      try {
-        const c = await networkService.getConnectivity();
-        const pingEl = document.getElementById('info-ping-display');
-        if (pingEl) {
-          pingEl.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : '—';
-          pingEl.style.color = c.ping_latency_ms > 0 && c.ping_latency_ms < 100 ? '#4ae0a0' : c.ping_latency_ms >= 100 ? '#e8a040' : '';
-        }
-      } catch (_) {}
-    } catch (_) {
-      if (speedResult) speedResult.textContent = 'Falhou';
-    }
-    if (btn) { btn.classList.remove('measuring'); btn.textContent = '🚀 Testar Velocidade'; }
-  })();
 }
