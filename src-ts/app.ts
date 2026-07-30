@@ -24,9 +24,6 @@ import {
   retryLastOperation,
   setupProgressListener,
   toolStatuses,
-  handleScriptDrop,
-  handleAnalyzeText,
-  clearScriptAnalysis,
 } from './operations.js';
 import { handleShowSmartInfo, handleStartBackup } from './features/disks/index.js';
 import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
@@ -59,6 +56,11 @@ import {
   handleEmailReport,
   hideReportModal,
 } from './features/report/index.js';
+import {
+  handleScriptDrop,
+  handleAnalyzeText,
+  clearScriptAnalysis,
+} from './features/script/index.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();

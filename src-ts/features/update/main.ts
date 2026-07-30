@@ -2,7 +2,8 @@
 
 import { getInvoke, showToast } from '../../utils.js';
 import { systemService } from '../../shared/services/index.js';
-import { passwordVerified, showPasswordModal, setPasswordVerified } from '../../operations.js';
+import { passwordVerified, setPasswordVerified } from '../../shared/auth.js';
+import { showPasswordModal } from '../../operations.js';
 import {
   showUpdateBanner,
   showUpdateProgress,
@@ -41,7 +42,7 @@ export async function handleAppUpdate(): Promise<void> {
       const msg = (e + '').toLowerCase();
       if (msg.includes('password') || msg.includes('senha') || msg.includes('incorrect')) {
         setPasswordVerified(false);
-        showPasswordModal({ type: 'app-update' } as any);
+        showPasswordModal({ type: 'app-update' });
         return;
       }
       showToast('error', (e + '') || 'Erro ao atualizar.');
@@ -53,7 +54,7 @@ export async function handleAppUpdate(): Promise<void> {
   if (passwordVerified) {
     await doUpdate();
   } else {
-    showPasswordModal({ type: 'app-update' } as any);
+    showPasswordModal({ type: 'app-update' });
   }
 }
 

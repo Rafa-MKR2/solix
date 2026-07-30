@@ -1,9 +1,12 @@
 export {
+  showReportModal,
+  hideReportModal,
+} from './modal.js';
+
+export {
   reportProblem,
   handleCopyReport,
   handleOpenIssue,
   handleSaveReport,
   handleEmailReport,
-  showReportModal,
-  hideReportModal,
 } from './main.js';

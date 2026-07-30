@@ -2,13 +2,14 @@ import { showToast } from './utils.js';
 import { systemService, packageService, miscService } from './shared/services/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
 import { setupNav, setupHelpTooltips, setupLockActions, switchToPage, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, cancelOperation, retryLastOperation, setupProgressListener, toolStatuses, handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './operations.js';
+import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, cancelOperation, retryLastOperation, setupProgressListener, toolStatuses, } from './operations.js';
 import { handleStartBackup } from './features/disks/index.js';
 import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
 import { handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './features/packages/index.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './features/network/index.js';
 import { setupUpdateListener, initFooter, handleCheckUpdateClick, showUpdateBanner, } from './features/update/index.js';
 import { reportProblem, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, hideReportModal, } from './features/report/index.js';
+import { handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './features/script/index.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
     setupHelpTooltips();

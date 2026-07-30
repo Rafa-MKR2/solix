@@ -3,7 +3,8 @@
 import type { InstalledPackage } from '../../shared/types/index.js';
 import { showToast } from '../../shared/utils/index.js';
 import { packageService } from '../../shared/services/index.js';
-import { showPasswordModal, passwordVerified, setPendingAction } from '../../operations.js';
+import { passwordVerified } from '../../shared/auth.js';
+import { showPasswordModal, setPendingAction } from '../../operations.js';
 
 let selectedInstalledPkgs = new Set<string>();
 

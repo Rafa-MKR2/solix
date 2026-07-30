@@ -3,7 +3,8 @@
 import type { RepoPackage } from '../../shared/types/index.js';
 import { showToast } from '../../shared/utils/index.js';
 import { packageService } from '../../shared/services/index.js';
-import { showPasswordModal, passwordVerified } from '../../operations.js';
+import { passwordVerified } from '../../shared/auth.js';
+import { showPasswordModal } from '../../operations.js';
 
 let selectedRepoPkgs = new Set<string>();
 

@@ -1,6 +1,7 @@
 import { getInvoke, showToast } from '../../utils.js';
 import { systemService } from '../../shared/services/index.js';
-import { passwordVerified, showPasswordModal, setPasswordVerified } from '../../operations.js';
+import { passwordVerified, setPasswordVerified } from '../../shared/auth.js';
+import { showPasswordModal } from '../../operations.js';
 import { showUpdateBanner, showUpdateProgress, hideUpdateModal, } from './banner.js';
 export function setupUpdateListener() {
     const invoke = getInvoke();

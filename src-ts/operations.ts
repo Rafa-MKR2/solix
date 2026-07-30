@@ -5,12 +5,13 @@ import type {
   InstallResult,
   PendingAction,
 } from './types.js';
+import { passwordVerified, setPasswordVerified } from './shared/auth.js';
 import { getInvoke, showToast, setText } from './utils.js';
-import { systemService, packageService, miscService, scriptService } from './shared/services/index.js';
+import { systemService, packageService, miscService } from './shared/services/index.js';
 import { showConfetti } from './animations.js';
-import { renderScriptAnalysis } from './ui.js';
+
 import { renderDisks } from './features/disks/index.js';
-import { renderTools, selectedTools, removedTools, updateButtons } from './features/tools/index.js';
+import { renderTools, selectedTools, removedTools, updateButtons, askDesktopShortcuts } from './features/tools/index.js';
 import {
   showLockDiagnosis,
   switchToPage,
@@ -19,7 +20,6 @@ import { pendingPkg } from './features/packages/upload.js';
 
 export let toolStatuses: DevelopmentToolStatus[] = [];
 export let systemDistro = '';
-export let passwordVerified = false;
 export let pendingAction: PendingAction | null = null;
 let lastPendingAction: PendingAction | null = null;
 let isOperating = false;
@@ -29,10 +29,6 @@ function setPendingAction(action: PendingAction | null): void {
 }
 
 export { setPendingAction };
-
-export function setPasswordVerified(v: boolean): void {
-  passwordVerified = v;
-}
 
 
 export function setupProgressListener(): void {
@@ -142,7 +138,7 @@ export async function confirmPassword(): Promise<void> {
     showToast('error', 'Erro ao verificar senha. Tente novamente.');
     return;
   }
-  passwordVerified = true;
+  setPasswordVerified(true);
   document.getElementById('password-overlay')!.classList.add('hidden');
   if (error) error.classList.add('hidden');
   if (input) input.value = '';
@@ -326,156 +322,6 @@ export function updateRecommendedCount(): void {
   const total = toolStatuses.length;
   const el = document.getElementById('pkg-recommended-count');
   if (el) el.textContent = `${installed}/${total}`;
-}
-
-// ─── Script Analyzer ───
-
-export async function handleScriptDrop(file: File | null): Promise<void> {
-  const resultEl = document.getElementById('script-result');
-  if (!resultEl) return;
-
-  if (!file) {
-    resultEl.classList.add('hidden');
-    return;
-  }
-
-  // Show file name
-  const fileInfo = document.getElementById('script-file-info');
-  const fileLabel = document.getElementById('script-file-label');
-  if (fileInfo) fileInfo.classList.remove('hidden');
-  if (fileLabel) fileLabel.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-
-  // Show loading
-  const summaryEl = document.getElementById('script-summary');
-  const commandsEl = document.getElementById('script-commands');
-  if (summaryEl) summaryEl.innerHTML = '<div class="script-loading">⏳ Analisando script...</div>';
-  if (commandsEl) commandsEl.innerHTML = '';
-  resultEl.classList.remove('hidden');
-
-  try {
-    const text = await readFileAsText(file);
-    const analysis = await scriptService.analyzeScript(text);
-    renderScriptAnalysis(analysis);
-  } catch (e) {
-    console.error('analyze_script failed:', e);
-    if (summaryEl) summaryEl.innerHTML = `<div class="script-loading" style="color:#e88">❌ Erro ao analisar script: ${e}</div>`;
-  }
-}
-
-export async function handleAnalyzeText(text: string): Promise<void> {
-  const resultEl = document.getElementById('script-result');
-  if (!resultEl) return;
-
-  if (!text.trim()) {
-    showToast('error', 'Cole um script para analisar.');
-    return;
-  }
-
-  const summaryEl = document.getElementById('script-summary');
-  const commandsEl = document.getElementById('script-commands');
-  if (summaryEl) summaryEl.innerHTML = '<div class="script-loading">⏳ Analisando código...</div>';
-  if (commandsEl) commandsEl.innerHTML = '';
-  resultEl.classList.remove('hidden');
-
-  try {
-    const analysis = await scriptService.analyzeScript(text);
-    renderScriptAnalysis(analysis);
-  } catch (e) {
-    console.error('analyze_script failed:', e);
-    if (summaryEl) summaryEl.innerHTML = `<div class="script-loading" style="color:#e88">❌ Erro ao analisar: ${e}</div>`;
-  }
-}
-
-export function clearScriptAnalysis(): void {
-  const resultEl = document.getElementById('script-result');
-  const fileInfo = document.getElementById('script-file-info');
-  const fileInput = document.getElementById('script-file-input') as HTMLInputElement | null;
-  const textarea = document.getElementById('script-textarea') as HTMLTextAreaElement | null;
-
-  if (resultEl) resultEl.classList.add('hidden');
-  if (fileInfo) fileInfo.classList.add('hidden');
-  if (fileInput) fileInput.value = '';
-  if (textarea) textarea.value = '';
-
-  const summaryEl = document.getElementById('script-summary');
-  const commandsEl = document.getElementById('script-commands');
-  if (summaryEl) summaryEl.innerHTML = '';
-  if (commandsEl) commandsEl.innerHTML = '';
-
-  const analyzeBtn = document.getElementById('script-analyze-btn') as HTMLButtonElement | null;
-  if (analyzeBtn) analyzeBtn.disabled = true;
-
-  const clearTextBtn = document.getElementById('script-clear-text-btn');
-  if (clearTextBtn) clearTextBtn.style.display = 'none';
-}
-
-function readFileAsText(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject('Erro ao ler arquivo');
-    reader.readAsText(file);
-  });
-}
-
-// ─── Desktop Shortcuts ───
-
-async function askDesktopShortcuts(toolNames: string[]): Promise<void> {
-  if (toolNames.length === 0) return;
-
-  const outputLog = document.getElementById('output-log');
-  const outputSection = document.getElementById('output-section');
-  if (!outputSection) return;
-
-  if (outputLog) {
-    outputLog.textContent += `\n🪄 Create desktop shortcuts?\n`;
-  }
-
-  // Remove existing prompt
-  const existing = document.getElementById('shortcut-prompt');
-  if (existing) existing.remove();
-
-  // Create inline prompt BELOW the output log (on Sistema page)
-  const prompt = document.createElement('div');
-  prompt.id = 'shortcut-prompt';
-  prompt.style.cssText = 'display:flex;align-items:center;gap:0.6rem;margin-top:0.5rem;padding:0.6rem 0.8rem;background:#1a1a32;border:1px solid #3a3a5a;border-radius:8px;font-size:0.85rem;';
-
-  const count = toolNames.length;
-  const label = document.createElement('span');
-  label.textContent = `🪄 Create desktop shortcuts for ${count} app(s): ${toolNames.join(', ')}?`;
-  label.style.cssText = 'color:#ccc;flex:1;';
-
-  const yesBtn = document.createElement('button');
-  yesBtn.textContent = '✅ Yes';
-  yesBtn.style.cssText = 'padding:0.3rem 0.8rem;background:#0f2a1a;border:1px solid #2a5a3a;border-radius:6px;color:#4ae0a0;cursor:pointer;font-size:0.8rem;';
-  yesBtn.addEventListener('click', async () => {
-    prompt.innerHTML = '<span style="color:#4ae0a0">⏳ Creating shortcuts...</span>';
-    let created = 0;
-    for (const name of toolNames) {
-      try {
-        const path = await miscService.createDesktopShortcut(name);
-        if (outputLog) outputLog.textContent += `  ✅ ${path}\n`;
-        created++;
-      } catch (e) {
-        if (outputLog) outputLog.textContent += `  ❌ ${name}: ${e}\n`;
-      }
-    }
-    prompt.innerHTML = `<span style="color:#4ae0a0">✅ ${created}/${count} shortcut(s) created!</span>`;
-    setTimeout(() => prompt.remove(), 4000);
-  });
-
-  const noBtn = document.createElement('button');
-  noBtn.textContent = '❌ No';
-  noBtn.style.cssText = 'padding:0.3rem 0.8rem;background:#2a1a1a;border:1px solid #5a2a2a;border-radius:6px;color:#e88;cursor:pointer;font-size:0.8rem;';
-  noBtn.addEventListener('click', () => {
-    if (outputLog) outputLog.textContent += `  Skipped shortcut creation\n`;
-    prompt.remove();
-  });
-
-  prompt.appendChild(label);
-  prompt.appendChild(yesBtn);
-  prompt.appendChild(noBtn);
-  outputSection.appendChild(prompt);
 }
 
 // ─── Cancel ───
