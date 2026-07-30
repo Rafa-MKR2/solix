@@ -168,8 +168,7 @@ export async function showPasswordModal(action: PendingAction): Promise<void> {
 }
 
 async function executePending(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke || !pendingAction || isOperating) return;
+  if (!pendingAction || isOperating) return;
   isOperating = true;
   switchToPage('sistema');
   const outputLog = document.getElementById('output-log');
@@ -316,8 +315,6 @@ export function retryLastOperation(): void {
 }
 
 // ─── Package Installer ───
-
-import type { LocalPackageInfo } from './types.js';
 
 export async function handlePkgFileSelect(file: File | null): Promise<void> {
   const infoCard = document.getElementById('pkg-info');
@@ -635,7 +632,7 @@ export async function handleEmailReport(): Promise<void> {
 
 // ─── System Package Management ───
 
-import type { InstalledPackage, RepoPackage, PackageHistoryEntry } from './types.js';
+import type { InstalledPackage, RepoPackage } from './types.js';
 
 let selectedInstalledPkgs = new Set<string>();
 let selectedRepoPkgs = new Set<string>();
@@ -1015,8 +1012,6 @@ function readFileAsText(file: File): Promise<string> {
 }
 
 // ─── Backup ───
-
-import type { BackupResult } from './types.js';
 
 export async function handleStartBackup(): Promise<void> {
   const source = document.getElementById('backup-source')?.textContent || '';

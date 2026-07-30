@@ -260,14 +260,6 @@ export interface SmartInfo {
   commands_used: { command: string; description: string }[];
 }
 
-export interface BackupProgress {
-  stage: string;
-  message: string;
-  percent: number;
-  file_path: string | null;
-  file_size: string | null;
-}
-
 export type PendingActionType = 'install' | 'remove' | 'update' | 'zram' | 'cleanup' | 'install-package' | 'app-update' | 'backup';
 
 export interface PendingAction {
