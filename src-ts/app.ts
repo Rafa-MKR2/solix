@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Rafa-MKR2
+// Copyright (c) 2026 Rafa-MKR2
 
 import type { AppUpdateInfo, PackageDetail } from './types.js';
 import { showToast } from './utils.js';
