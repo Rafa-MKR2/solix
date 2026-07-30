@@ -10,7 +10,6 @@ import {
   setupHelpTooltips,
   setupLockActions,
   switchToPage,
-  showUpdateBanner,
   handleProcessSortClick,
   handleProcessSearch,
   setRetryLastOperationFn,
@@ -23,13 +22,9 @@ import {
   cancelPassword,
   showPasswordModal,
   reportProblem,
-  initFooter,
-  handleCheckUpdateClick,
-  handleAppUpdate,
   cancelOperation,
   retryLastOperation,
   setupProgressListener,
-  setupUpdateListener,
   toolStatuses,
   handleCopyReport,
   handleOpenIssue,
@@ -55,6 +50,13 @@ import {
   handleTestPingClick,
   handleTestSpeedClick,
 } from './features/network/index.js';
+import {
+  setupUpdateListener,
+  handleAppUpdate,
+  initFooter,
+  handleCheckUpdateClick,
+  showUpdateBanner,
+} from './features/update/index.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   setupNav();
