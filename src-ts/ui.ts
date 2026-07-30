@@ -2,12 +2,10 @@
 
 import type {
   DevelopmentToolStatus,
-  DiskUsageItem,
-  PmLockInfo,
   AppUpdateInfo,
-  SmartInfo,
 } from './types.js';
-import { getInvoke, escapeHtml, showToast, setText } from './utils.js';
+import { escapeHtml, showToast, setText } from './utils.js';
+import { diskService, processService, packageService, systemService } from './shared/services/index.js';
 
 export const CIRCUMFERENCE = 2 * Math.PI * 50;
 
@@ -36,10 +34,8 @@ function getBarColor(pct: number): string {
 }
 
 export async function handleOpenFileManager(mountPoint: string): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   try {
-    await invoke('open_file_manager', { path: mountPoint });
+    await diskService.openFileManager(mountPoint);
   } catch (e) {
     console.error('open_file_manager failed:', e);
     showToast('error', 'Erro ao abrir gerenciador de arquivos.');
@@ -47,8 +43,6 @@ export async function handleOpenFileManager(mountPoint: string): Promise<void> {
 }
 
 export async function handleAnalyzeDisk(mountPoint: string): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   const modal = document.getElementById('disk-analysis-overlay');
   const list = document.getElementById('disk-analysis-list');
   const title = document.getElementById('disk-analysis-title');
@@ -57,7 +51,7 @@ export async function handleAnalyzeDisk(mountPoint: string): Promise<void> {
   list.innerHTML = '<div class="disk-analysis-loading">⏳ Escaneando pastas...</div>';
   modal.classList.remove('hidden');
   try {
-    const items = await invoke<DiskUsageItem[]>('analyze_disk_usage', { mountPoint });
+    const items = await diskService.analyzeUsage(mountPoint);
     if (title) title.textContent = `📂 ${mountPoint} — Pastas mais pesadas`;
     if (items.length === 0) {
       list.innerHTML = '<div class="hint">Nenhum resultado encontrado.</div>';
@@ -87,8 +81,6 @@ export async function handleAnalyzeDisk(mountPoint: string): Promise<void> {
 }
 
 export async function handleShowPartitions(device: string): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   const modal = document.getElementById('disk-analysis-overlay');
   const list = document.getElementById('disk-analysis-list');
   const title = document.getElementById('disk-analysis-title');
@@ -97,7 +89,7 @@ export async function handleShowPartitions(device: string): Promise<void> {
   list.innerHTML = '<div class="disk-analysis-loading">⏳ Carregando...</div>';
   modal.classList.remove('hidden');
   try {
-    const output = await invoke<string>('get_partition_table', { device });
+    const output = await diskService.getPartitionTable(device);
     list.innerHTML = `<pre class="disk-partitions-output">${escapeHtml(output)}</pre>`;
   } catch (e) {
     console.error('get_partition_table failed:', e);
@@ -236,9 +228,6 @@ export function renderDisks(disks: DiskInfo[]): void {
 // ─── SMART Health ───
 
 export async function handleShowSmartInfo(device: string): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
-
   const overlay = document.getElementById('smart-overlay');
   const loadingEl = document.getElementById('smart-loading');
   const healthSection = document.getElementById('smart-health-section');
@@ -260,7 +249,7 @@ export async function handleShowSmartInfo(device: string): Promise<void> {
   overlay.classList.remove('hidden');
 
   try {
-    const info = await invoke<SmartInfo>('get_disk_smart_info', { device });
+    const info = await diskService.getSmartInfo(device);
 
     if (loadingEl) loadingEl.style.display = 'none';
 
@@ -538,9 +527,7 @@ export function renderTools(tools: DevelopmentToolStatus[]): void {
       container.appendChild(card);
     }
   }
-}
-
-// ─── Process List ───
+}// ─── Process List ───
 
 import type { ProcessInfo } from './types.js';
 
@@ -555,10 +542,8 @@ export function loadProcesses(): Promise<void> {
 }
 
 async function fetchProcesses(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   try {
-    const list = await invoke<ProcessInfo[]>('get_processes');
+    const list = await processService.getProcesses();
     processList = list;
     renderProcesses();
   } catch (e) {
@@ -633,11 +618,8 @@ export async function showLockDiagnosis(): Promise<void> {
   if (spinnerEl) spinnerEl.classList.remove('hidden');
   if (infoEl) infoEl.textContent = '🔍 Detectando...';
 
-  const invoke = getInvoke();
-  if (!invoke) return;
-
   try {
-    const lockInfo = await invoke<PmLockInfo>('check_pm_lock');
+    const lockInfo = await packageService.checkPmLock();
     if (spinnerEl) spinnerEl.classList.add('hidden');
     if (infoEl) {
       if (lockInfo.locked) {
@@ -660,15 +642,14 @@ export function setupLockActions(): void {
   document.querySelectorAll<HTMLElement>('.lock-action-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const action = btn.dataset.action;
-      const invoke = getInvoke();
       switch (action) {
         case 'pamac':
           showToast('info', 'Fechando Pamac...');
-          try { await invoke!('kill_process', { name: 'pamac' }); } catch (e) { console.error(e); }
+          try { await processService.killProcess('pamac'); } catch (e) { console.error(e); }
           break;
         case 'discover':
           showToast('info', 'Fechando Discover...');
-          try { await invoke!('kill_process', { name: 'discover' }); } catch (e) { console.error(e); }
+          try { await processService.killProcess('discover'); } catch (e) { console.error(e); }
           break;
         case 'terminals':
           showToast('info', 'Feche terminais rodando pacman/apt/dnf');
@@ -679,7 +660,7 @@ export function setupLockActions(): void {
         case 'kill-lock': {
           if (!confirm('Remover o arquivo de trava manualmente pode corromper o banco de dados do gerenciador. Tem certeza?')) return;
           try {
-            await invoke!('remove_lock_files');
+            await processService.removeLockFiles();
             showToast('success', 'Trava removida. Tente novamente.');
           } catch (e) {
             showToast('error', 'Não foi possível remover a trava');
@@ -1044,17 +1025,15 @@ export function showUpdateProgress(stage: string, percent: number, message: stri
 
 // ─── Info Modal ───
 
-import type { PackageDetail } from './types.js';
+
 
 // ─── Home Stats ───
 
-import type { HomeStats } from './types.js';
+
 
 export async function loadHomeStats(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   try {
-    const h = await invoke<HomeStats>('get_home_stats');
+    const h = await systemService.getHomeStats();
     const packagesEl = document.getElementById('stat-packages');
     const updatesEl = document.getElementById('stat-updates');
     const updatesSub = document.getElementById('stat-updates-sub');
@@ -1093,13 +1072,11 @@ export async function loadHomeStats(): Promise<void> {
 
 // ─── Poll Stats ───
 
-import type { SystemStats } from './types.js';
+
 
 export async function pollStats(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   try {
-    const s = await invoke<SystemStats>('get_system_stats');
+    const s = await systemService.getStats();
     setGauge('gauge-cpu', 'gauge-cpu-value', s.cpu_percent, `${Math.round(s.cpu_percent)}%`);
     setGauge('gauge-ram', 'gauge-ram-value', s.memory_percent, `${Math.round(s.memory_percent)}%`);
     setGauge('gauge-temp', 'gauge-temp-value', s.temperature, `${Math.round(s.temperature)}°`);
