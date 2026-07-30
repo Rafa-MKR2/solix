@@ -2,14 +2,11 @@
 
 import type {
   DevelopmentToolStatus,
-  SystemInfo,
   InstallResult,
-  AppUpdateInfo,
-  UpdateProgress,
   PendingAction,
-  ScriptAnalysis,
 } from './types.js';
 import { getInvoke, showToast, setText } from './utils.js';
+import { systemService, packageService, miscService, scriptService, backupService } from './shared/services/index.js';
 import { showConfetti } from './animations.js';
 import { renderScriptAnalysis } from './ui.js';
 import {
@@ -75,10 +72,8 @@ export function setupProgressListener(): void {
 }
 
 export async function loadSystemInfo(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   try {
-    const info = await invoke<SystemInfo>('get_system_info');
+    const info = await systemService.getInfo();
     if (info.distribution) {
       setText('distro-name', info.distribution.name);
       setText('distro-version', info.distribution.version);
@@ -131,10 +126,8 @@ export async function confirmPassword(): Promise<void> {
   const error = document.getElementById('password-error');
   const password = input?.value || '';
   if (!password) return;
-  const invoke = getInvoke();
-  if (!invoke) return;
   try {
-    await invoke('set_password', { password });
+    await packageService.setPassword(password);
   } catch (e) {
     const msg = (e + '').toLowerCase();
     if (msg.includes('senha') || msg.includes('password') || msg.includes('incorrect') || msg.includes('tentativa')) {
@@ -210,20 +203,17 @@ async function executePending(): Promise<void> {
   try {
     let result: InstallResult[] | InstallResult | undefined;
     if (isUpdate) {
-      result = await invoke<InstallResult>('update_system');
+      result = await packageService.updateSystem();
     } else if (isZram) {
-      result = await invoke<InstallResult>('enable_zram');
+      result = await miscService.enableZram();
     } else if (isCleanup) {
-      result = await invoke<InstallResult>('cleanup_system');
+      result = await miscService.cleanupSystem();
     } else if (isInstall) {
-      result = await invoke<InstallResult[]>('install_tools', { toolNames: pendingAction.tools });
+      result = await packageService.installTools(pendingAction.tools!);
     } else if (isRemove) {
-      result = await invoke<InstallResult[]>('remove_tools', { toolNames: pendingAction.tools });
+      result = await packageService.removeTools(pendingAction.tools!);
     } else if (isInstallPkg) {
-      result = await invoke<InstallResult>('install_package_data', {
-        data: pendingPkgData!,
-        fileName: pendingPkgFileName!,
-      });
+      result = await packageService.installPackageData(pendingPkgData!, pendingPkgFileName!);
     }
     if (outputLog) {
       if (Array.isArray(result)) {
@@ -349,9 +339,6 @@ export async function handlePkgFileSelect(file: File | null): Promise<void> {
     return;
   }
 
-  const invoke = getInvoke();
-  if (!invoke) return;
-
   if (installBtn) { installBtn.disabled = true; installBtn.textContent = '⏳ Analisando...'; }
   if (infoCard) infoCard.classList.remove('hidden');
   if (nameEl) nameEl.textContent = file.name;
@@ -365,10 +352,7 @@ export async function handlePkgFileSelect(file: File | null): Promise<void> {
 
   try {
     const base64 = await readFileAsBase64(file);
-    const info = await invoke<LocalPackageInfo>('inspect_package_data', {
-      data: base64,
-      fileName: file.name,
-    });
+    const info = await packageService.inspectPackageData(base64, file.name);
 
     pendingPkgData = base64;
     pendingPkgFileName = file.name;
@@ -442,14 +426,11 @@ export function setupUpdateListener(): void {
 }
 
 export async function handleAppUpdate(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
-
   showUpdateProgress('download', 0, 'Preparando...');
 
   const doUpdate = async (): Promise<void> => {
     try {
-      await invoke('install_update');
+      await systemService.installUpdate();
     } catch (e) {
       const msg = (e + '').toLowerCase();
       if (msg.includes('password') || msg.includes('senha') || msg.includes('incorrect')) {
@@ -471,10 +452,8 @@ export async function handleAppUpdate(): Promise<void> {
 }
 
 export async function initFooter(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   try {
-    const version = await invoke<string>('get_app_version');
+    const version = await systemService.getAppVersion();
     const footerEl = document.getElementById('footer-version');
     if (footerEl) footerEl.textContent = `Solix v${version}`;
   } catch (e) {
@@ -484,12 +463,10 @@ export async function initFooter(): Promise<void> {
 }
 
 async function checkForAppUpdate(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   const checkLink = document.getElementById('footer-check-link');
   if (checkLink) checkLink.classList.add('checking');
   try {
-    const info = await invoke<AppUpdateInfo>('check_app_update');
+    const info = await systemService.checkAppUpdate();
     if (checkLink) { checkLink.textContent = '🔍 Verificar atualizações'; checkLink.classList.remove('checking'); }
 
     if (info.update_available) {
@@ -529,12 +506,10 @@ let lastReportText = '';
 let lastIssueUrl = '';
 
 export async function reportProblem(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   const btn = document.getElementById('report-btn') as HTMLButtonElement | null;
   if (btn) btn.textContent = '⏳ Coletando...';
   try {
-    const info = await invoke<import('./types.js').ReportInfo>('get_report_info');
+    const info = await systemService.getReportInfo();
     const outputLog = document.getElementById('output-log');
     const logText = outputLog?.textContent?.trim() || '(vazio)';
     const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -607,14 +582,8 @@ export function handleCopyReport(): void {
 
 export async function handleOpenIssue(): Promise<void> {
   if (!lastIssueUrl) return;
-  const invoke = getInvoke();
-  if (!invoke) {
-    window.open(lastIssueUrl, '_blank');
-    hideReportModal();
-    return;
-  }
   try {
-    await invoke('open_url', { url: lastIssueUrl });
+    await miscService.openUrl(lastIssueUrl);
     hideReportModal();
     showToast('success', '✅ GitHub aberto no navegador! Descreva o problema e envie.');
   } catch (e) {
@@ -625,13 +594,8 @@ export async function handleOpenIssue(): Promise<void> {
 
 export async function handleSaveReport(): Promise<void> {
   if (!lastReportText) return;
-  const invoke = getInvoke();
-  if (!invoke) {
-    showToast('error', 'Não foi possível salvar o relatório.');
-    return;
-  }
   try {
-    const filePath = await invoke<string>('save_report_to_desktop', { content: lastReportText });
+    const filePath = await miscService.saveReportToDesktop(lastReportText);
     showToast('success', `💾 Relatório salvo! ${filePath}`);
     // Mostra no modal também
     const resultEl = document.getElementById('report-result');
@@ -649,8 +613,6 @@ export async function handleSaveReport(): Promise<void> {
 
 export async function handleEmailReport(): Promise<void> {
   if (!lastReportText) return;
-  const invoke = getInvoke();
-  if (!invoke) return;
   const subject = encodeURIComponent('Relatório Solix - Problema');
   const body = encodeURIComponent(
     'Relatório do sistema gerado pelo Solix\n\n' +
@@ -662,7 +624,7 @@ export async function handleEmailReport(): Promise<void> {
   );
   const mailto = `mailto:rafaeldocarmo.dev@gmail.com?subject=${subject}&body=${body}`;
   try {
-    await invoke('open_url', { url: mailto });
+    await miscService.openUrl(mailto);
     hideReportModal();
     showToast('success', '📧 Cliente de email aberto! Envie o relatório para o desenvolvedor.');
   } catch (e) {
@@ -686,14 +648,12 @@ function formatBytes(bytes: number): string {
 }
 
 export async function loadInstalledPackages(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   const listEl = document.getElementById('pkg-installed-list');
   if (!listEl) return;
   listEl.innerHTML = '<div class="pkg-loading">⏳ Carregando pacotes...</div>';
 
   try {
-    const pkgs = await invoke<InstalledPackage[]>('list_installed_packages');
+    const pkgs = await packageService.listInstalled();
     renderInstalledPackages(pkgs);
     document.getElementById('pkg-total-count')!.textContent = pkgs.length.toString();
 
@@ -801,10 +761,8 @@ export async function handleRemovePackages(): Promise<void> {
   const names = Array.from(selectedInstalledPkgs);
 
   const doRemove = async (): Promise<void> => {
-    const invoke = getInvoke();
-    if (!invoke) return;
     try {
-      const results = await invoke<string[]>('remove_system_packages', { packageNames: names });
+      const results = await packageService.removeSystem(names);
       // Show results
       const listEl = document.getElementById('pkg-installed-list');
       if (listEl) {
@@ -828,8 +786,6 @@ export async function handleRemovePackages(): Promise<void> {
 }
 
 export async function handleSearchRepoPackages(query: string): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   const listEl = document.getElementById('pkg-search-list');
   if (!listEl) return;
 
@@ -843,7 +799,7 @@ export async function handleSearchRepoPackages(query: string): Promise<void> {
   selectedRepoPkgs.clear();
 
   try {
-    const pkgs = await invoke<RepoPackage[]>('search_repo_packages', { query: query.trim() });
+    const pkgs = await packageService.searchRepo(query.trim());
     renderRepoPackages(pkgs);
   } catch (e) {
     console.error('search_repo_packages failed:', e);
@@ -912,10 +868,8 @@ export async function handleInstallRepoPackages(): Promise<void> {
   const names = Array.from(selectedRepoPkgs);
 
   const doInstall = async (): Promise<void> => {
-    const invoke = getInvoke();
-    if (!invoke) return;
     try {
-      const results = await invoke<string[]>('install_repo_packages', { packageNames: names });
+      const results = await packageService.installRepo(names);
       const listEl = document.getElementById('pkg-search-list');
       if (listEl) {
         listEl.innerHTML = `<div class="pkg-history-log">${results.map(r => `<div>${r}</div>`).join('')}</div>`;
@@ -935,13 +889,11 @@ export async function handleInstallRepoPackages(): Promise<void> {
 }
 
 export async function loadPackageHistory(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
   const listEl = document.getElementById('pkg-history-list');
   if (!listEl) return;
 
   try {
-    const entries = await invoke<PackageHistoryEntry[]>('get_package_history');
+    const entries = await packageService.getHistory();
     if (entries.length === 0) {
       listEl.innerHTML = '<div class="pkg-empty">Nenhum histórico encontrado.</div>';
       return;
@@ -975,9 +927,6 @@ export function updateRecommendedCount(): void {
 // ─── Script Analyzer ───
 
 export async function handleScriptDrop(file: File | null): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
-
   const resultEl = document.getElementById('script-result');
   if (!resultEl) return;
 
@@ -1001,7 +950,7 @@ export async function handleScriptDrop(file: File | null): Promise<void> {
 
   try {
     const text = await readFileAsText(file);
-    const analysis = await invoke<ScriptAnalysis>('analyze_script', { content: text });
+    const analysis = await scriptService.analyzeScript(text);
     renderScriptAnalysis(analysis);
   } catch (e) {
     console.error('analyze_script failed:', e);
@@ -1010,9 +959,6 @@ export async function handleScriptDrop(file: File | null): Promise<void> {
 }
 
 export async function handleAnalyzeText(text: string): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
-
   const resultEl = document.getElementById('script-result');
   if (!resultEl) return;
 
@@ -1028,7 +974,7 @@ export async function handleAnalyzeText(text: string): Promise<void> {
   resultEl.classList.remove('hidden');
 
   try {
-    const analysis = await invoke<ScriptAnalysis>('analyze_script', { content: text });
+    const analysis = await scriptService.analyzeScript(text);
     renderScriptAnalysis(analysis);
   } catch (e) {
     console.error('analyze_script failed:', e);
@@ -1073,9 +1019,6 @@ function readFileAsText(file: File): Promise<string> {
 import type { BackupResult } from './types.js';
 
 export async function handleStartBackup(): Promise<void> {
-  const invoke = getInvoke();
-  if (!invoke) return;
-
   const source = document.getElementById('backup-source')?.textContent || '';
   const destInput = document.getElementById('backup-destination') as HTMLInputElement | null;
   const destination = destInput?.value?.trim() || '';
@@ -1105,11 +1048,7 @@ export async function handleStartBackup(): Promise<void> {
   const mountPoint = source; // e.g., /home, /
 
   try {
-    const result = await invoke<BackupResult>('create_backup', {
-      source,
-      destination,
-      mountPoint,
-    });
+    const result = await backupService.createBackup(source, destination, mountPoint);
 
     if (result.success) {
       if (statusEl) statusEl.textContent = '✅ Backup concluído!';
@@ -1147,8 +1086,6 @@ export async function handleStartBackup(): Promise<void> {
 
 async function askDesktopShortcuts(toolNames: string[]): Promise<void> {
   if (toolNames.length === 0) return;
-  const invoke = getInvoke();
-  if (!invoke) return;
 
   const outputLog = document.getElementById('output-log');
   const outputSection = document.getElementById('output-section');
@@ -1180,7 +1117,7 @@ async function askDesktopShortcuts(toolNames: string[]): Promise<void> {
     let created = 0;
     for (const name of toolNames) {
       try {
-        const path = await invoke<string>('create_desktop_shortcut', { name });
+        const path = await miscService.createDesktopShortcut(name);
         if (outputLog) outputLog.textContent += `  ✅ ${path}\n`;
         created++;
       } catch (e) {
@@ -1208,8 +1145,5 @@ async function askDesktopShortcuts(toolNames: string[]): Promise<void> {
 // ─── Cancel ───
 
 export async function cancelOperation(): Promise<void> {
-  const invoke = getInvoke();
-  if (invoke) {
-    try { await invoke('cancel_operation'); } catch (e) { console.error('cancel failed:', e); }
-  }
+  try { await packageService.cancelOperation(); } catch (e) { console.error('cancel failed:', e); }
 }

@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
 
 import { getInvoke } from '../utils/tauri.js';
+import type { InstallResult } from '../types/index.js';
 
 export const miscService = {
-  async enableZram(): Promise<void> {
+  async enableZram(): Promise<InstallResult> {
     const invoke = getInvoke();
-    if (!invoke) return;
-    await invoke('enable_zram');
+    if (!invoke) throw new Error('Tauri not available');
+    return invoke<InstallResult>('enable_zram');
   },
 
-  async cleanupSystem(): Promise<void> {
+  async cleanupSystem(): Promise<InstallResult> {
     const invoke = getInvoke();
-    if (!invoke) return;
-    await invoke('cleanup_system');
+    if (!invoke) throw new Error('Tauri not available');
+    return invoke<InstallResult>('cleanup_system');
   },
 
   async saveReportToDesktop(content: string): Promise<string> {
