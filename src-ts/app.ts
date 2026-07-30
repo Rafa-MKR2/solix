@@ -40,7 +40,6 @@ import {
   handleSearchRepoPackages,
   handleInstallRepoPackages,
   loadPackageHistory,
-  handleStartBackup,
   handleCopyReport,
   handleOpenIssue,
   handleSaveReport,
@@ -49,7 +48,7 @@ import {
   handleAnalyzeText,
   clearScriptAnalysis,
 } from './operations.js';
-import { handleShowSmartInfo } from './ui.js';
+import { handleShowSmartInfo, handleStartBackup } from './features/disks/index.js';
 import {
   loadConnectivity,
   loadExternalInfo,

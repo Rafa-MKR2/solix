@@ -1,7 +1,9 @@
 import { showToast } from './utils.js';
 import { systemService, packageService, miscService } from './shared/services/index.js';
-import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, switchToPage, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, hideReportModal, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, handleStartBackup, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './operations.js';
+import { loadHomeStats, pollStats } from './features/home/index.js';
+import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, switchToPage, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, hideReportModal, } from './ui.js';
+import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './operations.js';
+import { handleStartBackup } from './features/disks/index.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './network.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();

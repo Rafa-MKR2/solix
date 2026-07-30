@@ -6,12 +6,12 @@ import type {
   PendingAction,
 } from './types.js';
 import { getInvoke, showToast, setText } from './utils.js';
-import { systemService, packageService, miscService, scriptService, backupService } from './shared/services/index.js';
+import { systemService, packageService, miscService, scriptService } from './shared/services/index.js';
 import { showConfetti } from './animations.js';
 import { renderScriptAnalysis } from './ui.js';
+import { renderDisks } from './features/disks/index.js';
 import {
   renderTools,
-  renderDisks,
   selectedTools,
   removedTools,
   updateButtons,
@@ -1009,72 +1009,6 @@ function readFileAsText(file: File): Promise<string> {
     reader.onerror = () => reject('Erro ao ler arquivo');
     reader.readAsText(file);
   });
-}
-
-// ─── Backup ───
-
-export async function handleStartBackup(): Promise<void> {
-  const source = document.getElementById('backup-source')?.textContent || '';
-  const destInput = document.getElementById('backup-destination') as HTMLInputElement | null;
-  const destination = destInput?.value?.trim() || '';
-
-  if (!source || !destination) {
-    showToast('error', 'Selecione uma origem e destino para o backup.');
-    return;
-  }
-
-  // Show progress
-  const progressEl = document.getElementById('backup-progress');
-  const resultEl = document.getElementById('backup-result');
-  const statusEl = document.getElementById('backup-progress-status');
-  const fillEl = document.getElementById('backup-progress-fill');
-  const textEl = document.getElementById('backup-progress-text');
-  const startBtn = document.getElementById('backup-start-btn') as HTMLButtonElement | null;
-  const cancelBtn = document.getElementById('backup-cancel-btn') as HTMLButtonElement | null;
-
-  if (progressEl) progressEl.classList.remove('hidden');
-  if (resultEl) resultEl.classList.add('hidden');
-  if (statusEl) statusEl.textContent = '⏳ Comprimindo...';
-  if (fillEl) fillEl.style.width = '0%';
-  if (textEl) textEl.textContent = '0%';
-  if (startBtn) startBtn.disabled = true;
-  if (cancelBtn) cancelBtn.textContent = '⏳';
-
-  const mountPoint = source; // e.g., /home, /
-
-  try {
-    const result = await backupService.createBackup(source, destination, mountPoint);
-
-    if (result.success) {
-      if (statusEl) statusEl.textContent = '✅ Backup concluído!';
-      if (fillEl) fillEl.style.width = '100%';
-      if (textEl) textEl.textContent = '100%';
-
-      if (resultEl) {
-        resultEl.classList.remove('hidden');
-        document.getElementById('backup-result-title')!.textContent = '✅ Backup concluído!';
-        document.getElementById('backup-result-sub')!.textContent =
-          `${result.file_size} • ${result.duration_secs}s • ${result.file_path}`;
-      }
-
-      showToast('success', `Backup criado: ${result.file_size}`);
-    } else {
-      throw new Error(result.error || 'Erro desconhecido');
-    }
-  } catch (e) {
-    const msg = (e + '') || 'Erro ao criar backup';
-    if (statusEl) statusEl.textContent = '❌ ' + msg;
-    if (fillEl) fillEl.style.width = '0%';
-    if (resultEl) {
-      resultEl.classList.remove('hidden');
-      document.getElementById('backup-result-title')!.textContent = '❌ Falha no backup';
-      document.getElementById('backup-result-sub')!.textContent = msg;
-    }
-    showToast('error', msg);
-  } finally {
-    if (startBtn) startBtn.disabled = false;
-    if (cancelBtn) cancelBtn.textContent = 'Cancelar';
-  }
 }
 
 // ─── Desktop Shortcuts ───
