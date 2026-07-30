@@ -1,11 +1,8 @@
-import { getInvoke } from './utils.js';
+import { networkService } from './shared/services/index.js';
 import { animateSpeedometerReach, setSpeedometer } from './animations.js';
 export async function loadConnectivity() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        const c = await invoke('get_connectivity');
+        const c = await networkService.getConnectivity();
         const internet = document.getElementById('net-internet');
         const internetIcon = document.getElementById('net-internet-icon');
         const pingEl = document.getElementById('net-ping');
@@ -73,7 +70,7 @@ export async function loadConnectivity() {
         const bat = document.getElementById('net-battery');
         const batIcon = document.getElementById('net-battery-icon');
         if (bat) {
-            const invite = await invoke('get_battery');
+            const invite = await networkService.getBattery();
             if (invite.present && invite.percentage > 0) {
                 const charging = invite.status === 'Charging';
                 bat.textContent = charging ? `🔌 ${invite.percentage}% (${invite.time_remaining || 'N/A'})` : `${invite.percentage}% (${invite.time_remaining || 'N/A'})`;
@@ -94,11 +91,8 @@ export async function loadConnectivity() {
     }
 }
 export async function loadExternalInfo() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        const info = await invoke('get_external_info');
+        const info = await networkService.getExternalInfo();
         const ipEl = document.getElementById('info-external-ip');
         const ispEl = document.getElementById('info-isp');
         const locEl = document.getElementById('info-location');
@@ -115,7 +109,7 @@ export async function loadExternalInfo() {
     }
     catch (_) { }
     try {
-        const c = await invoke('get_connectivity');
+        const c = await networkService.getConnectivity();
         const pingEl = document.getElementById('info-ping-display');
         if (pingEl) {
             pingEl.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : '—';
@@ -126,15 +120,12 @@ export async function loadExternalInfo() {
 }
 export function handleTestPingClick() {
     (async () => {
-        const invoke = getInvoke();
-        if (!invoke)
-            return;
         const btn = document.getElementById('test-ping-btn');
         if (btn)
             btn.textContent = '⏳';
         const speedResult = document.getElementById('speed-result');
         try {
-            const c = await invoke('get_connectivity');
+            const c = await networkService.getConnectivity();
             if (speedResult)
                 speedResult.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : 'Sem resposta';
             if (speedResult)
@@ -152,9 +143,6 @@ export function handleTestPingClick() {
 }
 export function handleTestSpeedClick() {
     (async () => {
-        const invoke = getInvoke();
-        if (!invoke)
-            return;
         const btn = document.getElementById('test-speed-btn');
         const speedResult = document.getElementById('speed-result');
         if (btn) {
@@ -168,7 +156,7 @@ export function handleTestSpeedClick() {
             animateSpeedometerReach(700);
         }, 200);
         try {
-            const result = await invoke('test_speed');
+            const result = await networkService.testSpeed();
             if (speedResult) {
                 speedResult.textContent = `Download: ${result.formatted}`;
                 speedResult.className = 'pulse';
@@ -177,7 +165,7 @@ export function handleTestSpeedClick() {
             }
             animateSpeedometerReach(result.mbps);
             try {
-                const c = await invoke('get_connectivity');
+                const c = await networkService.getConnectivity();
                 const pingEl = document.getElementById('info-ping-display');
                 if (pingEl) {
                     pingEl.textContent = c.ping_latency_ms > 0 ? `${c.ping_latency_ms.toFixed(1)} ms` : '—';

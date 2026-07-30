@@ -1,10 +1,11 @@
 import { getInvoke, showToast, setText } from './utils.js';
+import { systemService, packageService, miscService, scriptService, backupService } from './shared/services/index.js';
 import { showConfetti } from './animations.js';
 import { renderScriptAnalysis } from './ui.js';
 import { renderTools, renderDisks, selectedTools, removedTools, showLockDiagnosis, switchToPage, showUpdateBanner, showUpdateProgress, hideUpdateModal, } from './ui.js';
 export let toolStatuses = [];
 export let systemDistro = '';
-let cachedPassword = '';
+let passwordVerified = false;
 let pendingAction = null;
 let lastPendingAction = null;
 let isOperating = false;
@@ -53,11 +54,8 @@ export function setupProgressListener() {
     }).catch(() => { });
 }
 export async function loadSystemInfo() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        const info = await invoke('get_system_info');
+        const info = await systemService.getInfo();
         if (info.distribution) {
             setText('distro-name', info.distribution.name);
             setText('distro-version', info.distribution.version);
@@ -111,16 +109,8 @@ export async function confirmPassword() {
     const password = input?.value || '';
     if (!password)
         return;
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        const result = await invoke('install_tools', { toolNames: ['__verify__'], password });
-        if (result && result[0] && !result[0].success) {
-            if (error)
-                error.classList.remove('hidden');
-            return;
-        }
+        await packageService.setPassword(password);
     }
     catch (e) {
         const msg = (e + '').toLowerCase();
@@ -133,7 +123,7 @@ export async function confirmPassword() {
         showToast('error', 'Erro ao verificar senha. Tente novamente.');
         return;
     }
-    cachedPassword = password;
+    passwordVerified = true;
     document.getElementById('password-overlay').classList.add('hidden');
     if (error)
         error.classList.add('hidden');
@@ -151,19 +141,9 @@ export function cancelPassword() {
 }
 export async function showPasswordModal(action) {
     pendingAction = action;
-    if (cachedPassword) {
-        const invoke = getInvoke();
-        if (invoke) {
-            try {
-                await invoke('install_tools', { toolNames: ['__verify__'], password: cachedPassword });
-                executePending();
-                return;
-            }
-            catch (e) {
-                console.error('cached password verification failed:', e);
-                cachedPassword = '';
-            }
-        }
+    if (passwordVerified) {
+        executePending();
+        return;
     }
     document.getElementById('password-overlay').classList.remove('hidden');
     const input = document.getElementById('password-input');
@@ -173,8 +153,7 @@ export async function showPasswordModal(action) {
     }
 }
 async function executePending() {
-    const invoke = getInvoke();
-    if (!invoke || !pendingAction || isOperating)
+    if (!pendingAction || isOperating)
         return;
     isOperating = true;
     switchToPage('sistema');
@@ -219,26 +198,22 @@ async function executePending() {
     try {
         let result;
         if (isUpdate) {
-            result = await invoke('update_system', { password: cachedPassword });
+            result = await packageService.updateSystem();
         }
         else if (isZram) {
-            result = await invoke('enable_zram', { password: cachedPassword });
+            result = await miscService.enableZram();
         }
         else if (isCleanup) {
-            result = await invoke('cleanup_system', { password: cachedPassword });
+            result = await miscService.cleanupSystem();
         }
         else if (isInstall) {
-            result = await invoke('install_tools', { toolNames: pendingAction.tools, password: cachedPassword });
+            result = await packageService.installTools(pendingAction.tools);
         }
         else if (isRemove) {
-            result = await invoke('remove_tools', { toolNames: pendingAction.tools, password: cachedPassword });
+            result = await packageService.removeTools(pendingAction.tools);
         }
         else if (isInstallPkg) {
-            result = await invoke('install_package_data', {
-                data: pendingPkgData,
-                fileName: pendingPkgFileName,
-                password: cachedPassword,
-            });
+            result = await packageService.installPackageData(pendingPkgData, pendingPkgFileName);
         }
         if (outputLog) {
             if (Array.isArray(result)) {
@@ -333,13 +308,13 @@ async function executePending() {
 }
 export function retryLastOperation() {
     const action = pendingAction || lastPendingAction;
-    if (!action && !cachedPassword)
+    if (!action && !passwordVerified)
         return;
     document.getElementById('lock-diagnosis')?.classList.add('hidden');
     if (action) {
         showPasswordModal(action);
     }
-    else if (cachedPassword) {
+    else {
         showToast('error', 'Selecione a operação novamente.');
     }
 }
@@ -361,9 +336,6 @@ export async function handlePkgFileSelect(file) {
             infoCard.classList.add('hidden');
         return;
     }
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     if (installBtn) {
         installBtn.disabled = true;
         installBtn.textContent = '⏳ Analisando...';
@@ -388,10 +360,7 @@ export async function handlePkgFileSelect(file) {
         typeEl.textContent = file.name.endsWith('.deb') ? '📦' : '📀';
     try {
         const base64 = await readFileAsBase64(file);
-        const info = await invoke('inspect_package_data', {
-            data: base64,
-            fileName: file.name,
-        });
+        const info = await packageService.inspectPackageData(base64, file.name);
         pendingPkgData = base64;
         pendingPkgFileName = file.name;
         if (nameEl)
@@ -467,18 +436,15 @@ export function setupUpdateListener() {
     }).catch(() => { });
 }
 export async function handleAppUpdate() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     showUpdateProgress('download', 0, 'Preparando...');
-    const doUpdate = async (password) => {
+    const doUpdate = async () => {
         try {
-            await invoke('install_update', { password });
+            await systemService.installUpdate();
         }
         catch (e) {
             const msg = (e + '').toLowerCase();
             if (msg.includes('password') || msg.includes('senha') || msg.includes('incorrect')) {
-                cachedPassword = '';
+                passwordVerified = false;
                 showPasswordModal({ type: 'app-update' });
                 return;
             }
@@ -487,19 +453,16 @@ export async function handleAppUpdate() {
             setTimeout(() => hideUpdateModal(), 3000);
         }
     };
-    if (cachedPassword) {
-        await doUpdate(cachedPassword);
+    if (passwordVerified) {
+        await doUpdate();
     }
     else {
         showPasswordModal({ type: 'app-update' });
     }
 }
 export async function initFooter() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        const version = await invoke('get_app_version');
+        const version = await systemService.getAppVersion();
         const footerEl = document.getElementById('footer-version');
         if (footerEl)
             footerEl.textContent = `Solix v${version}`;
@@ -510,14 +473,11 @@ export async function initFooter() {
     setTimeout(checkForAppUpdate, 2000);
 }
 async function checkForAppUpdate() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const checkLink = document.getElementById('footer-check-link');
     if (checkLink)
         checkLink.classList.add('checking');
     try {
-        const info = await invoke('check_app_update');
+        const info = await systemService.checkAppUpdate();
         if (checkLink) {
             checkLink.textContent = '🔍 Verificar atualizações';
             checkLink.classList.remove('checking');
@@ -559,14 +519,11 @@ import { showReportModal, hideReportModal } from './ui.js';
 let lastReportText = '';
 let lastIssueUrl = '';
 export async function reportProblem() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const btn = document.getElementById('report-btn');
     if (btn)
         btn.textContent = '⏳ Coletando...';
     try {
-        const info = await invoke('get_report_info');
+        const info = await systemService.getReportInfo();
         const outputLog = document.getElementById('output-log');
         const logText = outputLog?.textContent?.trim() || '(vazio)';
         const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -639,14 +596,8 @@ export function handleCopyReport() {
 export async function handleOpenIssue() {
     if (!lastIssueUrl)
         return;
-    const invoke = getInvoke();
-    if (!invoke) {
-        window.open(lastIssueUrl, '_blank');
-        hideReportModal();
-        return;
-    }
     try {
-        await invoke('open_url', { url: lastIssueUrl });
+        await miscService.openUrl(lastIssueUrl);
         hideReportModal();
         showToast('success', '✅ GitHub aberto no navegador! Descreva o problema e envie.');
     }
@@ -658,13 +609,8 @@ export async function handleOpenIssue() {
 export async function handleSaveReport() {
     if (!lastReportText)
         return;
-    const invoke = getInvoke();
-    if (!invoke) {
-        showToast('error', 'Não foi possível salvar o relatório.');
-        return;
-    }
     try {
-        const filePath = await invoke('save_report_to_desktop', { content: lastReportText });
+        const filePath = await miscService.saveReportToDesktop(lastReportText);
         showToast('success', `💾 Relatório salvo! ${filePath}`);
         const resultEl = document.getElementById('report-result');
         const resultText = document.getElementById('report-result-text');
@@ -685,9 +631,6 @@ export async function handleSaveReport() {
 export async function handleEmailReport() {
     if (!lastReportText)
         return;
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const subject = encodeURIComponent('Relatório Solix - Problema');
     const body = encodeURIComponent('Relatório do sistema gerado pelo Solix\n\n' +
         '---\n\n' +
@@ -697,7 +640,7 @@ export async function handleEmailReport() {
         'Obrigado por ajudar a melhorar o Solix!');
     const mailto = `mailto:rafaeldocarmo.dev@gmail.com?subject=${subject}&body=${body}`;
     try {
-        await invoke('open_url', { url: mailto });
+        await miscService.openUrl(mailto);
         hideReportModal();
         showToast('success', '📧 Cliente de email aberto! Envie o relatório para o desenvolvedor.');
     }
@@ -718,15 +661,12 @@ function formatBytes(bytes) {
     return bytes + ' B';
 }
 export async function loadInstalledPackages() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const listEl = document.getElementById('pkg-installed-list');
     if (!listEl)
         return;
     listEl.innerHTML = '<div class="pkg-loading">⏳ Carregando pacotes...</div>';
     try {
-        const pkgs = await invoke('list_installed_packages');
+        const pkgs = await packageService.listInstalled();
         renderInstalledPackages(pkgs);
         document.getElementById('pkg-total-count').textContent = pkgs.length.toString();
         let totalBytes = 0;
@@ -828,12 +768,9 @@ export async function handleRemovePackages() {
     if (selectedInstalledPkgs.size === 0)
         return;
     const names = Array.from(selectedInstalledPkgs);
-    const doRemove = async (password) => {
-        const invoke = getInvoke();
-        if (!invoke)
-            return;
+    const doRemove = async () => {
         try {
-            const results = await invoke('remove_system_packages', { password, packageNames: names });
+            const results = await packageService.removeSystem(names);
             const listEl = document.getElementById('pkg-installed-list');
             if (listEl) {
                 listEl.innerHTML = `<div class="pkg-history-log">${results.map(r => `<div>${r}</div>`).join('')}</div>`;
@@ -846,8 +783,8 @@ export async function handleRemovePackages() {
             showToast('error', (e + '') || 'Erro ao remover pacotes.');
         }
     };
-    if (cachedPassword) {
-        await doRemove(cachedPassword);
+    if (passwordVerified) {
+        await doRemove();
     }
     else {
         pendingAction = { type: 'remove', tools: names };
@@ -855,9 +792,6 @@ export async function handleRemovePackages() {
     }
 }
 export async function handleSearchRepoPackages(query) {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const listEl = document.getElementById('pkg-search-list');
     if (!listEl)
         return;
@@ -869,7 +803,7 @@ export async function handleSearchRepoPackages(query) {
     listEl.innerHTML = '<div class="pkg-loading">⏳ Buscando...</div>';
     selectedRepoPkgs.clear();
     try {
-        const pkgs = await invoke('search_repo_packages', { query: query.trim() });
+        const pkgs = await packageService.searchRepo(query.trim());
         renderRepoPackages(pkgs);
     }
     catch (e) {
@@ -935,12 +869,9 @@ export async function handleInstallRepoPackages() {
     if (selectedRepoPkgs.size === 0)
         return;
     const names = Array.from(selectedRepoPkgs);
-    const doInstall = async (password) => {
-        const invoke = getInvoke();
-        if (!invoke)
-            return;
+    const doInstall = async () => {
         try {
-            const results = await invoke('install_repo_packages', { password, packageNames: names });
+            const results = await packageService.installRepo(names);
             const listEl = document.getElementById('pkg-search-list');
             if (listEl) {
                 listEl.innerHTML = `<div class="pkg-history-log">${results.map(r => `<div>${r}</div>`).join('')}</div>`;
@@ -952,22 +883,19 @@ export async function handleInstallRepoPackages() {
             showToast('error', (e + '') || 'Erro ao instalar pacotes.');
         }
     };
-    if (cachedPassword) {
-        await doInstall(cachedPassword);
+    if (passwordVerified) {
+        await doInstall();
     }
     else {
         showPasswordModal({ type: 'install', tools: names });
     }
 }
 export async function loadPackageHistory() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const listEl = document.getElementById('pkg-history-list');
     if (!listEl)
         return;
     try {
-        const entries = await invoke('get_package_history');
+        const entries = await packageService.getHistory();
         if (entries.length === 0) {
             listEl.innerHTML = '<div class="pkg-empty">Nenhum histórico encontrado.</div>';
             return;
@@ -997,9 +925,6 @@ export function updateRecommendedCount() {
         el.textContent = `${installed}/${total}`;
 }
 export async function handleScriptDrop(file) {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const resultEl = document.getElementById('script-result');
     if (!resultEl)
         return;
@@ -1022,7 +947,7 @@ export async function handleScriptDrop(file) {
     resultEl.classList.remove('hidden');
     try {
         const text = await readFileAsText(file);
-        const analysis = await invoke('analyze_script', { content: text });
+        const analysis = await scriptService.analyzeScript(text);
         renderScriptAnalysis(analysis);
     }
     catch (e) {
@@ -1032,9 +957,6 @@ export async function handleScriptDrop(file) {
     }
 }
 export async function handleAnalyzeText(text) {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const resultEl = document.getElementById('script-result');
     if (!resultEl)
         return;
@@ -1050,7 +972,7 @@ export async function handleAnalyzeText(text) {
         commandsEl.innerHTML = '';
     resultEl.classList.remove('hidden');
     try {
-        const analysis = await invoke('analyze_script', { content: text });
+        const analysis = await scriptService.analyzeScript(text);
         renderScriptAnalysis(analysis);
     }
     catch (e) {
@@ -1094,9 +1016,6 @@ function readFileAsText(file) {
     });
 }
 export async function handleStartBackup() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const source = document.getElementById('backup-source')?.textContent || '';
     const destInput = document.getElementById('backup-destination');
     const destination = destInput?.value?.trim() || '';
@@ -1127,11 +1046,7 @@ export async function handleStartBackup() {
         cancelBtn.textContent = '⏳';
     const mountPoint = source;
     try {
-        const result = await invoke('create_backup', {
-            source,
-            destination,
-            mountPoint,
-        });
+        const result = await backupService.createBackup(source, destination, mountPoint);
         if (result.success) {
             if (statusEl)
                 statusEl.textContent = '✅ Backup concluído!';
@@ -1174,9 +1089,6 @@ export async function handleStartBackup() {
 async function askDesktopShortcuts(toolNames) {
     if (toolNames.length === 0)
         return;
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const outputLog = document.getElementById('output-log');
     const outputSection = document.getElementById('output-section');
     if (!outputSection)
@@ -1202,7 +1114,7 @@ async function askDesktopShortcuts(toolNames) {
         let created = 0;
         for (const name of toolNames) {
             try {
-                const path = await invoke('create_desktop_shortcut', { name });
+                const path = await miscService.createDesktopShortcut(name);
                 if (outputLog)
                     outputLog.textContent += `  ✅ ${path}\n`;
                 created++;
@@ -1229,13 +1141,10 @@ async function askDesktopShortcuts(toolNames) {
     outputSection.appendChild(prompt);
 }
 export async function cancelOperation() {
-    const invoke = getInvoke();
-    if (invoke) {
-        try {
-            await invoke('cancel_operation');
-        }
-        catch (e) {
-            console.error('cancel failed:', e);
-        }
+    try {
+        await packageService.cancelOperation();
+    }
+    catch (e) {
+        console.error('cancel failed:', e);
     }
 }

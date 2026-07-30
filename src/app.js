@@ -1,4 +1,5 @@
-import { getInvoke, showToast } from './utils.js';
+import { showToast } from './utils.js';
+import { systemService, packageService, miscService } from './shared/services/index.js';
 import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, switchToPage, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, hideReportModal, } from './ui.js';
 import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, handleStartBackup, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './operations.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './network.js';
@@ -71,14 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('dev-github-link')?.addEventListener('click', async (e) => {
         e.preventDefault();
-        const invoke = getInvoke();
-        if (invoke) {
-            try {
-                await invoke('open_url', { url: 'https://github.com/Rafa-MKR2/solix' });
-            }
-            catch (err) {
-                window.open('https://github.com/Rafa-MKR2/solix', '_blank');
-            }
+        try {
+            await miscService.openUrl('https://github.com/Rafa-MKR2/solix');
+        }
+        catch (err) {
+            window.open('https://github.com/Rafa-MKR2/solix', '_blank');
         }
     });
     document.getElementById('test-ping-btn')?.addEventListener('click', handleTestPingClick);
@@ -102,11 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!btn)
             return;
         const toolName = btn.dataset.tool;
-        const invoke = getInvoke();
-        if (!invoke)
-            return;
         try {
-            const info = await invoke('get_package_info', { toolName });
+            const info = await packageService.getPackageInfo(toolName);
             document.getElementById('info-name').textContent = toolName;
             document.getElementById('info-package').textContent = info.package_name || toolName;
             document.getElementById('info-desc').textContent = info.description || 'N/A';
@@ -150,10 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('footer-check-link')?.addEventListener('click', handleCheckUpdateClick);
     document.getElementById('footer-update-btn')?.addEventListener('click', (e) => {
         e.preventDefault();
-        const invoke = getInvoke();
-        if (!invoke)
-            return;
-        invoke('check_app_update').then(info => {
+        systemService.checkAppUpdate().then(info => {
             if (info.update_available) {
                 showUpdateBanner(info);
             }
@@ -268,10 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!btn)
             return;
         try {
-            const invoke = getInvoke();
-            if (invoke) {
-                await invoke('open_url', { url: 'https://www.smartmontools.org/' });
-            }
+            await miscService.openUrl('https://www.smartmontools.org/');
         }
         catch (err) {
             console.error('open smartmontools url failed:', err);

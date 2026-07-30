@@ -4,6 +4,7 @@
 import type { AppUpdateInfo, PackageDetail } from './types.js';
 import { showToast } from './utils.js';
 import { systemService, packageService, miscService } from './shared/services/index.js';
+import { loadHomeStats, pollStats } from './features/home/index.js';
 import {
   setupNav,
   setupHelpTooltips,
@@ -16,8 +17,6 @@ import {
   handleProcessSortClick,
   handleProcessSearch,
   setRetryLastOperationFn,
-  loadHomeStats,
-  pollStats,
   loadProcesses,
   hideReportModal,
 } from './ui.js';

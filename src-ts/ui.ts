@@ -5,22 +5,7 @@ import type {
   AppUpdateInfo,
 } from './types.js';
 import { escapeHtml, showToast, setText } from './utils.js';
-import { diskService, processService, packageService, systemService } from './shared/services/index.js';
-
-export const CIRCUMFERENCE = 2 * Math.PI * 50;
-
-export function setGauge(id: string, valueId: string, percent: number, label: string): void {
-  const circle = document.getElementById(id) as SVGElement | null;
-  const value = document.getElementById(valueId);
-  if (!circle || !value) return;
-  const clamped = Math.min(100, Math.max(0, percent));
-  const offset = CIRCUMFERENCE - (clamped / 100) * CIRCUMFERENCE;
-  (circle as any).style.strokeDasharray = `${CIRCUMFERENCE}`;
-  (circle as any).style.strokeDashoffset = `${offset}`;
-  const hue = clamped > 80 ? 0 : clamped > 50 ? 30 : 160;
-  (circle as any).style.stroke = `hsl(${hue}, 80%, 50%)`;
-  value.textContent = label;
-}
+import { diskService, processService, packageService } from './shared/services/index.js';
 
 // ─── Disks ───
 
@@ -1027,63 +1012,4 @@ export function showUpdateProgress(stage: string, percent: number, message: stri
 
 
 
-// ─── Home Stats ───
 
-
-
-export async function loadHomeStats(): Promise<void> {
-  try {
-    const h = await systemService.getHomeStats();
-    const packagesEl = document.getElementById('stat-packages');
-    const updatesEl = document.getElementById('stat-updates');
-    const updatesSub = document.getElementById('stat-updates-sub');
-    const loadEl = document.getElementById('stat-load');
-    const swapEl = document.getElementById('stat-swap');
-    const swapSub = document.getElementById('stat-swap-sub');
-    const servicesEl = document.getElementById('stat-services');
-
-    if (packagesEl) packagesEl.textContent = h.packages_formatted;
-    if (updatesEl) {
-      if (h.updates_available > 0) {
-        updatesEl.textContent = h.updates_formatted;
-        updatesEl.style.color = '#e8c547';
-        if (updatesSub) updatesSub.textContent = 'disponíveis';
-      } else {
-        updatesEl.textContent = '✓';
-        updatesEl.style.color = '#4ae0a0';
-        if (updatesSub) updatesSub.textContent = 'sistema atualizado';
-      }
-    }
-    if (loadEl) loadEl.textContent = h.load_average;
-    if (swapEl) {
-      if (h.swap_percent > 0) {
-        swapEl.textContent = `${h.swap_used} / ${h.swap_total}`;
-        if (swapSub) swapSub.textContent = `${Math.round(h.swap_percent)}% usada`;
-      } else {
-        swapEl.textContent = '—';
-        if (swapSub) swapSub.textContent = 'sem swap ativo';
-      }
-    }
-    if (servicesEl) servicesEl.textContent = h.services_active;
-  } catch (e) {
-    console.error('loadHomeStats failed:', e);
-  }
-}
-
-// ─── Poll Stats ───
-
-
-
-export async function pollStats(): Promise<void> {
-  try {
-    const s = await systemService.getStats();
-    setGauge('gauge-cpu', 'gauge-cpu-value', s.cpu_percent, `${Math.round(s.cpu_percent)}%`);
-    setGauge('gauge-ram', 'gauge-ram-value', s.memory_percent, `${Math.round(s.memory_percent)}%`);
-    setGauge('gauge-temp', 'gauge-temp-value', s.temperature, `${Math.round(s.temperature)}°`);
-    setGauge('gauge-cpu-home', 'gauge-cpu-home-value', s.cpu_percent, `${Math.round(s.cpu_percent)}%`);
-    setGauge('gauge-ram-home', 'gauge-ram-home-value', s.memory_percent, `${Math.round(s.memory_percent)}%`);
-    setGauge('gauge-temp-home', 'gauge-temp-home-value', s.temperature, `${Math.round(s.temperature)}°`);
-  } catch (e) {
-    console.error('pollStats failed:', e);
-  }
-}

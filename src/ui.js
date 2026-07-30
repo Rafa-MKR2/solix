@@ -1,4 +1,5 @@
-import { getInvoke, escapeHtml, showToast } from './utils.js';
+import { escapeHtml, showToast } from './utils.js';
+import { diskService, processService, packageService, systemService } from './shared/services/index.js';
 export const CIRCUMFERENCE = 2 * Math.PI * 50;
 export function setGauge(id, valueId, percent, label) {
     const circle = document.getElementById(id);
@@ -23,11 +24,8 @@ function getBarColor(pct) {
     return 'red';
 }
 export async function handleOpenFileManager(mountPoint) {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        await invoke('open_file_manager', { path: mountPoint });
+        await diskService.openFileManager(mountPoint);
     }
     catch (e) {
         console.error('open_file_manager failed:', e);
@@ -35,9 +33,6 @@ export async function handleOpenFileManager(mountPoint) {
     }
 }
 export async function handleAnalyzeDisk(mountPoint) {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const modal = document.getElementById('disk-analysis-overlay');
     const list = document.getElementById('disk-analysis-list');
     const title = document.getElementById('disk-analysis-title');
@@ -48,7 +43,7 @@ export async function handleAnalyzeDisk(mountPoint) {
     list.innerHTML = '<div class="disk-analysis-loading">⏳ Escaneando pastas...</div>';
     modal.classList.remove('hidden');
     try {
-        const items = await invoke('analyze_disk_usage', { mountPoint });
+        const items = await diskService.analyzeUsage(mountPoint);
         if (title)
             title.textContent = `📂 ${mountPoint} — Pastas mais pesadas`;
         if (items.length === 0) {
@@ -79,9 +74,6 @@ export async function handleAnalyzeDisk(mountPoint) {
     }
 }
 export async function handleShowPartitions(device) {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const modal = document.getElementById('disk-analysis-overlay');
     const list = document.getElementById('disk-analysis-list');
     const title = document.getElementById('disk-analysis-title');
@@ -92,7 +84,7 @@ export async function handleShowPartitions(device) {
     list.innerHTML = '<div class="disk-analysis-loading">⏳ Carregando...</div>';
     modal.classList.remove('hidden');
     try {
-        const output = await invoke('get_partition_table', { device });
+        const output = await diskService.getPartitionTable(device);
         list.innerHTML = `<pre class="disk-partitions-output">${escapeHtml(output)}</pre>`;
     }
     catch (e) {
@@ -214,9 +206,6 @@ export function renderDisks(disks) {
     container.appendChild(table);
 }
 export async function handleShowSmartInfo(device) {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     const overlay = document.getElementById('smart-overlay');
     const loadingEl = document.getElementById('smart-loading');
     const healthSection = document.getElementById('smart-health-section');
@@ -240,7 +229,7 @@ export async function handleShowSmartInfo(device) {
         titleEl.textContent = `🩺 Saúde: /dev/${device}`;
     overlay.classList.remove('hidden');
     try {
-        const info = await invoke('get_disk_smart_info', { device });
+        const info = await diskService.getSmartInfo(device);
         if (loadingEl)
             loadingEl.style.display = 'none';
         if (commandsSection && info.commands_used?.length > 0) {
@@ -356,7 +345,8 @@ export function showBackupModal(mountPoint) {
     const destInput = document.getElementById('backup-destination');
     if (destInput) {
         if (mountPoint === '/home') {
-            destInput.value = '/home/rafaeldc/backups';
+            destInput.placeholder = 'ex: /home/seu usuario/backups';
+            destInput.value = '';
         }
         else if (mountPoint === '/') {
             destInput.value = '/root/backups';
@@ -521,11 +511,8 @@ export function loadProcesses() {
     return fetchProcesses();
 }
 async function fetchProcesses() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        const list = await invoke('get_processes');
+        const list = await processService.getProcesses();
         processList = list;
         renderProcesses();
     }
@@ -605,11 +592,8 @@ export async function showLockDiagnosis() {
         spinnerEl.classList.remove('hidden');
     if (infoEl)
         infoEl.textContent = '🔍 Detectando...';
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        const lockInfo = await invoke('check_pm_lock');
+        const lockInfo = await packageService.checkPmLock();
         if (spinnerEl)
             spinnerEl.classList.add('hidden');
         if (infoEl) {
@@ -637,21 +621,20 @@ export function setupLockActions() {
     document.querySelectorAll('.lock-action-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const action = btn.dataset.action;
-            const invoke = getInvoke();
             switch (action) {
                 case 'pamac':
-                    showToast('info', 'Feche o Pamac manualmente ou execute: pkill pamac');
+                    showToast('info', 'Fechando Pamac...');
                     try {
-                        await invoke('run_simple_command', { command: 'pkill -f pamac 2>/dev/null; pkill -f pamac-manager 2>/dev/null; echo done' });
+                        await processService.killProcess('pamac');
                     }
                     catch (e) {
                         console.error(e);
                     }
                     break;
                 case 'discover':
-                    showToast('info', 'Feche o Discover manualmente ou execute: pkill discover');
+                    showToast('info', 'Fechando Discover...');
                     try {
-                        await invoke('run_simple_command', { command: 'pkill -f discover 2>/dev/null; echo done' });
+                        await processService.killProcess('discover');
                     }
                     catch (e) {
                         console.error(e);
@@ -660,23 +643,14 @@ export function setupLockActions() {
                 case 'terminals':
                     showToast('info', 'Feche terminais rodando pacman/apt/dnf');
                     break;
-                case 'restart-pm': {
-                    const pmEl = document.getElementById('distro-pm');
-                    const pm = pmEl?.textContent?.trim().toLowerCase() || 'pacman';
-                    try {
-                        await invoke('run_simple_command', { command: `sudo systemctl restart ${pm} 2>/dev/null; echo done` });
-                        showToast('info', `Comando executado: sudo systemctl restart ${pm}`);
-                    }
-                    catch (e) {
-                        showToast('error', 'Não foi possível reiniciar o gerenciador');
-                    }
+                case 'restart-pm':
+                    showToast('info', 'Para reiniciar o gerenciador, execute no terminal: sudo systemctl restart <pm>');
                     break;
-                }
                 case 'kill-lock': {
                     if (!confirm('Remover o arquivo de trava manualmente pode corromper o banco de dados do gerenciador. Tem certeza?'))
                         return;
                     try {
-                        await invoke('run_simple_command', { command: 'sudo rm -f /var/lib/pacman/db.lck /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock 2>/dev/null; echo done' });
+                        await processService.removeLockFiles();
                         showToast('success', 'Trava removida. Tente novamente.');
                     }
                     catch (e) {
@@ -1026,11 +1000,8 @@ export function showUpdateProgress(stage, percent, message) {
         textEl.textContent = percent + '%';
 }
 export async function loadHomeStats() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        const h = await invoke('get_home_stats');
+        const h = await systemService.getHomeStats();
         const packagesEl = document.getElementById('stat-packages');
         const updatesEl = document.getElementById('stat-updates');
         const updatesSub = document.getElementById('stat-updates-sub');
@@ -1076,11 +1047,8 @@ export async function loadHomeStats() {
     }
 }
 export async function pollStats() {
-    const invoke = getInvoke();
-    if (!invoke)
-        return;
     try {
-        const s = await invoke('get_system_stats');
+        const s = await systemService.getStats();
         setGauge('gauge-cpu', 'gauge-cpu-value', s.cpu_percent, `${Math.round(s.cpu_percent)}%`);
         setGauge('gauge-ram', 'gauge-ram-value', s.memory_percent, `${Math.round(s.memory_percent)}%`);
         setGauge('gauge-temp', 'gauge-temp-value', s.temperature, `${Math.round(s.temperature)}°`);
