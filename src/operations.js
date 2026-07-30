@@ -1,4 +1,6 @@
 import { getInvoke, showToast, setText } from './utils.js';
+import { showConfetti } from './animations.js';
+import { renderScriptAnalysis } from './ui.js';
 import { renderTools, renderDisks, selectedTools, removedTools, showLockDiagnosis, switchToPage, showUpdateBanner, showUpdateProgress, hideUpdateModal, } from './ui.js';
 export let toolStatuses = [];
 export let systemDistro = '';
@@ -272,6 +274,15 @@ async function executePending() {
             const failed = Array.isArray(result) ? result.filter(r => !r.success) : [];
             if (failed.length === 0) {
                 showToast('success', isUpdate ? 'Sistema atualizado!' : isZram ? 'ZRAM ativado!' : isCleanup ? 'Limpeza concluída!' : 'Operação concluída!');
+                if (isInstall) {
+                    showConfetti(3000);
+                }
+                if (isInstall && Array.isArray(result)) {
+                    const installedTools = result.filter(r => r.success && r.tool_name);
+                    if (installedTools.length > 0) {
+                        setTimeout(() => askDesktopShortcuts(installedTools.map(r => r.tool_name)), 500);
+                    }
+                }
             }
             else {
                 showToast('error', `Falha em ${failed.length} item(ns)`);
@@ -544,6 +555,9 @@ export async function handleCheckUpdateClick() {
         checkLink.textContent = '🔍 Verificar atualizações';
     }
 }
+import { showReportModal, hideReportModal } from './ui.js';
+let lastReportText = '';
+let lastIssueUrl = '';
 export async function reportProblem() {
     const invoke = getInvoke();
     if (!invoke)
@@ -558,41 +572,138 @@ export async function reportProblem() {
         const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
         const report = [
             '📋 Relatório do Solix — v' + info.app_version,
-            '━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
             '',
-            '🖥️ Sistema',
-            '  Distribuição: ' + info.distro_name,
-            '  Versão: ' + info.distro_version,
-            '  Kernel: ' + info.kernel,
-            '  Gerenciador: ' + info.package_manager,
+            '🖥️  SISTEMA',
+            '  Distribuição : ' + info.distro_name + ' ' + info.distro_version,
+            '  Kernel       : ' + info.kernel,
+            '  Pacotes      : ' + info.package_manager,
             '',
-            '📊 Desempenho',
-            '  CPU: ' + Math.round(info.cpu_percent) + '%',
-            '  RAM: ' + Math.round(info.memory_percent) + '%',
-            '  Temperatura: ' + Math.round(info.temperature) + '°C',
+            '📊  DESEMPENHO (no momento do relatório)',
+            '  CPU    : ' + Math.round(info.cpu_percent) + '%',
+            '  RAM    : ' + Math.round(info.memory_percent) + '%',
+            '  Temp.  : ' + Math.round(info.temperature) + '°C',
             '',
-            '📜 Última operação:',
-            logText,
+            '📜  ÚLTIMA OPERAÇÃO',
+            '  ' + logText.replace(/\n/g, '\n  '),
             '',
-            '🕐 Gerado em: ' + now,
+            '🕐  Gerado em: ' + now,
         ].join('\n');
-        const body = encodeURIComponent('## Descrição do problema\n\n' +
-            '(Descreva aqui o que aconteceu)\n\n' +
-            '---\n' +
-            '```\n' + report + '\n```');
-        window.open('https://github.com/Rafa-MKR2/solix/issues/new?body=' + body, '_blank');
+        lastReportText = report;
+        lastIssueUrl = 'https://github.com/Rafa-MKR2/solix/issues/new?body=' +
+            encodeURIComponent('## Descrição do problema\n\n' +
+                '(Descreva aqui o que aconteceu)\n\n' +
+                '---\n' +
+                '```\n' + report + '\n```');
+        showReportModal(report);
         if (btn)
-            btn.textContent = '✅ Aberto!';
-        setTimeout(() => {
-            if (btn)
-                btn.textContent = '🐛 Reportar Problema';
-        }, 3000);
+            btn.textContent = '🐛 Reportar Problema';
     }
     catch (e) {
         console.error('reportProblem failed:', e);
         showToast('error', 'Erro ao gerar relatório.');
         if (btn)
             btn.textContent = '🐛 Reportar Problema';
+    }
+}
+export function handleCopyReport() {
+    if (!lastReportText)
+        return;
+    navigator.clipboard.writeText(lastReportText).then(() => {
+        const resultEl = document.getElementById('report-result');
+        const resultText = document.getElementById('report-result-text');
+        const resultIcon = document.getElementById('report-result-icon');
+        if (resultIcon)
+            resultIcon.textContent = '✅';
+        if (resultEl)
+            resultEl.classList.remove('hidden');
+        if (resultText)
+            resultText.textContent = '📋 Relatório copiado! Cole onde quiser.';
+        setTimeout(() => {
+            if (resultEl)
+                resultEl.classList.add('hidden');
+        }, 3000);
+        showToast('success', 'Relatório copiado para a área de transferência!');
+    }).catch(() => {
+        const textEl = document.getElementById('report-text');
+        if (textEl) {
+            const range = document.createRange();
+            range.selectNodeContents(textEl);
+            const sel = window.getSelection();
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+            showToast('info', 'Selecione o texto e copie (Ctrl+C)');
+        }
+    });
+}
+export async function handleOpenIssue() {
+    if (!lastIssueUrl)
+        return;
+    const invoke = getInvoke();
+    if (!invoke) {
+        window.open(lastIssueUrl, '_blank');
+        hideReportModal();
+        return;
+    }
+    try {
+        await invoke('open_url', { url: lastIssueUrl });
+        hideReportModal();
+        showToast('success', '✅ GitHub aberto no navegador! Descreva o problema e envie.');
+    }
+    catch (e) {
+        console.error('open_url failed:', e);
+        showToast('error', 'Erro ao abrir o GitHub. Copie o relatório e abra manualmente.');
+    }
+}
+export async function handleSaveReport() {
+    if (!lastReportText)
+        return;
+    const invoke = getInvoke();
+    if (!invoke) {
+        showToast('error', 'Não foi possível salvar o relatório.');
+        return;
+    }
+    try {
+        const filePath = await invoke('save_report_to_desktop', { content: lastReportText });
+        showToast('success', `💾 Relatório salvo! ${filePath}`);
+        const resultEl = document.getElementById('report-result');
+        const resultText = document.getElementById('report-result-text');
+        if (resultEl)
+            resultEl.classList.remove('hidden');
+        if (resultText)
+            resultText.textContent = `💾 Salvo em: ${filePath.split('/').pop()}`;
+        setTimeout(() => {
+            if (resultEl)
+                resultEl.classList.add('hidden');
+        }, 4000);
+    }
+    catch (e) {
+        console.error('save_report_to_desktop failed:', e);
+        showToast('error', 'Erro ao salvar relatório: ' + (e + ''));
+    }
+}
+export async function handleEmailReport() {
+    if (!lastReportText)
+        return;
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    const subject = encodeURIComponent('Relatório Solix - Problema');
+    const body = encodeURIComponent('Relatório do sistema gerado pelo Solix\n\n' +
+        '---\n\n' +
+        lastReportText +
+        '\n\n---\n\n' +
+        'Descreva seu problema acima.\n' +
+        'Obrigado por ajudar a melhorar o Solix!');
+    const mailto = `mailto:rafaeldocarmo.dev@gmail.com?subject=${subject}&body=${body}`;
+    try {
+        await invoke('open_url', { url: mailto });
+        hideReportModal();
+        showToast('success', '📧 Cliente de email aberto! Envie o relatório para o desenvolvedor.');
+    }
+    catch (e) {
+        console.error('open_url mailto failed:', e);
+        showToast('error', 'Erro ao abrir cliente de email. Copie o relatório e envie manualmente para rafaeldocarmo.dev@gmail.com');
     }
 }
 let selectedInstalledPkgs = new Set();
@@ -884,6 +995,178 @@ export function updateRecommendedCount() {
     const el = document.getElementById('pkg-recommended-count');
     if (el)
         el.textContent = `${installed}/${total}`;
+}
+export async function handleScriptDrop(file) {
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    const resultEl = document.getElementById('script-result');
+    if (!resultEl)
+        return;
+    if (!file) {
+        resultEl.classList.add('hidden');
+        return;
+    }
+    const summaryEl = document.getElementById('script-summary');
+    const commandsEl = document.getElementById('script-commands');
+    if (summaryEl)
+        summaryEl.innerHTML = '<div class="script-loading">⏳ Analisando script...</div>';
+    if (commandsEl)
+        commandsEl.innerHTML = '';
+    resultEl.classList.remove('hidden');
+    try {
+        const text = await readFileAsText(file);
+        const analysis = await invoke('analyze_script', { content: text });
+        renderScriptAnalysis(analysis);
+    }
+    catch (e) {
+        console.error('analyze_script failed:', e);
+        if (summaryEl)
+            summaryEl.innerHTML = `<div class="script-loading" style="color:#e88">❌ Erro ao analisar script: ${e}</div>`;
+    }
+}
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject('Erro ao ler arquivo');
+        reader.readAsText(file);
+    });
+}
+export async function handleStartBackup() {
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    const source = document.getElementById('backup-source')?.textContent || '';
+    const destInput = document.getElementById('backup-destination');
+    const destination = destInput?.value?.trim() || '';
+    if (!source || !destination) {
+        showToast('error', 'Selecione uma origem e destino para o backup.');
+        return;
+    }
+    const progressEl = document.getElementById('backup-progress');
+    const resultEl = document.getElementById('backup-result');
+    const statusEl = document.getElementById('backup-progress-status');
+    const fillEl = document.getElementById('backup-progress-fill');
+    const textEl = document.getElementById('backup-progress-text');
+    const startBtn = document.getElementById('backup-start-btn');
+    const cancelBtn = document.getElementById('backup-cancel-btn');
+    if (progressEl)
+        progressEl.classList.remove('hidden');
+    if (resultEl)
+        resultEl.classList.add('hidden');
+    if (statusEl)
+        statusEl.textContent = '⏳ Comprimindo...';
+    if (fillEl)
+        fillEl.style.width = '0%';
+    if (textEl)
+        textEl.textContent = '0%';
+    if (startBtn)
+        startBtn.disabled = true;
+    if (cancelBtn)
+        cancelBtn.textContent = '⏳';
+    const mountPoint = source;
+    try {
+        const result = await invoke('create_backup', {
+            source,
+            destination,
+            mountPoint,
+        });
+        if (result.success) {
+            if (statusEl)
+                statusEl.textContent = '✅ Backup concluído!';
+            if (fillEl)
+                fillEl.style.width = '100%';
+            if (textEl)
+                textEl.textContent = '100%';
+            if (resultEl) {
+                resultEl.classList.remove('hidden');
+                document.getElementById('backup-result-title').textContent = '✅ Backup concluído!';
+                document.getElementById('backup-result-sub').textContent =
+                    `${result.file_size} • ${result.duration_secs}s • ${result.file_path}`;
+            }
+            showToast('success', `Backup criado: ${result.file_size}`);
+        }
+        else {
+            throw new Error(result.error || 'Erro desconhecido');
+        }
+    }
+    catch (e) {
+        const msg = (e + '') || 'Erro ao criar backup';
+        if (statusEl)
+            statusEl.textContent = '❌ ' + msg;
+        if (fillEl)
+            fillEl.style.width = '0%';
+        if (resultEl) {
+            resultEl.classList.remove('hidden');
+            document.getElementById('backup-result-title').textContent = '❌ Falha no backup';
+            document.getElementById('backup-result-sub').textContent = msg;
+        }
+        showToast('error', msg);
+    }
+    finally {
+        if (startBtn)
+            startBtn.disabled = false;
+        if (cancelBtn)
+            cancelBtn.textContent = 'Cancelar';
+    }
+}
+async function askDesktopShortcuts(toolNames) {
+    if (toolNames.length === 0)
+        return;
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    const outputLog = document.getElementById('output-log');
+    const outputSection = document.getElementById('output-section');
+    if (!outputSection)
+        return;
+    if (outputLog) {
+        outputLog.textContent += `\n🪄 Create desktop shortcuts?\n`;
+    }
+    const existing = document.getElementById('shortcut-prompt');
+    if (existing)
+        existing.remove();
+    const prompt = document.createElement('div');
+    prompt.id = 'shortcut-prompt';
+    prompt.style.cssText = 'display:flex;align-items:center;gap:0.6rem;margin-top:0.5rem;padding:0.6rem 0.8rem;background:#1a1a32;border:1px solid #3a3a5a;border-radius:8px;font-size:0.85rem;';
+    const count = toolNames.length;
+    const label = document.createElement('span');
+    label.textContent = `🪄 Create desktop shortcuts for ${count} app(s): ${toolNames.join(', ')}?`;
+    label.style.cssText = 'color:#ccc;flex:1;';
+    const yesBtn = document.createElement('button');
+    yesBtn.textContent = '✅ Yes';
+    yesBtn.style.cssText = 'padding:0.3rem 0.8rem;background:#0f2a1a;border:1px solid #2a5a3a;border-radius:6px;color:#4ae0a0;cursor:pointer;font-size:0.8rem;';
+    yesBtn.addEventListener('click', async () => {
+        prompt.innerHTML = '<span style="color:#4ae0a0">⏳ Creating shortcuts...</span>';
+        let created = 0;
+        for (const name of toolNames) {
+            try {
+                const path = await invoke('create_desktop_shortcut', { name });
+                if (outputLog)
+                    outputLog.textContent += `  ✅ ${path}\n`;
+                created++;
+            }
+            catch (e) {
+                if (outputLog)
+                    outputLog.textContent += `  ❌ ${name}: ${e}\n`;
+            }
+        }
+        prompt.innerHTML = `<span style="color:#4ae0a0">✅ ${created}/${count} shortcut(s) created!</span>`;
+        setTimeout(() => prompt.remove(), 4000);
+    });
+    const noBtn = document.createElement('button');
+    noBtn.textContent = '❌ No';
+    noBtn.style.cssText = 'padding:0.3rem 0.8rem;background:#2a1a1a;border:1px solid #5a2a2a;border-radius:6px;color:#e88;cursor:pointer;font-size:0.8rem;';
+    noBtn.addEventListener('click', () => {
+        if (outputLog)
+            outputLog.textContent += `  Skipped shortcut creation\n`;
+        prompt.remove();
+    });
+    prompt.appendChild(label);
+    prompt.appendChild(yesBtn);
+    prompt.appendChild(noBtn);
+    outputSection.appendChild(prompt);
 }
 export async function cancelOperation() {
     const invoke = getInvoke();

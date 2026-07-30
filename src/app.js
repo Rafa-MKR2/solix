@@ -1,6 +1,6 @@
 import { getInvoke, showToast } from './utils.js';
-import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, switchToPage, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './operations.js';
+import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, switchToPage, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, hideReportModal, } from './ui.js';
+import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, handleStartBackup, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, handleScriptDrop, } from './operations.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './network.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
@@ -59,9 +59,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 150);
     });
     document.getElementById('report-btn')?.addEventListener('click', reportProblem);
-    document.getElementById('dev-github-link')?.addEventListener('click', (e) => {
+    document.getElementById('report-overlay-close')?.addEventListener('click', hideReportModal);
+    document.getElementById('report-close-btn')?.addEventListener('click', hideReportModal);
+    document.getElementById('report-copy-btn')?.addEventListener('click', handleCopyReport);
+    document.getElementById('report-save-btn')?.addEventListener('click', handleSaveReport);
+    document.getElementById('report-email-btn')?.addEventListener('click', handleEmailReport);
+    document.getElementById('report-github-btn')?.addEventListener('click', handleOpenIssue);
+    document.getElementById('report-overlay')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget)
+            hideReportModal();
+    });
+    document.getElementById('dev-github-link')?.addEventListener('click', async (e) => {
         e.preventDefault();
-        window.open('https://github.com/Rafa-MKR2/solix', '_blank');
+        const invoke = getInvoke();
+        if (invoke) {
+            try {
+                await invoke('open_url', { url: 'https://github.com/Rafa-MKR2/solix' });
+            }
+            catch (err) {
+                window.open('https://github.com/Rafa-MKR2/solix', '_blank');
+            }
+        }
     });
     document.getElementById('test-ping-btn')?.addEventListener('click', handleTestPingClick);
     document.getElementById('test-speed-btn')?.addEventListener('click', handleTestSpeedClick);
@@ -225,10 +243,59 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
         showPasswordModal({ type: 'install-package' });
     });
+    document.getElementById('backup-start-btn')?.addEventListener('click', handleStartBackup);
+    document.getElementById('backup-cancel-btn')?.addEventListener('click', () => {
+        document.getElementById('backup-overlay')?.classList.add('hidden');
+    });
+    document.getElementById('backup-close-btn')?.addEventListener('click', () => {
+        document.getElementById('backup-overlay')?.classList.add('hidden');
+    });
     document.getElementById('pkg-clear-btn')?.addEventListener('click', () => {
         if (pkgFileInput)
             pkgFileInput.value = '';
         handlePkgFileSelect(null);
+    });
+    const scriptFileInput = document.getElementById('script-file-input');
+    const scriptUploadArea = document.getElementById('script-upload-area');
+    scriptFileInput?.addEventListener('change', () => {
+        const file = scriptFileInput.files?.[0] || null;
+        handleScriptDrop(file);
+    });
+    scriptUploadArea?.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'INPUT') {
+            scriptFileInput?.click();
+        }
+    });
+    scriptUploadArea?.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        scriptUploadArea.classList.add('drag-over');
+    });
+    scriptUploadArea?.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        scriptUploadArea.classList.add('drag-over');
+    });
+    scriptUploadArea?.addEventListener('dragleave', (e) => {
+        const related = e.relatedTarget;
+        if (!related || !scriptUploadArea.contains(related)) {
+            scriptUploadArea.classList.remove('drag-over');
+        }
+    });
+    scriptUploadArea?.addEventListener('drop', (e) => {
+        e.preventDefault();
+        scriptUploadArea.classList.remove('drag-over');
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            if (scriptFileInput) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                scriptFileInput.files = dt.files;
+                scriptFileInput.dispatchEvent(new Event('change'));
+            }
+            else {
+                handleScriptDrop(file);
+            }
+        }
     });
     loadInstalledPackages();
 });

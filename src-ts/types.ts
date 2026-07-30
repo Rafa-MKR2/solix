@@ -214,6 +214,29 @@ export interface BackupResult {
   error: string | null;
 }
 
+export interface ScriptCommand {
+  line: number;
+  content: string;
+  command: string;
+  description: string;
+  risk: string;
+  category: string;
+  requires_review: boolean;
+}
+
+export interface ScriptAnalysis {
+  summary: string;
+  total_lines: number;
+  command_count: number;
+  risk_level: string;
+  commands: ScriptCommand[];
+  has_sudo: boolean;
+  has_install: boolean;
+  has_download_execute: boolean;
+  has_dangerous: boolean;
+  ai_explanation: string | null;
+}
+
 export interface BackupProgress {
   stage: string;
   message: string;

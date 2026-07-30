@@ -45,6 +45,7 @@ import {
   handleOpenIssue,
   handleSaveReport,
   handleEmailReport,
+  handleScriptDrop,
 } from './operations.js';
 import {
   loadConnectivity,
@@ -322,6 +323,53 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pkg-clear-btn')?.addEventListener('click', () => {
     if (pkgFileInput) pkgFileInput.value = '';
     handlePkgFileSelect(null);
+  });
+
+  // ─── Script Analyzer ───
+
+  const scriptFileInput = document.getElementById('script-file-input') as HTMLInputElement | null;
+  const scriptUploadArea = document.getElementById('script-upload-area');
+
+  scriptFileInput?.addEventListener('change', () => {
+    const file = scriptFileInput.files?.[0] || null;
+    handleScriptDrop(file);
+  });
+
+  scriptUploadArea?.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).tagName !== 'INPUT') {
+      scriptFileInput?.click();
+    }
+  });
+
+  scriptUploadArea?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    scriptUploadArea.classList.add('drag-over');
+  });
+  scriptUploadArea?.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    scriptUploadArea.classList.add('drag-over');
+  });
+  scriptUploadArea?.addEventListener('dragleave', (e) => {
+    const related = e.relatedTarget as Node | null;
+    if (!related || !scriptUploadArea.contains(related)) {
+      scriptUploadArea.classList.remove('drag-over');
+    }
+  });
+  scriptUploadArea?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    scriptUploadArea.classList.remove('drag-over');
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (scriptFileInput) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        scriptFileInput.files = dt.files;
+        scriptFileInput.dispatchEvent(new Event('change'));
+      } else {
+        handleScriptDrop(file);
+      }
+    }
   });
 
   // Load installed packages on initial page load

@@ -7,8 +7,11 @@ import type {
   AppUpdateInfo,
   UpdateProgress,
   PendingAction,
+  ScriptAnalysis,
 } from './types.js';
 import { getInvoke, showToast, setText } from './utils.js';
+import { showConfetti } from './animations.js';
+import { renderScriptAnalysis } from './ui.js';
 import {
   renderTools,
   renderDisks,
@@ -271,6 +274,10 @@ async function executePending(): Promise<void> {
       const failed = Array.isArray(result) ? result.filter(r => !r.success) : [];
       if (failed.length === 0) {
         showToast('success', isUpdate ? 'Sistema atualizado!' : isZram ? 'ZRAM ativado!' : isCleanup ? 'Limpeza concluída!' : 'Operação concluída!');
+        // 🎉 Confetti on successful install!
+        if (isInstall) {
+          showConfetti(3000);
+        }
         // Ask about desktop shortcuts after successful install
         if (isInstall && Array.isArray(result)) {
           const installedTools = result.filter(r => r.success && r.tool_name);
@@ -977,6 +984,46 @@ export function updateRecommendedCount(): void {
   const total = toolStatuses.length;
   const el = document.getElementById('pkg-recommended-count');
   if (el) el.textContent = `${installed}/${total}`;
+}
+
+// ─── Script Analyzer ───
+
+export async function handleScriptDrop(file: File | null): Promise<void> {
+  const invoke = getInvoke();
+  if (!invoke) return;
+
+  const resultEl = document.getElementById('script-result');
+  if (!resultEl) return;
+
+  if (!file) {
+    resultEl.classList.add('hidden');
+    return;
+  }
+
+  // Show loading
+  const summaryEl = document.getElementById('script-summary');
+  const commandsEl = document.getElementById('script-commands');
+  if (summaryEl) summaryEl.innerHTML = '<div class="script-loading">⏳ Analisando script...</div>';
+  if (commandsEl) commandsEl.innerHTML = '';
+  resultEl.classList.remove('hidden');
+
+  try {
+    const text = await readFileAsText(file);
+    const analysis = await invoke<ScriptAnalysis>('analyze_script', { content: text });
+    renderScriptAnalysis(analysis);
+  } catch (e) {
+    console.error('analyze_script failed:', e);
+    if (summaryEl) summaryEl.innerHTML = `<div class="script-loading" style="color:#e88">❌ Erro ao analisar script: ${e}</div>`;
+  }
+}
+
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject('Erro ao ler arquivo');
+    reader.readAsText(file);
+  });
 }
 
 // ─── Backup ───

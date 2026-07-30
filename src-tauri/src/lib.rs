@@ -16,6 +16,7 @@ mod system_ops;
 mod tool;
 mod backup;
 mod package_manager;
+mod script_analyzer;
 mod updater;
 mod user;
 mod util;
@@ -502,6 +503,16 @@ async fn create_backup(source: String, destination: String, mount_point: String)
     backup::create_backup(&source, &destination, &mount_point).await
 }
 
+#[tauri::command]
+async fn analyze_script(content: String) -> Result<script_analyzer::ScriptAnalysis, String> {
+    let analysis = tokio::task::spawn_blocking(move || {
+        script_analyzer::analyze_script(&content)
+    })
+    .await
+    .map_err(|_| "Erro ao analisar script".to_string())?;
+    Ok(analysis)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -584,6 +595,7 @@ pub fn run() {
     remove_system_packages,
     install_repo_packages,
     create_backup,
+    analyze_script,
     save_report_to_desktop,
     create_desktop_shortcut,
 ])

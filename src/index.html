@@ -41,6 +41,10 @@
         <span class="nav-icon">📦</span>
         <span class="nav-label">Pacotes</span>
       </div>
+      <div class="nav-item" data-page="analisador">
+        <span class="nav-icon">📜</span>
+        <span class="nav-label">Analisar</span>
+      </div>
       <div class="nav-item" data-page="desenvolvedor">
         <span class="nav-icon">🧑‍💻</span>
         <span class="nav-label">Desenvolvedor</span>
@@ -514,6 +518,24 @@
         <div id="pkg-history-list" class="pkg-table-wrap">
           <div class="pkg-loading">⏳ Carregando histórico...</div>
         </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-analisador">
+      <h2 class="section-title">📜 Analisar Script <span class="help-tip" data-help="section-analisador">ⓘ</span></h2>
+
+      <div class="script-upload-area" id="script-upload-area">
+        <input type="file" id="script-file-input" accept=".sh,.bash" class="script-file-input" />
+        <label for="script-file-input" class="script-file-label">
+          <span class="script-upload-icon">📂</span>
+          <span class="script-upload-text">Clique ou arraste um script .sh aqui</span>
+          <span class="script-upload-sub">Analisamos cada comando e explicamos o que ele faz em português</span>
+        </label>
+      </div>
+
+      <div id="script-result" class="script-result-wrap hidden">
+        <div id="script-summary" class="script-summary"></div>
+        <div id="script-commands" class="script-commands-list"></div>
       </div>
     </div>
 
