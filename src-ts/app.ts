@@ -9,9 +9,6 @@ import {
   setupNav,
   setupHelpTooltips,
   setupLockActions,
-  renderTools,
-  selectedTools,
-  removedTools,
   switchToPage,
   showUpdateBanner,
   handleProcessSortClick,
@@ -49,6 +46,7 @@ import {
   clearScriptAnalysis,
 } from './operations.js';
 import { handleShowSmartInfo, handleStartBackup } from './features/disks/index.js';
+import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
 import {
   loadConnectivity,
   loadExternalInfo,

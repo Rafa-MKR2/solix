@@ -10,11 +10,8 @@ import { systemService, packageService, miscService, scriptService } from './sha
 import { showConfetti } from './animations.js';
 import { renderScriptAnalysis } from './ui.js';
 import { renderDisks } from './features/disks/index.js';
+import { renderTools, selectedTools, removedTools, updateButtons } from './features/tools/index.js';
 import {
-  renderTools,
-  selectedTools,
-  removedTools,
-  updateButtons,
   showLockDiagnosis,
   switchToPage,
   showUpdateBanner,
