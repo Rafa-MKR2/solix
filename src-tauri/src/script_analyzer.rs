@@ -2,7 +2,6 @@
 // Copyright (c) 2025 Rafa-MKR2
 
 use serde::Serialize;
-use std::collections::HashMap;
 
 /// The overall risk level of a script analysis
 #[derive(Debug, Serialize, Clone)]
@@ -19,6 +18,7 @@ pub enum ScriptRisk {
 pub enum ScriptType {
     Shell,
     Python,
+    #[allow(dead_code)]
     Unknown,
 }
 
@@ -238,7 +238,7 @@ fn analyze_python_line(line: &str, line_no: u32) -> Option<ScriptCommand> {
     let trimmed = line.trim();
     if trimmed.is_empty() || trimmed.starts_with('#') { return None; }
 
-    let mut cmd = |command: &str, desc: &str, risk: &str, cat: &str, review: bool| -> Option<ScriptCommand> {
+    let cmd = |command: &str, desc: &str, risk: &str, cat: &str, review: bool| -> Option<ScriptCommand> {
         Some(ScriptCommand {
             line: line_no, content: trimmed.to_string(), command: command.to_string(),
             description: desc.to_string(), risk: risk.to_string(),

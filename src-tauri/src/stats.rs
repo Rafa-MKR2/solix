@@ -797,7 +797,7 @@ mod tests {
     #[test]
     fn test_get_swap_info_zero_total() {
         // When no meminfo, swap should be zero
-        let (used, total, pct) = get_swap_info();
+        let (used, _total, pct) = get_swap_info();
         // This reads from /proc/meminfo so results vary, just ensure it returns
         assert!(!used.is_empty() || used == "0 KB");
         assert!(pct >= 0.0);

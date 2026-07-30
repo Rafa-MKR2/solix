@@ -419,7 +419,7 @@ async fn get_disk_smart_info(device: String, password: Option<String>) -> Result
     // Check if device supports SMART
     let info_output = run_sudo_smartctl(&["-i"], &device_path, &pwd).await?;
     let info_text = String::from_utf8_lossy(&info_output.stdout);
-    let info_stderr = String::from_utf8_lossy(&info_output.stderr);
+    let _info_stderr = String::from_utf8_lossy(&info_output.stderr);
 
     if info_text.contains("Unknown USB bridge") || info_text.contains("device lacks SMART capability") {
         return Ok(SmartInfo {

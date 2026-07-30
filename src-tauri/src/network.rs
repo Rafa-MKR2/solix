@@ -627,7 +627,6 @@ mod tests {
 
     #[test]
     fn test_format_speed_exact_10mbps() {
-        let (mbps, fmt) = format_speed(1_250_000.0 * 8.0 / 8.0); // 10 Mbps = 1,250,000 B/s
         let bps = 1_250_000.0;
         let (mbps, fmt) = format_speed(bps);
         assert!((mbps - 10.0).abs() < 0.01);

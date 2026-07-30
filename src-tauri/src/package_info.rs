@@ -615,7 +615,7 @@ Version: 123.0
 Installed-Size: 51200
 Description: Navegador web Firefox
 ";
-        let (ver, size, desc) = parse_pm_output("apt", output);
+        let (_ver, _size, desc) = parse_pm_output("apt", output);
         assert_eq!(desc, "Navegador web Firefox");
     }
 
@@ -662,7 +662,7 @@ Arch: x86_64
     #[test]
     fn test_parse_pm_output_whitespace_handling() {
         let output = "  Version   :   2.0  \n  Description   :   A  test  \n";
-        let (ver, size, desc) = parse_pm_output("pacman", output);
+        let (ver, _size, desc) = parse_pm_output("pacman", output);
         assert_eq!(ver, "2.0");
         assert_eq!(desc, "A  test");
     }
