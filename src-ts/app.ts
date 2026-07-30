@@ -31,12 +31,6 @@ import {
   setupProgressListener,
   setupUpdateListener,
   toolStatuses,
-  handlePkgFileSelect,
-  loadInstalledPackages,
-  handleRemovePackages,
-  handleSearchRepoPackages,
-  handleInstallRepoPackages,
-  loadPackageHistory,
   handleCopyReport,
   handleOpenIssue,
   handleSaveReport,
@@ -47,6 +41,14 @@ import {
 } from './operations.js';
 import { handleShowSmartInfo, handleStartBackup } from './features/disks/index.js';
 import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
+import {
+  handlePkgFileSelect,
+  loadInstalledPackages,
+  handleRemovePackages,
+  handleSearchRepoPackages,
+  handleInstallRepoPackages,
+  loadPackageHistory,
+} from './features/packages/index.js';
 import {
   loadConnectivity,
   loadExternalInfo,
