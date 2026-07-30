@@ -807,7 +807,10 @@ export function renderScriptAnalysis(analysis) {
     const riskLevel = analysis.risk_level;
     const riskIcon = riskLevel === 'danger' ? '☠️' : riskLevel === 'warning' ? '⚠️' : riskLevel === 'medium' ? '⚡' : '✅';
     const riskLabel = riskLevel === 'danger' ? 'Alto Risco' : riskLevel === 'warning' ? 'Cuidado' : riskLevel === 'medium' ? 'Médio' : 'Seguro';
+    const scriptTypeEmoji = analysis.script_type === 'python' ? '🐍' : '📜';
+    const scriptTypeLabel = analysis.script_type === 'python' ? 'Python' : 'Shell Script';
     const statsTags = [
+        `<span class="script-stat-tag neutral">${scriptTypeEmoji} ${scriptTypeLabel}</span>`,
         `<span class="script-stat-tag neutral">📄 ${analysis.command_count} comandos</span>`,
         `<span class="script-stat-tag neutral">📏 ${analysis.total_lines} linhas</span>`,
     ];

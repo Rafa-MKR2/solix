@@ -1,6 +1,6 @@
 import { getInvoke, showToast } from './utils.js';
 import { setupNav, setupHelpTooltips, setupLockActions, renderTools, selectedTools, removedTools, switchToPage, showUpdateBanner, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadHomeStats, pollStats, loadProcesses, hideReportModal, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, handleStartBackup, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, handleScriptDrop, } from './operations.js';
+import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, reportProblem, initFooter, handleCheckUpdateClick, cancelOperation, retryLastOperation, setupProgressListener, setupUpdateListener, toolStatuses, handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, handleStartBackup, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './operations.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './network.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
@@ -296,6 +296,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleScriptDrop(file);
             }
         }
+    });
+    document.getElementById('script-clear-file-btn')?.addEventListener('click', () => {
+        if (scriptFileInput)
+            scriptFileInput.value = '';
+        clearScriptAnalysis();
+    });
+    document.querySelectorAll('[data-script-tab]').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('[data-script-tab]').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const tabName = tab.dataset.scriptTab;
+            document.querySelectorAll('.script-tab-content').forEach(c => c.classList.remove('active'));
+            const target = document.getElementById('script-tab-' + tabName);
+            if (target)
+                target.classList.add('active');
+            clearScriptAnalysis();
+        });
+    });
+    const scriptTextarea = document.getElementById('script-textarea');
+    const scriptAnalyzeBtn = document.getElementById('script-analyze-btn');
+    const scriptClearTextBtn = document.getElementById('script-clear-text-btn');
+    scriptTextarea?.addEventListener('input', () => {
+        const hasText = (scriptTextarea.value.trim().length > 0);
+        if (scriptAnalyzeBtn)
+            scriptAnalyzeBtn.disabled = !hasText;
+        if (scriptClearTextBtn)
+            scriptClearTextBtn.style.display = hasText ? '' : 'none';
+    });
+    scriptAnalyzeBtn?.addEventListener('click', () => {
+        if (scriptTextarea?.value.trim()) {
+            handleAnalyzeText(scriptTextarea.value);
+        }
+    });
+    scriptTextarea?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            if (scriptTextarea.value.trim()) {
+                handleAnalyzeText(scriptTextarea.value);
+            }
+        }
+    });
+    scriptClearTextBtn?.addEventListener('click', () => {
+        clearScriptAnalysis();
     });
     loadInstalledPackages();
 });

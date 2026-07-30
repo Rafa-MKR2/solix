@@ -154,6 +154,84 @@ body {
   background: linear-gradient(145deg, #1e1e38 0%, #1a1a32 100%);
 }
 
+/* ─── Script Analyzer Improvements ─── */
+
+.script-tab-content { display: none; }
+.script-tab-content.active { display: block; }
+
+.script-textarea {
+  width: 100%;
+  min-height: 180px;
+  max-height: 400px;
+  padding: 0.8rem;
+  background: #111125;
+  border: 1px solid #252545;
+  border-radius: 10px;
+  color: #ddd;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.script-textarea:focus {
+  outline: none;
+  border-color: #4a9eff;
+  box-shadow: 0 0 12px rgba(74, 158, 255, 0.1);
+}
+.script-textarea::placeholder { color: #555; }
+
+.script-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.script-file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  background: #15152a;
+  border: 1px solid #252545;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+.script-file-icon { font-size: 1.2rem; }
+.script-file-label {
+  flex: 1;
+  color: #ccc;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-tiny {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  border-radius: 6px;
+}
+
+.script-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0.8rem 0;
+  color: #555;
+  font-size: 0.75rem;
+}
+.script-divider::before,
+.script-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #252545;
+}
+
 .script-upload-area.drag-over .script-file-label {
   border-color: #4a9eff;
   background: linear-gradient(145deg, #1a1a2a 0%, #16162a 100%);

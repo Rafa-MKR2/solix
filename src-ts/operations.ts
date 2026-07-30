@@ -1000,6 +1000,12 @@ export async function handleScriptDrop(file: File | null): Promise<void> {
     return;
   }
 
+  // Show file name
+  const fileInfo = document.getElementById('script-file-info');
+  const fileLabel = document.getElementById('script-file-label');
+  if (fileInfo) fileInfo.classList.remove('hidden');
+  if (fileLabel) fileLabel.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+
   // Show loading
   const summaryEl = document.getElementById('script-summary');
   const commandsEl = document.getElementById('script-commands');
@@ -1015,6 +1021,56 @@ export async function handleScriptDrop(file: File | null): Promise<void> {
     console.error('analyze_script failed:', e);
     if (summaryEl) summaryEl.innerHTML = `<div class="script-loading" style="color:#e88">❌ Erro ao analisar script: ${e}</div>`;
   }
+}
+
+export async function handleAnalyzeText(text: string): Promise<void> {
+  const invoke = getInvoke();
+  if (!invoke) return;
+
+  const resultEl = document.getElementById('script-result');
+  if (!resultEl) return;
+
+  if (!text.trim()) {
+    showToast('error', 'Cole um script para analisar.');
+    return;
+  }
+
+  const summaryEl = document.getElementById('script-summary');
+  const commandsEl = document.getElementById('script-commands');
+  if (summaryEl) summaryEl.innerHTML = '<div class="script-loading">⏳ Analisando código...</div>';
+  if (commandsEl) commandsEl.innerHTML = '';
+  resultEl.classList.remove('hidden');
+
+  try {
+    const analysis = await invoke<ScriptAnalysis>('analyze_script', { content: text });
+    renderScriptAnalysis(analysis);
+  } catch (e) {
+    console.error('analyze_script failed:', e);
+    if (summaryEl) summaryEl.innerHTML = `<div class="script-loading" style="color:#e88">❌ Erro ao analisar: ${e}</div>`;
+  }
+}
+
+export function clearScriptAnalysis(): void {
+  const resultEl = document.getElementById('script-result');
+  const fileInfo = document.getElementById('script-file-info');
+  const fileInput = document.getElementById('script-file-input') as HTMLInputElement | null;
+  const textarea = document.getElementById('script-textarea') as HTMLTextAreaElement | null;
+
+  if (resultEl) resultEl.classList.add('hidden');
+  if (fileInfo) fileInfo.classList.add('hidden');
+  if (fileInput) fileInput.value = '';
+  if (textarea) textarea.value = '';
+
+  const summaryEl = document.getElementById('script-summary');
+  const commandsEl = document.getElementById('script-commands');
+  if (summaryEl) summaryEl.innerHTML = '';
+  if (commandsEl) commandsEl.innerHTML = '';
+
+  const analyzeBtn = document.getElementById('script-analyze-btn') as HTMLButtonElement | null;
+  if (analyzeBtn) analyzeBtn.disabled = true;
+
+  const clearTextBtn = document.getElementById('script-clear-text-btn');
+  if (clearTextBtn) clearTextBtn.style.display = 'none';
 }
 
 function readFileAsText(file: File): Promise<string> {

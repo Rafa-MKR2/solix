@@ -46,6 +46,8 @@ import {
   handleSaveReport,
   handleEmailReport,
   handleScriptDrop,
+  handleAnalyzeText,
+  clearScriptAnalysis,
 } from './operations.js';
 import {
   loadConnectivity,
@@ -370,6 +372,56 @@ document.addEventListener('DOMContentLoaded', () => {
         handleScriptDrop(file);
       }
     }
+  });
+
+  document.getElementById('script-clear-file-btn')?.addEventListener('click', () => {
+    if (scriptFileInput) scriptFileInput.value = '';
+    clearScriptAnalysis();
+  });
+
+  // ─── Script Tabs (File / Paste) ───
+
+  document.querySelectorAll('[data-script-tab]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('[data-script-tab]').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const tabName = (tab as HTMLElement).dataset.scriptTab;
+      document.querySelectorAll('.script-tab-content').forEach(c => c.classList.remove('active'));
+      const target = document.getElementById('script-tab-' + tabName);
+      if (target) target.classList.add('active');
+      clearScriptAnalysis();
+    });
+  });
+
+  // ─── Script Textarea ───
+
+  const scriptTextarea = document.getElementById('script-textarea') as HTMLTextAreaElement | null;
+  const scriptAnalyzeBtn = document.getElementById('script-analyze-btn') as HTMLButtonElement | null;
+  const scriptClearTextBtn = document.getElementById('script-clear-text-btn');
+
+  scriptTextarea?.addEventListener('input', () => {
+    const hasText = (scriptTextarea.value.trim().length > 0);
+    if (scriptAnalyzeBtn) scriptAnalyzeBtn.disabled = !hasText;
+    if (scriptClearTextBtn) scriptClearTextBtn.style.display = hasText ? '' : 'none';
+  });
+
+  scriptAnalyzeBtn?.addEventListener('click', () => {
+    if (scriptTextarea?.value.trim()) {
+      handleAnalyzeText(scriptTextarea.value);
+    }
+  });
+
+  scriptTextarea?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (scriptTextarea.value.trim()) {
+        handleAnalyzeText(scriptTextarea.value);
+      }
+    }
+  });
+
+  scriptClearTextBtn?.addEventListener('click', () => {
+    clearScriptAnalysis();
   });
 
   // Load installed packages on initial page load

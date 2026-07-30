@@ -228,6 +228,7 @@ export interface ScriptAnalysis {
   summary: string;
   total_lines: number;
   command_count: number;
+  script_type: string;
   risk_level: string;
   commands: ScriptCommand[];
   has_sudo: boolean;

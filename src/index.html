@@ -524,13 +524,35 @@
     <div class="page" id="page-analisador">
       <h2 class="section-title">📜 Analisar Script <span class="help-tip" data-help="section-analisador">ⓘ</span></h2>
 
-      <div class="script-upload-area" id="script-upload-area">
-        <input type="file" id="script-file-input" accept=".sh,.bash" class="script-file-input" />
-        <label for="script-file-input" class="script-file-label">
-          <span class="script-upload-icon">📂</span>
-          <span class="script-upload-text">Clique ou arraste um script .sh aqui</span>
-          <span class="script-upload-sub">Analisamos cada comando e explicamos o que ele faz em português</span>
-        </label>
+      <div class="pkg-tabs" style="margin-bottom:1rem">
+        <button class="pkg-tab active" data-script-tab="file">📂 Arquivo</button>
+        <button class="pkg-tab" data-script-tab="paste">📝 Colar Código</button>
+      </div>
+
+      <!-- 📂 File Upload -->
+      <div class="script-tab-content active" id="script-tab-file">
+        <div class="script-upload-area" id="script-upload-area">
+          <input type="file" id="script-file-input" accept=".sh,.bash,.py,.py3" class="script-file-input" />
+          <label for="script-file-input" class="script-file-label">
+            <span class="script-upload-icon">📂</span>
+            <span class="script-upload-text">Clique ou arraste um script aqui</span>
+            <span class="script-upload-sub">Analisamos .sh, .bash e .py — cada comando explicado em português</span>
+          </label>
+        </div>
+        <div id="script-file-info" class="script-file-info hidden">
+          <span class="script-file-icon">📄</span>
+          <span class="script-file-label" id="script-file-label">—</span>
+          <button id="script-clear-file-btn" class="btn-tertiary btn-tiny">✖ Remover</button>
+        </div>
+      </div>
+
+      <!-- 📝 Paste Code -->
+      <div class="script-tab-content" id="script-tab-paste">
+        <textarea id="script-textarea" class="script-textarea" placeholder="Cole o código do script aqui (shell ou Python)..." spellcheck="false"></textarea>
+        <div class="script-bar">
+          <button id="script-clear-text-btn" class="btn-tertiary" style="display:none">✖ Limpar</button>
+          <button id="script-analyze-btn" class="btn-primary" disabled>🔍 Analisar</button>
+        </div>
       </div>
 
       <div id="script-result" class="script-result-wrap hidden">
