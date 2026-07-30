@@ -7,7 +7,7 @@ pub async fn get_install_command(tool_name: String) -> Result<install::InstallCo
 
 #[tauri::command]
 pub async fn set_password(password: String) -> Result<(), String> {
-    let _ = password::verify_password(&password).await?;
+    password::verify_password(&password).await?;
     set_cached_password(password);
     Ok(())
 }

@@ -22,3 +22,5 @@ sha2 = "0.10"
 hex = "0.4"
 tempfile = "3"
 futures-util = "0.3"
+tracing = { version = "0.1", features = ["std"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

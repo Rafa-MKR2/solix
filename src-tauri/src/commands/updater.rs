@@ -1,5 +1,5 @@
 use tauri::Emitter;
-use crate::{get_cached_password, set_cached_password, updater};
+use crate::{get_cached_password, updater};
 
 #[tauri::command]
 pub async fn check_app_update() -> Result<updater::UpdateInfo, String> {

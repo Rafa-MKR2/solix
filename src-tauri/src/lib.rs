@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
-
 mod backup;
 mod commands;
 mod distribution;
@@ -34,15 +33,27 @@ pub(crate) fn set_cached_password(password: String) {
         *cache = Some(password);
     }
 }
-
 pub(crate) fn clear_cached_password() {
     if let Ok(mut cache) = PASSWORD_CACHE.lock() {
         *cache = None;
     }
 }
 
+fn init_tracing() {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "solix=info".into()),
+        )
+        .init();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    init_tracing();
+
+    tracing::info!("Iniciando Solix v{}", env!("CARGO_PKG_VERSION"));
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             commands::info::get_system_info,
@@ -86,14 +97,13 @@ pub fn run() {
             commands::pm::install_repo_packages,
             commands::backup::create_backup,
             commands::script::analyze_script,
-            commands::misc::save_report_to_desktop,
-            commands::misc::create_desktop_shortcut,
-            commands::disk::get_disk_smart_info,
+            commands::report::save_report_to_desktop,
+            commands::desktop::create_desktop_shortcut,
+            commands::smart::get_disk_smart_info,
         ])
         .run(tauri::generate_context!())
-        .unwrap_or_else(|e| eprintln!("Erro ao iniciar o aplicativo: {}", e));
+        .unwrap_or_else(|e| tracing::error!("Erro ao iniciar o aplicativo: {}", e));
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

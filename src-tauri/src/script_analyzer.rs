@@ -163,11 +163,10 @@ fn get_command_database() -> std::collections::HashMap<&'static str, (&'static s
 fn is_download_pipe(content: &str) -> bool {
     let lower = content.to_lowercase();
     if lower.contains("curl") || lower.contains("wget") {
-        if lower.contains("|") {
-            if lower.contains("| bash") || lower.contains("| sh") || lower.contains("| sudo") {
+        if lower.contains("|")
+            && (lower.contains("| bash") || lower.contains("| sh") || lower.contains("| sudo")) {
                 return true;
             }
-        }
         if lower.contains("bash <(curl") || lower.contains("sh <(curl") || lower.contains("bash <(wget") {
             return true;
         }
@@ -177,14 +176,13 @@ fn is_download_pipe(content: &str) -> bool {
 
 fn is_dangerous_rm(content: &str) -> bool {
     let lower = content.to_lowercase();
-    if lower.starts_with("rm") {
-        if lower.contains(" /") || lower.contains(" /*") {
+    if lower.starts_with("rm")
+        && (lower.contains(" /") || lower.contains(" /*")) {
             let clean = lower.replace("\\\"", "").replace("'", "");
             if clean.contains(" /") && !clean.contains(" /tmp") && !clean.contains(" /home") {
                 return true;
             }
         }
-    }
     false
 }
 
@@ -266,7 +264,7 @@ fn analyze_python_line(line: &str, line_no: u32) -> Option<ScriptCommand> {
     }
 
     if trimmed.starts_with("import ") || trimmed.starts_with("from ") {
-        let import_name = if trimmed.starts_with("import ") { &trimmed[7..] } else { &trimmed[5..] };
+        let import_name = if let Some(stripped) = trimmed.strip_prefix("import ") { stripped } else { &trimmed[5..] };
         let lib = import_name.split_whitespace().next().unwrap_or("").split('.').next().unwrap_or("");
         let (desc, risk): (&str, &str) = match lib {
             "os" => ("Funções do sistema (arquivos, comandos).", "system"),
@@ -283,7 +281,7 @@ fn analyze_python_line(line: &str, line_no: u32) -> Option<ScriptCommand> {
 
     if trimmed.starts_with("def ") || trimmed.starts_with("class ") {
         let kind = if trimmed.starts_with("def ") { "função" } else { "classe" };
-        let name = trimmed[4..].split(|c: char| c == '(' || c == ':' || c == ' ').next().unwrap_or("");
+        let name = trimmed[4..].split(['(', ':', ' ']).next().unwrap_or("");
         return cmd(&format!("{} {}", if trimmed.starts_with("def ") { "def" } else { "class" }, name),
             &format!("Define {} '{}'.", kind, name), "safe", "Python", false);
     }

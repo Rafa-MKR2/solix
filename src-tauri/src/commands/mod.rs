@@ -1,4 +1,5 @@
 pub(crate) mod backup;
+pub(crate) mod desktop;
 pub(crate) mod disk;
 pub(crate) mod info;
 pub(crate) mod install;
@@ -8,6 +9,8 @@ pub(crate) mod network;
 pub(crate) mod package;
 pub(crate) mod pm;
 pub(crate) mod process;
+pub(crate) mod report;
 pub(crate) mod script;
+pub(crate) mod smart;
 pub(crate) mod system_ops;
 pub(crate) mod updater;

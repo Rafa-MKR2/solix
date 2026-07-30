@@ -83,7 +83,7 @@ fn get_disks() -> Vec<DiskInfo> {
                     .to_string();
 
                 let (io_read, io_write) = io_map.get(&full_name)  // try partition name first
-                    .or_else(|| io_map.get(&dev_name.to_string()))  // fallback to base device
+                    .or_else(|| io_map.get(dev_name))  // fallback to base device
                     .cloned()
                     .unwrap_or(("—".to_string(), "—".to_string()));
 
