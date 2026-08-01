@@ -10,6 +10,7 @@ import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpee
 import { setupUpdateListener, initFooter, handleCheckUpdateClick, showUpdateBanner, } from './features/update/index.js';
 import { reportProblem, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, hideReportModal, } from './features/report/index.js';
 import { handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './features/script/index.js';
+import { initDeveloperPage } from './features/developer/index.js';
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
     setupHelpTooltips();
@@ -86,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.open('https://github.com/Rafa-MKR2/solix', '_blank');
         }
     });
+    initDeveloperPage();
     document.getElementById('test-ping-btn')?.addEventListener('click', handleTestPingClick);
     document.getElementById('test-speed-btn')?.addEventListener('click', handleTestSpeedClick);
     document.getElementById('update-now-btn')?.addEventListener('click', () => {
