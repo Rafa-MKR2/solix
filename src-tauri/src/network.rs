@@ -754,19 +754,16 @@ mod tests {
     #[test]
     fn test_check_wifi_present_no_panic() {
         // Should not panic, regardless of system state
-        let present = check_wifi_present();
-        assert!(present == true || present == false);
+        let _present = check_wifi_present();
     }
 
     #[test]
     fn test_check_bluetooth_no_panic() {
-        let bt = check_bluetooth();
-        assert!(bt == true || bt == false);
+        let _bt = check_bluetooth();
     }
 
     #[test]
     fn test_check_internet_no_panic() {
-        let online = check_internet();
-        assert!(online == true || online == false);
+        let _online = check_internet();
     }
 }

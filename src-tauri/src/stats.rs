@@ -988,6 +988,6 @@ mod tests {
     #[test]
     fn test_get_memory_percent_range() {
         let pct = get_memory_percent();
-        assert!(pct >= 0.0 && pct <= 100.0);
+        assert!((0.0..=100.0).contains(&pct));
     }
 }
