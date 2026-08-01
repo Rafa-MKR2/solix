@@ -66,7 +66,7 @@ export function renderTools(tools: DevelopmentToolStatus[]): void {
       if (tool.available) card.classList.add('installed');
       card.dataset.name = tool.name;
       const iconHtml = tool.icon_base64
-        ? `<img class="tool-card-icon" src="${tool.icon_base64}" alt="" onerror="this.style.display='none'" />`
+        ? `<img class="tool-card-icon" src="${tool.icon_base64}" alt="" />`
         : '<div class="tool-card-icon-placeholder"></div>';
       card.innerHTML = `
         ${iconHtml}
@@ -78,6 +78,12 @@ export function renderTools(tools: DevelopmentToolStatus[]): void {
         <div class="tool-badge">${tool.available ? 'instalado' : 'ausente'}</div>
         <button class="tool-info-btn" data-tool="${tool.name}" title="Detalhes">ⓘ</button>
       `;
+      const icon = card.querySelector<HTMLImageElement>('.tool-card-icon');
+      if (icon) {
+        icon.addEventListener('error', () => {
+          icon.style.display = 'none';
+        });
+      }
       card.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).classList.contains('tool-info-btn')) return;
         if (tool.available) {
