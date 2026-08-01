@@ -57,7 +57,7 @@ pub async fn update_system(
 
 #[tauri::command]
 pub async fn check_pm_lock() -> Result<install::PmLockInfo, String> {
-    let info = tokio::task::spawn_blocking(|| install::check_pm_lock_sync())
+    let info = tokio::task::spawn_blocking(install::check_pm_lock_sync)
         .await
         .map_err(|_| "Erro ao verificar lock".to_string())?;
     Ok(info)
