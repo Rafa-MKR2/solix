@@ -424,8 +424,24 @@ pub async fn run_command_streaming(
         }
     }
 
-    let stdout_str = stdout_task.await.unwrap_or_default();
-    let stderr_str = stderr_task.await.unwrap_or_default();
+    let stdout_str = stdout_task.await.unwrap_or_else(|e| {
+        // JoinError: a task de leitura de stdout falhou (ex.: panic).
+        // Loga para diagnóstico em vez de propagar string vazia silenciosamente.
+        tracing::warn!(
+            "Falha na task de leitura de stdout de '{}': {}",
+            tool_name,
+            e
+        );
+        String::new()
+    });
+    let stderr_str = stderr_task.await.unwrap_or_else(|e| {
+        tracing::warn!(
+            "Falha na task de leitura de stderr de '{}': {}",
+            tool_name,
+            e
+        );
+        String::new()
+    });
 
     let success = match &status {
         Ok(s) => s.success(),

@@ -113,7 +113,13 @@ fn get_temperature() -> f64 {
         let name = name.to_string_lossy();
         if name.starts_with("thermal_zone") {
             let type_path = entry.path().join("type");
-            let type_str = std::fs::read_to_string(&type_path).unwrap_or_default();
+            let type_str = std::fs::read_to_string(&type_path).unwrap_or_else(|e| {
+                // Best-effort: uma thermal zone pode sumir entre a listagem e a
+                // leitura (ou ter permissão restrita) sem ser anomalia do sistema.
+                // debug! evita ruído no polling de 3s; meminfo usa warn! (anomalia real).
+                tracing::debug!("Falha ao ler tipo da thermal zone {:?}: {}", type_path, e);
+                String::new()
+            });
             if type_str.trim() == "x86_pkg_temp"
                 || type_str.trim() == "cpu-thermal"
                 || type_str.trim() == "acpitz"
@@ -144,7 +150,10 @@ fn get_temperature() -> f64 {
 }
 
 fn get_memory_percent() -> f64 {
-    let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
+    let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_else(|e| {
+        tracing::warn!("Falha ao ler /proc/meminfo (memory_percent): {}", e);
+        String::new()
+    });
     let mut total = 0u64;
     let mut available = 0u64;
 
@@ -181,7 +190,10 @@ pub fn get_system_stats() -> SystemStats {
 }
 
 fn get_total_mem_kb() -> u64 {
-    let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
+    let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_else(|e| {
+        tracing::warn!("Falha ao ler /proc/meminfo (total_mem_kb): {}", e);
+        String::new()
+    });
     for line in content.lines() {
         if let Some(val) = line.strip_prefix("MemTotal:") {
             return val
@@ -417,7 +429,10 @@ fn fmt_kb(kb: u64) -> String {
 }
 
 fn get_swap_info() -> (String, String, f64) {
-    let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
+    let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_else(|e| {
+        tracing::warn!("Falha ao ler /proc/meminfo (swap): {}", e);
+        String::new()
+    });
     let mut total_kb = 0u64;
     let mut free_kb = 0u64;
     for line in content.lines() {
