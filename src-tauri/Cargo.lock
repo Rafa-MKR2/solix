@@ -3104,7 +3104,7 @@ dependencies = [
 
 [[package]]
 name = "solix"
-version = "2.2.1"
+version = "2.2.2"
 dependencies = [
  "futures-util",
  "hex",
