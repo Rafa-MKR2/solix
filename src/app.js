@@ -1,7 +1,7 @@
 import { systemService, packageService, miscService } from './shared/services/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
 import { setupNav, setupHelpTooltips, setupLockActions, switchToPage, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, } from './ui.js';
-import { loadSystemInfo, setupProgressListener, cancelOperation, retryLastOperation, toolStatuses } from './operations.js';
+import { loadSystemInfo, setupProgressListener, cancelOperation, retryLastOperation, toolStatuses, confirmPassword, cancelPassword } from './operations.js';
 import { handleStartBackup } from './features/disks/index.js';
 import { selectedTools, removedTools } from './features/tools/index.js';
 import { handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './features/packages/index.js';
@@ -96,6 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('lock-diagnosis')?.classList.add('hidden');
     });
     document.getElementById('cancel-btn')?.addEventListener('click', cancelOperation);
+    document.getElementById('password-confirm')?.addEventListener('click', confirmPassword);
+    document.getElementById('password-cancel')?.addEventListener('click', cancelPassword);
+    document.getElementById('password-input')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter')
+            confirmPassword();
+    });
     document.getElementById('tools-list')?.addEventListener('click', async (e) => {
         const btn = e.target.closest('.tool-info-btn');
         if (!btn)

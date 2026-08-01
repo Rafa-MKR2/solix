@@ -13,7 +13,7 @@ import {
   setRetryLastOperationFn,
   loadProcesses,
 } from './ui.js';
-import { loadSystemInfo, setupProgressListener, cancelOperation, retryLastOperation, toolStatuses } from './operations.js';
+import { loadSystemInfo, setupProgressListener, cancelOperation, retryLastOperation, toolStatuses, confirmPassword, cancelPassword } from './operations.js';
 import { handleShowSmartInfo, handleStartBackup } from './features/disks/index.js';
 import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
 import {
@@ -160,6 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Cancel operation
   document.getElementById('cancel-btn')?.addEventListener('click', cancelOperation);
+
+  // Password modal (legacy)
+  document.getElementById('password-confirm')?.addEventListener('click', confirmPassword);
+  document.getElementById('password-cancel')?.addEventListener('click', cancelPassword);
+  document.getElementById('password-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') confirmPassword();
+  });
 
   // Tool info modal
   document.getElementById('tools-list')?.addEventListener('click', async (e) => {
