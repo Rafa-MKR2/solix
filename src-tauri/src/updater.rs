@@ -364,7 +364,7 @@ mod tests {
 
     impl HttpClient for MockHttpClient {
         async fn get_json(&self, url: &str) -> Result<String, String> {
-            let map = self.responses.lock().unwrap();
+            let map = self.responses.lock().unwrap_or_else(|e| e.into_inner());
             map.get(url)
                 .cloned()
                 .ok_or_else(|| format!("Mock: no response configured for {}", url))
