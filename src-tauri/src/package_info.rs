@@ -228,13 +228,18 @@ fn is_installed(pm: &str, pkg: &str) -> bool {
             .ok()
             .map(|o| String::from_utf8_lossy(&o.stdout).contains("installed"))
             .unwrap_or(false),
-        "dnf" | "zypper" => Command::new("rpm")
+        "dnf" | "zypper" => match Command::new("rpm")
             .args(["-q", pkg])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .status()
-            .map(|s| s.success())
-            .unwrap_or(false),
+        {
+            Ok(s) => s.success(),
+            Err(e) => {
+                tracing::warn!("rpm não disponível para verificar pacote {}: {}", pkg, e);
+                false
+            }
+        },
         _ => false,
     }
 }
