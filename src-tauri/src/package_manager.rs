@@ -530,10 +530,8 @@ pub async fn remove_system_package(password: &str, package_name: &str) -> Result
 
     match output {
         Ok(mut child) => {
-            // Pipe password
-            if let Some(stdin) = child.stdin.as_mut() {
-                use tokio::io::AsyncWriteExt;
-                let _ = stdin.write_all(format!("{}\n", password).as_bytes()).await;
+            if let Err(e) = password::pipe_password(&mut child, password).await {
+                tracing::warn!("Falha ao enviar senha: {}", e);
             }
             let result = child.wait_with_output().await;
             match result {
@@ -576,9 +574,8 @@ pub async fn install_repo_package(password: &str, package_name: &str) -> Result<
 
     match output {
         Ok(mut child) => {
-            if let Some(stdin) = child.stdin.as_mut() {
-                use tokio::io::AsyncWriteExt;
-                let _ = stdin.write_all(format!("{}\n", password).as_bytes()).await;
+            if let Err(e) = password::pipe_password(&mut child, password).await {
+                tracing::warn!("Falha ao enviar senha: {}", e);
             }
             let result = child.wait_with_output().await;
             match result {
