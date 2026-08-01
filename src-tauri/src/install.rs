@@ -689,13 +689,16 @@ pub async fn remove_tools(
     run_tool_operation(tool_names, password, remove_prefix, app).await
 }
 
-fn get_update_command(pm: &str) -> &'static str {
+fn get_update_command(pm: &str) -> Result<&'static str, String> {
     match pm {
-        "pacman" => "sudo -S pacman -Syu --noconfirm",
-        "apt" => "sudo -S sh -c 'apt update && apt upgrade -y'",
-        "dnf" => "sudo -S dnf upgrade -y",
-        "zypper" => "sudo -S zypper update -y",
-        _ => "sudo -S echo unknown-package-manager",
+        "pacman" => Ok("sudo -S pacman -Syu --noconfirm"),
+        "apt" => Ok("sudo -S sh -c 'apt update && apt upgrade -y'"),
+        "dnf" => Ok("sudo -S dnf upgrade -y"),
+        "zypper" => Ok("sudo -S zypper update -y"),
+        other => Err(format!(
+            "Gerenciador de pacotes não suportado para atualização: {}",
+            other
+        )),
     }
 }
 
@@ -712,7 +715,7 @@ pub async fn update_system(
         password::verify_password(password).await?;
 
         let (distro, _) = get_distro_and_prefix().await?;
-        let command = get_update_command(&distro.package_manager);
+        let command = get_update_command(&distro.package_manager)?;
         let mut result = if let Some(app) = app {
             run_command_streaming(app, password, "system-update", command).await
         } else {
@@ -888,11 +891,15 @@ mod tests {
 
     #[test]
     fn test_get_update_command_all() {
-        assert!(get_update_command("pacman").contains("pacman -Syu"));
-        assert!(get_update_command("apt").contains("apt update"));
-        assert!(get_update_command("dnf").contains("dnf upgrade"));
-        assert!(get_update_command("zypper").contains("zypper update"));
-        assert!(get_update_command("unknown").contains("unknown-package-manager"));
+        assert!(get_update_command("pacman")
+            .unwrap()
+            .contains("pacman -Syu"));
+        assert!(get_update_command("apt").unwrap().contains("apt update"));
+        assert!(get_update_command("dnf").unwrap().contains("dnf upgrade"));
+        assert!(get_update_command("zypper")
+            .unwrap()
+            .contains("zypper update"));
+        assert!(get_update_command("unknown").is_err());
     }
 
     #[test]
