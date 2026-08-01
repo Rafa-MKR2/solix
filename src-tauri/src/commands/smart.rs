@@ -48,7 +48,9 @@ async fn run_sudo_smartctl(
             .stderr(std::process::Stdio::piped())
             .spawn()
             .map_err(|e| format!("Erro ao executar smartctl: {}", e))?;
-        let _ = crate::password::pipe_password(&mut child, pwd).await;
+        if let Err(e) = crate::password::pipe_password(&mut child, pwd).await {
+            tracing::warn!("Falha ao enviar senha para smartctl: {}", e);
+        }
         let output = child
             .wait_with_output()
             .await

@@ -648,8 +648,6 @@ async fn run_tool_operation(
 }
 
 async fn sync_pacman_db(password: &str) {
-    use tokio::io::AsyncWriteExt;
-
     let mut child = match tokio::process::Command::new("sh")
         .arg("-c")
         .arg("sudo -S pacman -Sy --noconfirm 2>/dev/null")
@@ -662,10 +660,8 @@ async fn sync_pacman_db(password: &str) {
         Err(_) => return,
     };
 
-    if let Some(stdin) = child.stdin.as_mut() {
-        if let Err(e) = stdin.write_all(format!("{}\n", password).as_bytes()).await {
-            tracing::warn!("Falha ao enviar senha para sync_pacman_db: {}", e);
-        }
+    if let Err(e) = password::pipe_password(&mut child, password).await {
+        tracing::warn!("Falha ao enviar senha para sync_pacman_db: {}", e);
     }
     if let Err(e) = child.wait().await {
         tracing::warn!("Falha ao aguardar sync_pacman_db: {}", e);
