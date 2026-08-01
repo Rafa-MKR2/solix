@@ -364,4 +364,119 @@ mod tests {
         assert!(json.contains("\"stage\":\"tar\""));
         assert!(json.contains("\"percent\":75"));
     }
+
+    // ─── create_backup integration tests ───
+
+    #[test]
+    fn test_create_backup_success() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            // Create a temp source dir with a file
+            let source = tempfile::tempdir().unwrap();
+            std::fs::write(source.path().join("dados.txt"), b"conteudo do backup").unwrap();
+            let dest = tempfile::tempdir().unwrap();
+
+            let result = create_backup(
+                source.path().to_str().unwrap(),
+                dest.path().to_str().unwrap(),
+                "/",
+            )
+            .await;
+
+            let r = result.expect("backup should succeed");
+            assert!(r.success);
+            assert!(r.error.is_none());
+            assert!(!r.file_path.is_empty());
+            assert!(r.file_path.ends_with(".tar.gz"));
+            assert!(std::path::Path::new(&r.file_path).exists());
+            assert!(!r.file_size.is_empty());
+        });
+    }
+
+    #[test]
+    fn test_create_backup_source_not_found() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let dest = tempfile::tempdir().unwrap();
+            let result = create_backup(
+                "/caminho/que/nao/existe/solix",
+                dest.path().to_str().unwrap(),
+                "/",
+            )
+            .await;
+            let err = result.expect_err("must fail for missing source");
+            assert!(err.contains("Origem não encontrada"));
+        });
+    }
+
+    #[test]
+    fn test_create_backup_destination_auto_created() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let source = tempfile::tempdir().unwrap();
+            std::fs::write(source.path().join("arquivo"), b"dados").unwrap();
+            // Destination dir does NOT exist yet — create_backup should create it
+            let base = tempfile::tempdir().unwrap();
+            let dest = base.path().join("subdir/backups");
+
+            let result =
+                create_backup(source.path().to_str().unwrap(), dest.to_str().unwrap(), "/").await;
+
+            let r = result.expect("backup should succeed");
+            assert!(r.success);
+            assert!(std::path::Path::new(&r.file_path).exists());
+        });
+    }
+
+    #[test]
+    fn test_create_backup_empty_source_file() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let source = tempfile::tempdir().unwrap();
+            // Empty source dir — tar of empty dir still succeeds
+            let dest = tempfile::tempdir().unwrap();
+
+            let result = create_backup(
+                source.path().to_str().unwrap(),
+                dest.path().to_str().unwrap(),
+                "/",
+            )
+            .await;
+
+            let r = result.expect("empty dir backup should succeed");
+            assert!(r.success);
+            assert!(std::path::Path::new(&r.file_path).exists());
+        });
+    }
+
+    #[test]
+    fn test_create_backup_generated_file_name() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let source = tempfile::tempdir().unwrap();
+            let folder = source
+                .path()
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .to_string();
+            let dest = tempfile::tempdir().unwrap();
+
+            let result = create_backup(
+                source.path().to_str().unwrap(),
+                dest.path().to_str().unwrap(),
+                "/",
+            )
+            .await;
+
+            let r = result.unwrap();
+            let filename = std::path::Path::new(&r.file_path)
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .to_string();
+            assert!(filename.starts_with(&format!("solix-backup-{}", folder)));
+            assert!(filename.ends_with(".tar.gz"));
+        });
+    }
 }

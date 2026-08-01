@@ -416,4 +416,47 @@ mod tests {
             assert!(result.is_err());
         });
     }
+
+    // ─── BatteryInfo serialization ───
+
+    #[test]
+    fn test_battery_info_serializable() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 75,
+            status: "Discharging".into(),
+            time_remaining: "2:30".into(),
+        };
+        let json = serde_json::to_string(&b).unwrap();
+        assert!(json.contains("\"present\":true"));
+        assert!(json.contains("\"percentage\":75"));
+        assert!(json.contains("\"status\":\"Discharging\""));
+        assert!(json.contains("\"time_remaining\":\"2:30\""));
+    }
+
+    #[test]
+    fn test_battery_info_serializable_not_present() {
+        let b = BatteryInfo {
+            present: false,
+            percentage: 0,
+            status: String::new(),
+            time_remaining: String::new(),
+        };
+        let json = serde_json::to_string(&b).unwrap();
+        assert!(json.contains("\"present\":false"));
+        assert!(json.contains("\"percentage\":0"));
+    }
+
+    #[test]
+    fn test_battery_info_serializable_empty_status() {
+        let b = BatteryInfo {
+            present: true,
+            percentage: 100,
+            status: String::new(),
+            time_remaining: String::new(),
+        };
+        let json = serde_json::to_string(&b).unwrap();
+        assert!(json.contains("\"status\":\"\""));
+        assert!(json.contains("\"time_remaining\":\"\""));
+    }
 }

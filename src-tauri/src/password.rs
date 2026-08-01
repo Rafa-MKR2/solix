@@ -65,4 +65,80 @@ mod tests {
             let _ = child.wait().await;
         });
     }
+
+    #[test]
+    fn test_pipe_password_sends_password_to_stdin() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let mut child = tokio::process::Command::new("sh")
+                .arg("-c")
+                .arg("IFS= read -r line && printf '%s' \"$line\"")
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+                .unwrap();
+            let result = pipe_password(&mut child, "senha123").await;
+            assert!(result.is_ok());
+            let output = child.wait_with_output().await.unwrap();
+            assert!(output.status.success());
+            assert_eq!(String::from_utf8_lossy(&output.stdout), "senha123");
+        });
+    }
+
+    #[test]
+    fn test_pipe_password_empty_password_sends_newline() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let mut child = tokio::process::Command::new("sh")
+                .arg("-c")
+                .arg("IFS= read -r line && printf 'len=%s' \"${#line}\"")
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+                .unwrap();
+            let result = pipe_password(&mut child, "").await;
+            assert!(result.is_ok());
+            let output = child.wait_with_output().await.unwrap();
+            assert!(output.status.success());
+            // Empty password still terminates the line with \n, so read
+            // receives an empty line.
+            assert_eq!(String::from_utf8_lossy(&output.stdout), "len=0");
+        });
+    }
+
+    #[test]
+    fn test_pipe_password_multiline_password_single_line() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let mut child = tokio::process::Command::new("sh")
+                .arg("-c")
+                .arg("IFS= read -r line && printf '%s' \"$line\"")
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+                .unwrap();
+            // Password containing newline is sent as-is; the trailing \n
+            // terminates the read. Only the first line is consumed.
+            let result = pipe_password(&mut child, "abc\ndef").await;
+            assert!(result.is_ok());
+            let output = child.wait_with_output().await.unwrap();
+            assert!(output.status.success());
+            assert_eq!(String::from_utf8_lossy(&output.stdout), "abc");
+        });
+    }
+
+    #[test]
+    fn test_verify_password_wrong_password_errors() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            // An invalid password must never be accepted. If sudo is missing,
+            // spawning fails and we also get an Err. This mirrors the
+            // convention used in system_ops.rs for wrong-password tests.
+            let result = verify_password("senha-absolutamente-incorreta-123").await;
+            assert!(result.is_err());
+        });
+    }
 }

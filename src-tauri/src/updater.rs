@@ -680,4 +680,138 @@ mod tests {
         assert_eq!(p.stage, "download");
         assert_eq!(p.percent, 50);
     }
+
+    // ─── check_update_inner edge cases ───
+
+    #[tokio::test]
+    async fn test_check_update_notes_truncated() {
+        let current = env!("CARGO_PKG_VERSION");
+        let long_body = "a".repeat(800);
+        let json = make_valid_release_json(&format!("v{}", current), &long_body, true);
+        let mut responses = HashMap::new();
+        responses.insert(GITHUB_API.to_string(), json);
+        let http = MockHttpClient::new(responses);
+        let info = check_update_inner(&http).await.unwrap();
+        assert!(info.release_notes.len() <= 503); // 500 chars + "..."
+        assert!(info.release_notes.ends_with("..."));
+    }
+
+    #[tokio::test]
+    async fn test_check_update_notes_short_not_truncated() {
+        let current = env!("CARGO_PKG_VERSION");
+        let json = make_valid_release_json(&format!("v{}", current), "Release curta", true);
+        let mut responses = HashMap::new();
+        responses.insert(GITHUB_API.to_string(), json);
+        let http = MockHttpClient::new(responses);
+        let info = check_update_inner(&http).await.unwrap();
+        assert_eq!(info.release_notes, "Release curta");
+    }
+
+    #[tokio::test]
+    async fn test_check_update_no_checksum_asset() {
+        // Release with binary but WITHOUT SHA256SUMS asset
+        let json = r#"{
+            "tag_name": "v99.0.0",
+            "body": "no checksum",
+            "assets": [{
+                "name": "solix-x86_64-linux",
+                "browser_download_url": "https://example.com/solix",
+                "size": 500
+            }]
+        }"#
+        .to_string();
+        let mut responses = HashMap::new();
+        responses.insert(GITHUB_API.to_string(), json);
+        let http = MockHttpClient::new(responses);
+        let info = check_update_inner(&http).await.unwrap();
+        assert!(!info.download_url.is_empty());
+        assert!(info.checksum_url.is_empty());
+        assert!(info.update_available);
+    }
+
+    #[tokio::test]
+    async fn test_check_update_release_without_v_prefix() {
+        let current = env!("CARGO_PKG_VERSION");
+        let json = make_valid_release_json(current, "no v prefix", true);
+        let mut responses = HashMap::new();
+        responses.insert(GITHUB_API.to_string(), json);
+        let http = MockHttpClient::new(responses);
+        let info = check_update_inner(&http).await.unwrap();
+        assert_eq!(info.latest_version, current);
+        assert!(!info.update_available);
+    }
+
+    #[tokio::test]
+    async fn test_check_update_download_size_fallback() {
+        // Asset without size field → fallback to 0
+        let json = r#"{
+            "tag_name": "v99.0.0",
+            "body": "no size",
+            "assets": [{
+                "name": "solix-x86_64-linux",
+                "browser_download_url": "https://example.com/solix"
+            }]
+        }"#
+        .to_string();
+        let mut responses = HashMap::new();
+        responses.insert(GITHUB_API.to_string(), json);
+        let http = MockHttpClient::new(responses);
+        let info = check_update_inner(&http).await.unwrap();
+        assert_eq!(info.download_size, 0);
+        assert!(info.update_available);
+    }
+
+    // ─── is_newer_version more parts ───
+
+    #[test]
+    fn test_is_newer_version_more_components() {
+        assert!(is_newer_version("2.0.0.1", "2.0.0"));
+    }
+
+    #[test]
+    fn test_is_newer_version_fewer_components_older() {
+        assert!(!is_newer_version("2.0", "2.0.0"));
+    }
+
+    #[test]
+    fn test_is_newer_version_equal_prefix_longer_current() {
+        assert!(!is_newer_version("2.0.0", "2.0.0.0"));
+    }
+
+    // ─── parse_checksum edge cases ───
+
+    #[test]
+    fn test_parse_checksum_filename_suffix_match() {
+        // Target appears as a suffix (path-style listing)
+        let text = "abc123  /some/dir/solix-x86_64-linux";
+        let result = parse_checksum(text, "solix-x86_64-linux");
+        assert_eq!(result.unwrap(), "abc123");
+    }
+
+    #[test]
+    fn test_parse_checksum_lowercase_hex() {
+        let text = "abcdef0123456789  solix-x86_64-linux";
+        let result = parse_checksum(text, "solix-x86_64-linux");
+        assert_eq!(result.unwrap(), "abcdef0123456789");
+    }
+
+    // ─── UpdateInfo serialization ───
+
+    #[test]
+    fn test_update_info_serializable() {
+        let info = UpdateInfo {
+            current_version: "2.2.0".into(),
+            latest_version: "2.3.0".into(),
+            update_available: true,
+            release_url: "https://github.com/Rafa-MKR2/solix/releases/tag/v2.3.0".into(),
+            release_notes: "notas".into(),
+            download_url: "https://example.com/solix".into(),
+            checksum_url: "https://example.com/SHA256SUMS".into(),
+            download_size: 1024,
+        };
+        let json = serde_json::to_string(&info).unwrap();
+        assert!(json.contains("\"update_available\":true"));
+        assert!(json.contains("\"latest_version\":\"2.3.0\""));
+        assert!(json.contains("\"download_size\":1024"));
+    }
 }
