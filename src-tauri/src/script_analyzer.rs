@@ -3,23 +3,11 @@
 
 use serde::Serialize;
 
-/// The overall risk level of a script analysis
-#[derive(Debug, Serialize, Clone)]
-#[allow(dead_code)]
-pub enum ScriptRisk {
-    Safe,
-    Medium,
-    Warning,
-    Danger,
-}
-
 /// Detected script type
 #[derive(Debug, Serialize, Clone, PartialEq)]
 pub enum ScriptType {
     Shell,
     Python,
-    #[allow(dead_code)]
-    Unknown,
 }
 
 /// A single parsed command from a script
@@ -975,7 +963,6 @@ pub fn analyze_script(content: &str) -> ScriptAnalysis {
             has_download_execute = r.3;
             has_dangerous = r.4;
         }
-        ScriptType::Unknown => {}
     }
 
     let risk_level = if has_dangerous {

@@ -48,6 +48,7 @@ pub struct UpdateProgress {
 }
 
 #[derive(Debug, Clone, Serialize)]
+// Only constructed in tests; reserved for future update-result payloads.
 #[allow(dead_code)]
 pub struct UpdateResult {
     pub success: bool,
