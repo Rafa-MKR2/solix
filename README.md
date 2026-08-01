@@ -64,7 +64,7 @@
 
 ### 🛠️ Ferramentas — Instale programas com um clique
 
-**80+ ferramentas** pré-configuradas em 9 categorias:
+**88 ferramentas** pré-configuradas em 9 categorias:
 
 | Categoria | Ferramentas |
 |-----------|-------------|
@@ -121,23 +121,38 @@ Funcionalidades:
 
 ### 🧪 Testes Unitários
 
-**442 testes** cobrindo todos os módulos do backend Rust:
+**433 testes unitários** + **20 testes de integração** (453 no total) cobrindo todos os módulos do backend Rust:
 
 | Módulo | Testes | O que cobre |
 |--------|--------|-------------|
-| `distribution.rs` | 14+ | Parse de os-release, fallback ID_LIKE, remoção de aspas |
-| `tool.rs` | 10+ | Nomes únicos, categorias válidas, descrições, contagem mínima |
-| `install.rs` | 15+ | Mapeamento de 80+ pacotes, validação, structs |
-| `system_info.rs` | 12+ | Parse CPU/Memória/Disco, structs, valores vazios |
-| `lib.rs` | 10+ | Sanitize path, structs SmartInfo/ReportInfo, cache senha |
-| `updater.rs` | 40+ | check_update (mock HTTP), semver, parse/validate checksum, truncamento notes, serialização |
-| `password.rs` | 5+ | pipe_password (stdin real, vazia, multilinha), verify_password, sem stdin |
-| `backup.rs` | 25+ | format_bytes, structs, serialização, create_backup real (tar.gz, erros, nome) |
-| `network.rs` | 7+ | Formatação velocidade, conectividade |
-| `user.rs` | 6+ | Parse passwd, info usuário |
-| `stats.rs` | 5+ | Mapeamento UID, estados processo |
-| `system_ops.rs` | 27+ | Bateria, serialização BatteryInfo, caminhos de erro ZRAM/cleanup |
-| `executable.rs` | 2+ | Status executáveis |
+| `package_manager.rs` | 49 | Lista instalados (pacman/apt/rpm), repositórios, histórico |
+| `updater.rs` | 41 | check_update (mock HTTP), semver, parse/validate checksum, truncamento notes, serialização |
+| `stats.rs` | 37 | CPU/memória/temperatura, processos, mapeamento UID |
+| `network.rs` | 32 | Formatação velocidade, conectividade |
+| `distribution.rs` | 32 | Parse de os-release, fallback ID_LIKE, remoção de aspas |
+| `package_installer.rs` | 30 | Parse control .deb/.rpm, instalação local, structs |
+| `package_info.rs` | 29 | Info de pacotes + ícones |
+| `system_info.rs` | 28 | Parse CPU/Memória/Disco, structs, valores vazios |
+| `install.rs` | 28 | Mapeamento de 88 pacotes, validação, structs |
+| `system_ops.rs` | 22 | Bateria, serialização BatteryInfo, caminhos de erro ZRAM/cleanup |
+| `util.rs` | 18 | base64, format_bytes (Binary/Decimal) |
+| `executable.rs` | 17 | Status executáveis |
+| `backup.rs` | 17 | format_bytes, structs, serialização, create_backup real (tar.gz, erros, nome) |
+| `script_analyzer.rs` | 16 | Análise de scripts shell/python, comandos, riscos |
+| `user.rs` | 14 | Parse passwd, info usuário |
+| `tool.rs` | 5 | Nomes únicos, categorias válidas, descrições, contagem mínima |
+| `password.rs` | 5 | pipe_password (stdin real, vazia, multilinha), verify_password, sem stdin |
+| `lib.rs` | 4 | Cache senha, structs |
+
+Testes de integração (`src-tauri/tests/`, 20):
+
+| Arquivo | O que cobre |
+|---------|-------------|
+| `tool_catalog.rs` | Consistência cross-module: catálogo de ferramentas ↔ mapeamento de pacotes |
+| `updater.rs` | Semver (API pública), parse/validate checksum com arquivos reais |
+| `script_analyzer.rs` | Análise de scripts shell/python via API pública |
+| `util.rs` | Roundtrip base64 (binário completo), format_bytes Binary/Decimal |
+| `distribution.rs` | Detecção da distribuição no sistema real (Linux) |
 
 > 📖 Cobertura detalhada: [`solix-docs/testing/coverage.md`](../solix-docs/testing/coverage.md)
 
@@ -304,7 +319,7 @@ solix/
 │   │   ├── stats.rs            # CPU, memória, temperatura, processos
 │   │   ├── system_info.rs      # Hardware: CPU, RAM, discos, GPU
 │   │   ├── system_ops.rs       # ZRAM, limpeza, bateria
-│   │   ├── tool.rs             # Catálogo de 80+ ferramentas
+│   │   ├── tool.rs             # Catálogo de 88 ferramentas
 │   │   ├── user.rs             # Informações do usuário
 │   │   ├── updater.rs          # Auto-update custom (download, SHA256, install, restart)
 │   │   ├── password.rs         # Cache sudo base64 com expiração
@@ -313,6 +328,7 @@ solix/
 │   │   ├── backup.rs           # Backup de discos
 │   │   ├── script_analyzer.rs  # Análise de scripts
 │   │   └── util.rs             # Utilitários diversos
+│   ├── tests/                  # Testes de integração (20) — API pública do crate
 │   ├── tauri.conf.json         # Configuração do Tauri
 │   └── Cargo.toml              # Dependências Rust
 ├── dist.sh                     # Script de distribuição (gera binário + assets + SHA256)
@@ -337,7 +353,7 @@ solix/
 
 ```bash
 cd src-tauri
-cargo test
+cargo test        # 433 unitários + 20 integração
 ```
 
 ### Adicionar uma Nova Ferramenta

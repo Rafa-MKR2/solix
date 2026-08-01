@@ -37,7 +37,7 @@
 | `system_ops.rs` | ZRAM, limpeza do sistema, bateria |
 | `network.rs` | Ping, Wi-Fi, Bluetooth, bateria |
 | `user.rs` | Informações do usuário |
-| `tool.rs` | Catálogo de 80+ ferramentas em 9 categorias |
+| `tool.rs` | Catálogo de 88 ferramentas em 9 categorias |
 | `install.rs` | Instalação/remoção multi-distro (mapeamento pacotes) |
 | `distribution.rs` | Detecção de distribuição Linux |
 | `executable.rs` | Scan de executáveis no PATH |
@@ -45,6 +45,7 @@
 | `backup.rs` | Backup de discos (tar.gz) |
 | `script_analyzer.rs` | Análise estática de scripts shell |
 | `util.rs` | Utilitários diversos |
+| `tests/` | Testes de integração (20) — API pública do crate, fluxos cross-module |
 
 ### TypeScript (`src-ts/` → compila pra `src/`)
 
@@ -83,7 +84,7 @@
 ## Features principais
 
 - **Home** — Dashboard CPU/RAM/temperatura/discos com stats em tempo real
-- **Ferramentas** — 80+ apps em 9 categorias (instalar/remover com 1 clique)
+- **Ferramentas** — 88 apps em 9 categorias (instalar/remover com 1 clique)
 - **Pacotes** — 4 abas (Instalados, Repositórios, Upload .deb/.rpm, Histórico)
 - **Discos** — Tabela estilo Windows com I/O real, modelo, partições, backup
 - **Rede** — Info, ping, speed test com velocímetro animado
@@ -105,7 +106,7 @@
 | **Código** | 🇬🇧 Inglês (variáveis, funções, comentários) |
 | **Estilo Rust** | `cargo clippy` — zero warnings |
 | **Estilo TS** | `npx tsc` sem erros de tipo |
-| **Testes** | 442+ testes unitários Rust, sem dependência de rede |
+| **Testes** | 433+ testes unitários + 20 testes de integração Rust, sem dependência de rede |
 | **Arquitetura Frontend** | Feature-based (`features/`) + Shared (`shared/`) |
 | **Comunicação Tauri** | UI **nunca** chama `invoke()` direto — sempre via `shared/services/` |
 | **Estado auth** | Centralizado em `shared/auth.ts` (`passwordVerified`) |
