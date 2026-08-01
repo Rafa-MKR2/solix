@@ -17,14 +17,26 @@ DIST_DIR="$SCRIPT_DIR/dist"
 
 echo "=== Building Solix $VERSION for distribution ==="
 
-# Compile TypeScript
+# Compile TypeScript — fail loudly on errors so stale JS is never shipped
 cd "$SCRIPT_DIR"
 npm ci --omit=optional 2>/dev/null || true
-npx tsc 2>/dev/null || echo "⚠️ TypeScript não encontrado, usando JS existente"
+if [ -x node_modules/.bin/tsc ]; then
+  if ! npx tsc; then
+    echo "❌ Falha na compilação TypeScript. Corrija os erros acima antes de gerar a release." >&2
+    exit 1
+  fi
+else
+  echo "⚠️ TypeScript não instalado (npm ci falhou) — usando JS existente em src/" >&2
+fi
 
-# Build Rust
+# Build Rust — load cargo env (rustup) or rely on cargo already on PATH
 cd "$SCRIPT_DIR/src-tauri"
-. "$HOME/.cargo/env"
+if [ -f "$HOME/.cargo/env" ]; then
+  . "$HOME/.cargo/env"
+elif ! command -v cargo >/dev/null 2>&1; then
+  echo "❌ cargo não encontrado. Instale via rustup (https://rustup.rs) ou pelo gerenciador de pacotes." >&2
+  exit 1
+fi
 cargo build --release
 cd "$SCRIPT_DIR"
 

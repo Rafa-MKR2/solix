@@ -11,9 +11,22 @@ set -euo pipefail
 APP_NAME="solix"
 REPO="Rafa-MKR2/solix"
 
-# Detect version from latest GitHub release tag
-# Fallback to v2.2.0 if detection fails
-VERSION="$(curl -sSL --max-time 5 "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": "\(.*\)".*/\1/' 2>/dev/null || echo "v2.2.0")"
+# Detect version from the latest GitHub release tag.
+# 1) GitHub API (primary)
+VERSION="$(curl -sSL --max-time 5 "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null \
+  | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/' || true)"
+
+# 2) Fallback: /releases/latest redirects to /releases/tag/vX.Y.Z
+if [ -z "$VERSION" ]; then
+  VERSION="$(curl -sIL --max-time 5 -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest" 2>/dev/null \
+    | sed 's#.*/releases/tag/##' || true)"
+fi
+
+if [ -z "$VERSION" ]; then
+  echo "❌ Não foi possível detectar a última versão do Solix no GitHub." >&2
+  echo "   Verifique sua conexão com a internet e tente novamente." >&2
+  exit 1
+fi
 
 BIN_URL="https://github.com/$REPO/releases/download/$VERSION/$APP_NAME-x86_64-linux"
 ARCHIVE_URL="https://github.com/$REPO/releases/download/$VERSION/solix-assets.tar.gz"
