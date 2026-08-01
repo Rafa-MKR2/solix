@@ -17,6 +17,7 @@ pub struct BackupResult {
     pub error: Option<String>,
 }
 
+// Only constructed in tests; reserved for future "backup-progress" events.
 #[allow(dead_code)]
 #[derive(Debug, Serialize)]
 pub struct BackupProgress {
@@ -107,7 +108,7 @@ pub async fn create_backup(
 
     // Get file size
     let file_size = match tokio::fs::metadata(&output_path).await {
-        Ok(m) => format_bytes(m.len()),
+        Ok(m) => crate::util::format_bytes(m.len(), crate::util::FormatBase::Binary),
         Err(_) => "desconhecido".to_string(),
     };
 
@@ -120,52 +121,9 @@ pub async fn create_backup(
     })
 }
 
-fn format_bytes(bytes: u64) -> String {
-    if bytes >= 1_073_741_824 {
-        format!("{:.2} GB", bytes as f64 / 1_073_741_824.0)
-    } else if bytes >= 1_048_576 {
-        format!("{:.1} MB", bytes as f64 / 1_048_576.0)
-    } else if bytes >= 1024 {
-        format!("{:.0} KB", bytes as f64 / 1024.0)
-    } else {
-        format!("{} B", bytes)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_format_bytes_bytes() {
-        assert_eq!(format_bytes(500), "500 B");
-    }
-
-    #[test]
-    fn test_format_bytes_kb() {
-        assert_eq!(format_bytes(2048), "2 KB");
-    }
-
-    #[test]
-    fn test_format_bytes_mb() {
-        assert_eq!(format_bytes(1_048_576), "1.0 MB");
-    }
-
-    #[test]
-    fn test_format_bytes_gb() {
-        assert_eq!(format_bytes(2_147_483_648), "2.00 GB");
-    }
-
-    #[test]
-    fn test_format_bytes_zero() {
-        assert_eq!(format_bytes(0), "0 B");
-    }
-
-    #[test]
-    fn test_format_bytes_edge() {
-        assert_eq!(format_bytes(1023), "1023 B");
-        assert_eq!(format_bytes(1024), "1 KB");
-    }
 
     #[test]
     fn test_backup_result_struct() {
@@ -206,33 +164,6 @@ mod tests {
         assert_eq!(p.stage, "done");
         assert_eq!(p.percent, 100);
         assert!(p.file_path.is_some());
-    }
-
-    #[test]
-    fn test_format_bytes_exact_boundaries() {
-        assert_eq!(format_bytes(1024), "1 KB");
-        assert_eq!(format_bytes(1_048_576), "1.0 MB");
-        assert_eq!(format_bytes(1_073_741_824), "1.00 GB");
-    }
-
-    #[test]
-    fn test_format_bytes_one_less_than_boundary() {
-        assert_eq!(format_bytes(1023), "1023 B");
-        assert_eq!(format_bytes(1_048_575), "1024 KB");
-        assert_eq!(format_bytes(1_073_741_823), "1024.0 MB");
-    }
-
-    #[test]
-    fn test_format_bytes_fractional_values() {
-        assert_eq!(format_bytes(1536), "2 KB");
-        assert_eq!(format_bytes(1_572_864), "1.5 MB");
-        assert_eq!(format_bytes(1_610_612_736), "1.50 GB");
-    }
-
-    #[test]
-    fn test_format_bytes_large_values() {
-        assert_eq!(format_bytes(5_497_558_138_880), "5120.00 GB");
-        assert_eq!(format_bytes(1_099_511_627_776), "1024.00 GB");
     }
 
     #[test]

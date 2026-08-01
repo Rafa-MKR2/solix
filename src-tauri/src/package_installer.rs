@@ -106,19 +106,7 @@ fn check_distro_compat(pkg_type: &str) -> (bool, String) {
 /// Obtém o tamanho do arquivo em formato legível
 fn format_file_size(path: &str) -> String {
     let len = std::fs::metadata(path).ok().map(|m| m.len()).unwrap_or(0);
-    format_bytes(len)
-}
-
-fn format_bytes(len: u64) -> String {
-    if len > 1_000_000_000 {
-        format!("{:.1} GB", len as f64 / 1_000_000_000.0)
-    } else if len > 1_000_000 {
-        format!("{:.1} MB", len as f64 / 1_000_000.0)
-    } else if len > 1_000 {
-        format!("{:.0} KB", len as f64 / 1_000.0)
-    } else {
-        format!("{} bytes", len)
-    }
+    crate::util::format_bytes(len, crate::util::FormatBase::Decimal)
 }
 
 /// Extrai o nome do arquivo do path
@@ -584,34 +572,6 @@ mod tests {
     // ─── Pure function tests ───
 
     #[test]
-    fn test_format_bytes_bytes() {
-        assert_eq!(format_bytes(0), "0 bytes");
-        assert_eq!(format_bytes(1), "1 bytes");
-        assert_eq!(format_bytes(999), "999 bytes");
-    }
-
-    #[test]
-    fn test_format_bytes_kb() {
-        assert_eq!(format_bytes(1_001), "1 KB");
-        assert_eq!(format_bytes(10_000), "10 KB");
-        assert_eq!(format_bytes(999_999), "1000 KB");
-    }
-
-    #[test]
-    fn test_format_bytes_mb() {
-        assert_eq!(format_bytes(1_000_001), "1.0 MB");
-        assert_eq!(format_bytes(1_500_000), "1.5 MB");
-        assert_eq!(format_bytes(999_999_999), "1000.0 MB");
-    }
-
-    #[test]
-    fn test_format_bytes_gb() {
-        assert_eq!(format_bytes(1_000_000_001), "1.0 GB");
-        assert_eq!(format_bytes(2_500_000_000), "2.5 GB");
-        assert_eq!(format_bytes(10_000_000_000), "10.0 GB");
-    }
-
-    #[test]
     fn test_extract_filename_simple() {
         assert_eq!(extract_filename("/tmp/file.deb"), "file.deb");
     }
@@ -747,22 +707,6 @@ Version:   1.0
     #[test]
     fn test_extract_filename_dotdot() {
         assert_eq!(extract_filename("../file.deb"), "file.deb");
-    }
-
-    #[test]
-    fn test_format_bytes_exact_boundary() {
-        assert_eq!(format_bytes(1_000_000), "1000 KB");
-        assert_eq!(format_bytes(1_000_000_001), "1.0 GB");
-    }
-
-    #[test]
-    fn test_format_bytes_zero() {
-        assert_eq!(format_bytes(0), "0 bytes");
-    }
-
-    #[test]
-    fn test_format_bytes_large() {
-        assert_eq!(format_bytes(1_000_000_000_000), "1000.0 GB");
     }
 
     #[test]

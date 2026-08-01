@@ -48,6 +48,39 @@ pub fn base64_decode(data: &str) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
+/// Base used to format byte counts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FormatBase {
+    /// Base 1024 (binary). Labels: B, KB, MB, GB — GB with 2 decimals.
+    Binary,
+    /// Base 1000 (SI). Labels: bytes, KB, MB, GB — GB with 1 decimal.
+    Decimal,
+}
+
+/// Formats a byte count with a human-readable unit.
+/// Thresholds are inclusive (`>=`), so exact boundaries roll over to the
+/// next unit (ex: 1024 bytes -> "1 KB", 1_000_000 bytes -> "1.0 MB").
+pub fn format_bytes(bytes: u64, base: FormatBase) -> String {
+    let (divisor, byte_label, gb_precision) = match base {
+        FormatBase::Binary => (1024.0, "B", 2),
+        FormatBase::Decimal => (1000.0, "bytes", 1),
+    };
+    let size = bytes as f64;
+    if size >= divisor * divisor * divisor {
+        format!(
+            "{:.*} GB",
+            gb_precision,
+            size / (divisor * divisor * divisor)
+        )
+    } else if size >= divisor * divisor {
+        format!("{:.1} MB", size / (divisor * divisor))
+    } else if size >= divisor {
+        format!("{:.0} KB", size / divisor)
+    } else {
+        format!("{} {}", bytes, byte_label)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,5 +133,79 @@ mod tests {
     #[test]
     fn test_base64_decode_invalid_chars_skipped() {
         assert_eq!(base64_decode("SGVsbG!!@#8=").unwrap(), b"Hello");
+    }
+
+    // ─── format_bytes (Binary base 1024) ───
+
+    #[test]
+    fn test_format_bytes_binary_bytes() {
+        assert_eq!(format_bytes(0, FormatBase::Binary), "0 B");
+        assert_eq!(format_bytes(500, FormatBase::Binary), "500 B");
+        assert_eq!(format_bytes(1023, FormatBase::Binary), "1023 B");
+    }
+
+    #[test]
+    fn test_format_bytes_binary_kb() {
+        assert_eq!(format_bytes(1024, FormatBase::Binary), "1 KB");
+        assert_eq!(format_bytes(2048, FormatBase::Binary), "2 KB");
+        assert_eq!(format_bytes(1536, FormatBase::Binary), "2 KB");
+        assert_eq!(format_bytes(1_048_575, FormatBase::Binary), "1024 KB");
+    }
+
+    #[test]
+    fn test_format_bytes_binary_mb() {
+        assert_eq!(format_bytes(1_048_576, FormatBase::Binary), "1.0 MB");
+        assert_eq!(format_bytes(1_572_864, FormatBase::Binary), "1.5 MB");
+        assert_eq!(format_bytes(1_073_741_823, FormatBase::Binary), "1024.0 MB");
+    }
+
+    #[test]
+    fn test_format_bytes_binary_gb() {
+        assert_eq!(format_bytes(1_073_741_824, FormatBase::Binary), "1.00 GB");
+        assert_eq!(format_bytes(2_147_483_648, FormatBase::Binary), "2.00 GB");
+        assert_eq!(format_bytes(1_610_612_736, FormatBase::Binary), "1.50 GB");
+        assert_eq!(
+            format_bytes(5_497_558_138_880, FormatBase::Binary),
+            "5120.00 GB"
+        );
+        assert_eq!(
+            format_bytes(1_099_511_627_776, FormatBase::Binary),
+            "1024.00 GB"
+        );
+    }
+
+    // ─── format_bytes (Decimal base 1000) ───
+
+    #[test]
+    fn test_format_bytes_decimal_bytes() {
+        assert_eq!(format_bytes(0, FormatBase::Decimal), "0 bytes");
+        assert_eq!(format_bytes(1, FormatBase::Decimal), "1 bytes");
+        assert_eq!(format_bytes(999, FormatBase::Decimal), "999 bytes");
+    }
+
+    #[test]
+    fn test_format_bytes_decimal_kb() {
+        assert_eq!(format_bytes(1_001, FormatBase::Decimal), "1 KB");
+        assert_eq!(format_bytes(10_000, FormatBase::Decimal), "10 KB");
+        assert_eq!(format_bytes(999_999, FormatBase::Decimal), "1000 KB");
+    }
+
+    #[test]
+    fn test_format_bytes_decimal_mb() {
+        assert_eq!(format_bytes(1_000_000, FormatBase::Decimal), "1.0 MB");
+        assert_eq!(format_bytes(1_000_001, FormatBase::Decimal), "1.0 MB");
+        assert_eq!(format_bytes(1_500_000, FormatBase::Decimal), "1.5 MB");
+        assert_eq!(format_bytes(999_999_999, FormatBase::Decimal), "1000.0 MB");
+    }
+
+    #[test]
+    fn test_format_bytes_decimal_gb() {
+        assert_eq!(format_bytes(1_000_000_001, FormatBase::Decimal), "1.0 GB");
+        assert_eq!(format_bytes(2_500_000_000, FormatBase::Decimal), "2.5 GB");
+        assert_eq!(format_bytes(10_000_000_000, FormatBase::Decimal), "10.0 GB");
+        assert_eq!(
+            format_bytes(1_000_000_000_000, FormatBase::Decimal),
+            "1000.0 GB"
+        );
     }
 }

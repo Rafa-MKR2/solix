@@ -162,11 +162,10 @@ pub fn list_installed() -> Vec<InstalledPackage> {
                         let version = parts[1].to_string();
                         let size = if parts.len() >= 3 {
                             let kb: u64 = parts[2].parse().unwrap_or(0);
-                            if kb > 1024 {
-                                format!("{:.1} MB", kb as f64 / 1024.0)
-                            } else {
-                                format!("{} kB", kb)
-                            }
+                            crate::util::format_bytes(
+                                kb.saturating_mul(1024),
+                                crate::util::FormatBase::Binary,
+                            )
                         } else {
                             "—".to_string()
                         };
@@ -202,13 +201,7 @@ pub fn list_installed() -> Vec<InstalledPackage> {
                         let version = parts[1].to_string();
                         let size = if parts.len() >= 3 {
                             let bytes: u64 = parts[2].parse().unwrap_or(0);
-                            if bytes > 1_048_576 {
-                                format!("{:.1} MB", bytes as f64 / 1_048_576.0)
-                            } else if bytes > 1024 {
-                                format!("{:.0} KB", bytes as f64 / 1024.0)
-                            } else {
-                                format!("{} B", bytes)
-                            }
+                            crate::util::format_bytes(bytes, crate::util::FormatBase::Binary)
                         } else {
                             "—".to_string()
                         };
