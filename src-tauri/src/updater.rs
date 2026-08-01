@@ -288,6 +288,21 @@ pub fn validate_checksum(file_path: &Path, expected_hex: &str) -> Result<(), Str
     Ok(())
 }
 
+/// Monta o comando de instalação do binário baixado em `INSTALL_PATH`.
+///
+/// `sudo -S` é obrigatório: `INSTALL_PATH` (`/usr/local/bin/solix`) pertence
+/// ao root e a senha é pipeada ao stdin do sudo pelo `run_command`. Sem o
+/// prefixo sudo, o `cp` falha com "Permission denied" (regressão corrigida
+/// no hotfix).
+fn build_install_command(binary_path: &Path) -> String {
+    format!(
+        "sudo -S cp '{}' '{}' && sudo -S chmod +x '{}'",
+        binary_path.display(),
+        INSTALL_PATH,
+        INSTALL_PATH,
+    )
+}
+
 pub async fn install_update(
     binary_path: &Path,
     password: &str,
@@ -304,12 +319,7 @@ pub async fn install_update(
 
     crate::password::verify_password(password).await?;
 
-    let install_cmd = format!(
-        "cp '{}' '{}' && chmod +x '{}'",
-        binary_path.display(),
-        INSTALL_PATH,
-        INSTALL_PATH,
-    );
+    let install_cmd = build_install_command(binary_path);
 
     let result = crate::install::run_command(password, "update-install", &install_cmd).await;
 
@@ -814,5 +824,50 @@ mod tests {
         assert!(json.contains("\"update_available\":true"));
         assert!(json.contains("\"latest_version\":\"2.3.0\""));
         assert!(json.contains("\"download_size\":1024"));
+    }
+
+    // ─── build_install_command tests (regressão do hotfix sudo) ───
+
+    #[test]
+    fn test_build_install_command_prefixes_cp_with_sudo() {
+        let cmd = build_install_command(Path::new("/tmp/solix-update"));
+        // Sem `sudo -S`, o cp falha com "Permission denied" ao escrever em
+        // /usr/local/bin (bug corrigido no hotfix).
+        assert!(
+            cmd.starts_with("sudo -S cp "),
+            "cp deve ser executado via sudo: {}",
+            cmd
+        );
+    }
+
+    #[test]
+    fn test_build_install_command_targets_install_path() {
+        let cmd = build_install_command(Path::new("/tmp/solix-update"));
+        assert!(
+            cmd.contains(&format!("'{}'", INSTALL_PATH)),
+            "comando deve instalar em INSTALL_PATH: {}",
+            cmd
+        );
+        assert_eq!(
+            cmd.matches("sudo -S").count(),
+            2,
+            "cp e chmod devem usar sudo: {}",
+            cmd
+        );
+        assert!(
+            cmd.contains("chmod +x"),
+            "deve tornar o binário executável: {}",
+            cmd
+        );
+    }
+
+    #[test]
+    fn test_build_install_command_quotes_source_path() {
+        let cmd = build_install_command(Path::new("/tmp/solix-update v2"));
+        assert!(
+            cmd.contains("'/tmp/solix-update v2'"),
+            "caminho de origem deve estar entre aspas: {}",
+            cmd
+        );
     }
 }

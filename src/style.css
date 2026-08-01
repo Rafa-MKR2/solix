@@ -2155,6 +2155,26 @@ body {
   display: none;
 }
 
+/* ── Modal z-index scale ──────────────────────────────────────────────
+   500  — base overlay tier (.overlay): info, confirm, report, backup,
+          update, disk-analysis, smart. Among themselves they stack by
+          DOM order (later element paints on top).
+   600  — dynamic dialogs (.dialog-overlay, .modal-overlay): created at
+          runtime by Dialog/Modal components. Explicitly above the base
+          tier so they never depend on body-append timing.
+   700  — critical user-input modal (#password-overlay): must stay above
+          any other modal (e.g. the app-update modal that spawns it).
+   9999 — tooltips (.help-tooltip): transient, always on top.
+   ─────────────────────────────────────────────────────────────────── */
+.dialog-overlay,
+.modal-overlay {
+  z-index: 600;
+}
+
+#password-overlay {
+  z-index: 700;
+}
+
 .password-modal, .info-modal {
   background: #18182e;
   border-radius: 12px;
