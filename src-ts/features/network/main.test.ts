@@ -7,66 +7,91 @@ describe('Network Feature', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     document.body.innerHTML = `
-      <div id="internet-status">Desconhecido</div>
-      <div id="ping-value">--</div>
-      <div id="ethernet-status">Desconectado</div>
-      <div id="ethernet-ip">--</div>
-      <div id="wifi-status">Desconectado</div>
-      <div id="wifi-ssid">--</div>
-      <div id="wifi-signal">--</div>
-      <div id="bluetooth-status">Inativo</div>
-      <div id="battery-percent">--</div>
-      <div id="battery-time">--</div>
-      <div id="public-ip">--</div>
-      <div id="isp">--</div>
-      <div id="location">--</div>
+      <div id="net-internet"></div>
+      <div id="net-internet-icon"></div>
+      <div id="net-ping"></div>
+      <div id="net-ethernet"></div>
+      <div id="net-ethernet-icon"></div>
+      <div id="net-ip"></div>
+      <div id="net-bluetooth"></div>
+      <div id="net-bluetooth-icon"></div>
+      <div id="net-wifi"></div>
+      <div id="net-wifi-icon"></div>
+      <div id="net-wifi-signal"></div>
+      <div id="net-battery"></div>
+      <div id="net-battery-icon"></div>
+      <div id="info-external-ip"></div>
+      <div id="info-isp"></div>
+      <div id="info-location"></div>
+      <div id="info-ping-display"></div>
     `;
   });
 
   it('should load connectivity info and update DOM', async () => {
     const mockConnectivity = {
       internet: true,
-      ping: 15,
-      ethernet: { connected: true, ip: '192.168.1.100' },
-      wifi: { connected: false, ssid: '', signal: 0 },
-      bluetooth: { active: true },
-      battery: { percent: 85, timeRemaining: '3h 45m' },
+      ping_latency_ms: 15,
+      ethernet: true,
+      ip_address: '192.168.1.100',
+      bluetooth: true,
+      wifi_present: false,
+      wifi_ssid: null,
+      wifi_signal: 0,
     };
-    
-    mockInvoke.mockResolvedValue(mockConnectivity);
-    
+    const mockBattery = {
+      present: true,
+      percentage: 85,
+      status: 'Discharging',
+      time_remaining: '3h 45m',
+    };
+
+    mockInvoke.mockResolvedValueOnce(mockConnectivity);
+    mockInvoke.mockResolvedValueOnce(mockBattery);
+
     await loadConnectivity();
-    
-    expect(document.getElementById('internet-status')?.textContent).toBe('Conectado');
-    expect(document.getElementById('ping-value')?.textContent).toBe('15 ms');
-    expect(document.getElementById('ethernet-status')?.textContent).toBe('Conectado');
-    expect(document.getElementById('ethernet-ip')?.textContent).toBe('192.168.1.100');
-    expect(document.getElementById('bluetooth-status')?.textContent).toBe('Ativo');
-    expect(document.getElementById('battery-percent')?.textContent).toBe('85%');
+
+    expect(document.getElementById('net-internet')?.textContent).toBe('Conectado \u2713');
+    expect(document.getElementById('net-ping')?.textContent).toBe('15.0 ms');
+    expect(document.getElementById('net-ethernet')?.textContent).toBe('Conectado \u2713');
+    expect(document.getElementById('net-ip')?.textContent).toBe('192.168.1.100');
+    expect(document.getElementById('net-bluetooth')?.textContent).toBe('Ativo \u2713');
+    expect(document.getElementById('net-battery')?.textContent).toBe('85% (3h 45m)');
   });
 
   it('should load external info and update DOM', async () => {
     const mockExternalInfo = {
-      publicIp: '200.100.50.25',
+      external_ip: '200.100.50.25',
       isp: 'Provedor Exemplo',
       city: 'São Paulo',
-      country: 'Brasil',
+      region: 'SP',
     };
-    
-    mockInvoke.mockResolvedValue(mockExternalInfo);
-    
+    const mockConnectivity = {
+      internet: true,
+      ping_latency_ms: 0,
+      ethernet: false,
+      ip_address: '',
+      bluetooth: false,
+      wifi_present: false,
+      wifi_ssid: null,
+      wifi_signal: 0,
+    };
+
+    mockInvoke.mockResolvedValueOnce(mockExternalInfo);
+    mockInvoke.mockResolvedValueOnce(mockConnectivity);
+
     await loadExternalInfo();
-    
-    expect(document.getElementById('public-ip')?.textContent).toBe('200.100.50.25');
-    expect(document.getElementById('isp')?.textContent).toBe('Provedor Exemplo');
-    expect(document.getElementById('location')?.textContent).toBe('São Paulo, Brasil');
+
+    expect(document.getElementById('info-external-ip')?.textContent).toBe('200.100.50.25');
+    expect(document.getElementById('info-isp')?.textContent).toBe('Provedor Exemplo');
+    expect(document.getElementById('info-location')?.textContent).toBe('São Paulo, SP');
   });
 
   it('should handle missing elements gracefully', async () => {
     document.body.innerHTML = '';
-    const mockConnectivity = { internet: true, ping: 10 };
+    const mockConnectivity = { internet: true, ping_latency_ms: 10 };
+
     mockInvoke.mockResolvedValue(mockConnectivity);
-    
+
     await expect(loadConnectivity()).resolves.not.toThrow();
   });
 });
@@ -76,23 +101,32 @@ describe('Network Service', () => {
     vi.clearAllMocks();
   });
 
-  it('should test ping', async () => {
-    const mockResult = { success: true, latency: 12 };
+  it('should test speed', async () => {
+    const mockResult = { mbps: 50.5, formatted: '50.5 Mbps' };
     mockInvoke.mockResolvedValue(mockResult);
-    
-    const result = await networkService.testPing('google.com');
-    
-    expect(mockInvoke).toHaveBeenCalledWith('test_ping', { host: 'google.com' });
+
+    const result = await networkService.testSpeed();
+
+    expect(mockInvoke).toHaveBeenCalledWith('test_speed');
     expect(result).toEqual(mockResult);
   });
 
-  it('should test speed', async () => {
-    const mockResult = { download: 50.5, upload: 20.3 };
+  it('should fetch connectivity info', async () => {
+    const mockResult = {
+      internet: true,
+      ping_latency_ms: 12,
+      ethernet: false,
+      ip_address: '',
+      bluetooth: false,
+      wifi_present: false,
+      wifi_ssid: null,
+      wifi_signal: 0,
+    };
     mockInvoke.mockResolvedValue(mockResult);
-    
-    const result = await networkService.testSpeed();
-    
-    expect(mockInvoke).toHaveBeenCalledWith('test_speed', undefined);
+
+    const result = await networkService.getConnectivity();
+
+    expect(mockInvoke).toHaveBeenCalledWith('get_connectivity');
     expect(result).toEqual(mockResult);
   });
 });

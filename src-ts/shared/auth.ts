@@ -8,5 +8,9 @@ export function setPasswordVerified(v: boolean): void {
   _passwordVerified = v;
 }
 
+export function getPasswordVerified(): boolean {
+  return _passwordVerified;
+}
+
 // Direct read access through live ES module binding
 export { _passwordVerified as passwordVerified };

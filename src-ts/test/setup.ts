@@ -46,12 +46,6 @@ vi.mock('@tauri-apps/api', () => ({
   convertFileSrc: vi.fn((path) => path),
 }));
 
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(),
-  once: vi.fn(),
-  emit: vi.fn(),
-}));
-
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: vi.fn(() => ({
     minimize: vi.fn(),
@@ -100,6 +94,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 export { mockInvoke };
+
+// Wire the mocked invoke into window.__TAURI_INTERNALS__ so services using
+// getInvoke() (shared/utils/tauri.ts) call the test mock.
+Object.defineProperty(window, '__TAURI_INTERNALS__', {
+  writable: true,
+  value: { invoke: mockInvoke },
+});
 
 vi.mock('@tauri-apps/api/event', () => ({
   listen: vi.fn().mockResolvedValue(() => {}),
