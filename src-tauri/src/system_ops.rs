@@ -2,7 +2,6 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
 use serde::Serialize;
 use std::process::Command;
 
@@ -49,7 +48,9 @@ fn get_battery_time_remaining() -> String {
                 if let Ok(info) = Command::new("upower").args(["-i", line.trim()]).output() {
                     let info_text = String::from_utf8_lossy(&info.stdout);
                     for line in info_text.lines() {
-                        if line.trim().starts_with("time to empty") || line.trim().starts_with("time to full") {
+                        if line.trim().starts_with("time to empty")
+                            || line.trim().starts_with("time to full")
+                        {
                             let t = line.split(':').nth(1).unwrap_or("").trim();
                             if !t.is_empty() {
                                 return t.to_string();
@@ -66,7 +67,14 @@ fn get_battery_time_remaining() -> String {
 pub fn get_battery_info() -> BatteryInfo {
     let bat_path = match find_battery_path() {
         Some(p) => p,
-        None => return BatteryInfo { present: false, percentage: 0, status: String::new(), time_remaining: String::new() },
+        None => {
+            return BatteryInfo {
+                present: false,
+                percentage: 0,
+                status: String::new(),
+                time_remaining: String::new(),
+            }
+        }
     };
     let capacity = std::fs::read_to_string(bat_path.join("capacity")).unwrap_or_default();
     let status = std::fs::read_to_string(bat_path.join("status")).unwrap_or_default();
@@ -79,7 +87,10 @@ pub fn get_battery_info() -> BatteryInfo {
     }
 }
 
-pub async fn enable_zram(password: &str, _app: Option<&tauri::AppHandle>) -> Result<install::InstallResult, String> {
+pub async fn enable_zram(
+    password: &str,
+    _app: Option<&tauri::AppHandle>,
+) -> Result<install::InstallResult, String> {
     crate::stats::set_operation_in_progress(true);
     crate::install::kill_readonly_pacman_queries();
     let result = async {
@@ -131,14 +142,20 @@ pub async fn enable_zram(password: &str, _app: Option<&tauri::AppHandle>) -> Res
     result
 }
 
-pub async fn cleanup_system(password: &str, _app: Option<&tauri::AppHandle>) -> Result<install::InstallResult, String> {
+pub async fn cleanup_system(
+    password: &str,
+    _app: Option<&tauri::AppHandle>,
+) -> Result<install::InstallResult, String> {
     crate::stats::set_operation_in_progress(true);
     crate::install::kill_readonly_pacman_queries();
     let result = async {
         crate::password::verify_password(password).await?;
 
         let distro = crate::distribution::detect_linux_distribution().await;
-        let pm = distro.as_ref().map(|d| d.package_manager.as_str()).unwrap_or("pacman");
+        let pm = distro
+            .as_ref()
+            .map(|d| d.package_manager.as_str())
+            .unwrap_or("pacman");
 
         let pm_cmd = match pm {
             "pacman" => "sudo -S pacman -Sc --noconfirm",
@@ -168,7 +185,8 @@ pub async fn cleanup_system(password: &str, _app: Option<&tauri::AppHandle>) -> 
             output: Some(output),
             error: if success { None } else { pm_result.error },
         })
-    }.await;
+    }
+    .await;
     crate::stats::set_operation_in_progress(false);
     result
 }
@@ -359,7 +377,12 @@ mod tests {
     fn test_get_battery_time_remaining_format() {
         let time = get_battery_time_remaining();
         // Returns empty string or a time string
-        assert!(time.is_empty() || time.contains(':') || time.contains("until") || time.contains("hour"));
+        assert!(
+            time.is_empty()
+                || time.contains(':')
+                || time.contains("until")
+                || time.contains("hour")
+        );
     }
 
     // ─── get_battery_info integration ───
@@ -394,4 +417,3 @@ mod tests {
         });
     }
 }
-

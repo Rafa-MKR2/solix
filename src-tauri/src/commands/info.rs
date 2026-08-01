@@ -1,5 +1,5 @@
+use crate::{distribution, executable, stats, system_info, tool, user};
 use serde::Serialize;
-use crate::{distribution, system_info, stats, tool, executable, user};
 
 #[derive(Debug, Serialize)]
 pub struct SystemInfo {
@@ -65,9 +65,15 @@ pub async fn get_report_info() -> Result<ReportInfo, String> {
     Ok(ReportInfo {
         app_version: env!("CARGO_PKG_VERSION").to_string(),
         distro_name: distro.as_ref().map(|d| d.name.clone()).unwrap_or_default(),
-        distro_version: distro.as_ref().map(|d| d.version.clone()).unwrap_or_default(),
+        distro_version: distro
+            .as_ref()
+            .map(|d| d.version.clone())
+            .unwrap_or_default(),
         kernel: hardware.kernel,
-        package_manager: distro.as_ref().map(|d| d.package_manager.clone()).unwrap_or_default(),
+        package_manager: distro
+            .as_ref()
+            .map(|d| d.package_manager.clone())
+            .unwrap_or_default(),
         cpu_percent: s.cpu_percent,
         memory_percent: s.memory_percent,
         temperature: s.temperature,

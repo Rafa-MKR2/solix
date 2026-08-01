@@ -18,9 +18,9 @@ pub struct LocalPackageInfo {
     pub description: String,
     pub architecture: String,
     pub dependencies: Vec<String>,
-    pub package_type: String,       // "deb" ou "rpm"
-    pub compatible: bool,           // compatível com a distro atual?
-    pub compat_message: String,     // mensagem explicativa
+    pub package_type: String,   // "deb" ou "rpm"
+    pub compatible: bool,       // compatível com a distro atual?
+    pub compat_message: String, // mensagem explicativa
 }
 
 /// Obtém a arquitetura do sistema
@@ -54,25 +54,47 @@ fn check_distro_compat(pkg_type: &str) -> (bool, String) {
 
     match pkg_type {
         "deb" => {
-            let deb_family = ["ubuntu", "debian", "linuxmint", "pop", "elementary", "zorin", "kali"];
+            let deb_family = [
+                "ubuntu",
+                "debian",
+                "linuxmint",
+                "pop",
+                "elementary",
+                "zorin",
+                "kali",
+            ];
             let is_deb = deb_family.contains(&id.as_str())
                 || deb_family.contains(&id_like.as_str())
                 || id_like.contains("debian");
             if is_deb {
-                (true, "✅ Compatível com sua distribuição (Debian/Ubuntu)".into())
+                (
+                    true,
+                    "✅ Compatível com sua distribuição (Debian/Ubuntu)".into(),
+                )
             } else {
                 (false, "❌ Pacote .deb não é compatível com sua distribuição. Recomendamos usar o formato nativo da sua distro.".into())
             }
         }
         "rpm" => {
-            let rpm_family = ["fedora", "rhel", "centos", "rocky", "almalinux", "opensuse", "suse"];
+            let rpm_family = [
+                "fedora",
+                "rhel",
+                "centos",
+                "rocky",
+                "almalinux",
+                "opensuse",
+                "suse",
+            ];
             let is_rpm = rpm_family.contains(&id.as_str())
                 || rpm_family.contains(&id_like.as_str())
                 || id_like.contains("fedora")
                 || id_like.contains("rhel")
                 || id_like.contains("suse");
             if is_rpm {
-                (true, "✅ Compatível com sua distribuição (Fedora/RHEL/openSUSE)".into())
+                (
+                    true,
+                    "✅ Compatível com sua distribuição (Fedora/RHEL/openSUSE)".into(),
+                )
             } else {
                 (false, "❌ Pacote .rpm não é compatível com sua distribuição. Recomendamos usar o formato nativo da sua distro.".into())
             }
@@ -112,20 +134,30 @@ fn extract_deb_control(path: &str) -> Result<String, String> {
     // Tenta control.tar.gz (formato clássico)
     let out = std::process::Command::new("sh")
         .arg("-c")
-        .arg(format!("ar p '{}' control.tar.gz 2>/dev/null | tar xz -O ./control 2>/dev/null", path))
+        .arg(format!(
+            "ar p '{}' control.tar.gz 2>/dev/null | tar xz -O ./control 2>/dev/null",
+            path
+        ))
         .output()
-        .map_err(|_| "Erro ao extrair pacote. Verifique se 'ar' está instalado (binutils).".to_string())?;
+        .map_err(|_| {
+            "Erro ao extrair pacote. Verifique se 'ar' está instalado (binutils).".to_string()
+        })?;
 
     if !out.status.success() || out.stdout.is_empty() {
         // Tenta control.tar.xz (debs mais recentes)
         let out = std::process::Command::new("sh")
             .arg("-c")
-            .arg(format!("ar p '{}' control.tar.xz 2>/dev/null | tar xJ -O ./control 2>/dev/null", path))
+            .arg(format!(
+                "ar p '{}' control.tar.xz 2>/dev/null | tar xJ -O ./control 2>/dev/null",
+                path
+            ))
             .output()
             .map_err(|_| "Erro ao extrair pacote.".to_string())?;
 
         if out.stdout.is_empty() {
-            return Err("Não foi possível ler o pacote .deb. O arquivo pode estar corrompido.".into());
+            return Err(
+                "Não foi possível ler o pacote .deb. O arquivo pode estar corrompido.".into(),
+            );
         }
         return Ok(String::from_utf8_lossy(&out.stdout).to_string());
     }
@@ -137,13 +169,11 @@ fn extract_deb_control(path: &str) -> Result<String, String> {
 fn parse_control_field<'a>(content: &'a str, field: &str) -> Option<&'a str> {
     let prefix = format!("{}: ", field);
     let prefix_no_space = format!("{}:", field);
-    content
-        .lines()
-        .find_map(|line| {
-            line.strip_prefix(&prefix)
-                .or_else(|| line.strip_prefix(&prefix_no_space))
-                .map(|v| v.trim())
-        })
+    content.lines().find_map(|line| {
+        line.strip_prefix(&prefix)
+            .or_else(|| line.strip_prefix(&prefix_no_space))
+            .map(|v| v.trim())
+    })
 }
 
 /// Inspeciona um pacote .deb usando `ar` + `tar` (não precisa de dpkg-deb)
@@ -176,7 +206,9 @@ fn inspect_deb(path: &str) -> Result<LocalPackageInfo, String> {
     let dependencies: Vec<String> = control
         .lines()
         .filter_map(|l| {
-            let stripped = l.strip_prefix("Depends: ").or_else(|| l.strip_prefix("Depends:"))?;
+            let stripped = l
+                .strip_prefix("Depends: ")
+                .or_else(|| l.strip_prefix("Depends:"))?;
             Some(stripped.trim().to_string())
         })
         .next()
@@ -235,15 +267,13 @@ fn run_rpm_qp_r(path: &str) -> Result<String, String> {
 }
 
 fn parse_rpm_field(output: &str, field: &str) -> Option<String> {
-    output
-        .lines()
-        .find_map(|l| {
-            if l.to_uppercase().starts_with(&field.to_uppercase()) {
-                l.split_once(':').map(|x| x.1).map(|v| v.trim().to_string())
-            } else {
-                None
-            }
-        })
+    output.lines().find_map(|l| {
+        if l.to_uppercase().starts_with(&field.to_uppercase()) {
+            l.split_once(':').map(|x| x.1).map(|v| v.trim().to_string())
+        } else {
+            None
+        }
+    })
 }
 
 /// Inspeciona um pacote .rpm — tenta `rpm`, fallback `rpm2cpio`, fallback amigável
@@ -260,10 +290,14 @@ fn inspect_rpm(path: &str) -> Result<LocalPackageInfo, String> {
         let stdout = run_rpm_qpi(path)?;
         let deps_stdout = run_rpm_qp_r(path).unwrap_or_default();
 
-        let package_name = parse_rpm_field(&stdout, "Name").unwrap_or_else(|| "desconhecido".to_string());
-        let version = parse_rpm_field(&stdout, "Version").unwrap_or_else(|| "desconhecida".to_string());
-        let description = parse_rpm_field(&stdout, "Description").unwrap_or_else(|| "Sem descrição".to_string());
-        let architecture = parse_rpm_field(&stdout, "Architecture").unwrap_or_else(|| "desconhecida".to_string());
+        let package_name =
+            parse_rpm_field(&stdout, "Name").unwrap_or_else(|| "desconhecido".to_string());
+        let version =
+            parse_rpm_field(&stdout, "Version").unwrap_or_else(|| "desconhecida".to_string());
+        let description =
+            parse_rpm_field(&stdout, "Description").unwrap_or_else(|| "Sem descrição".to_string());
+        let architecture =
+            parse_rpm_field(&stdout, "Architecture").unwrap_or_else(|| "desconhecida".to_string());
 
         let dependencies: Vec<String> = deps_stdout
             .lines()
@@ -303,7 +337,10 @@ fn inspect_rpm(path: &str) -> Result<LocalPackageInfo, String> {
     if Path::new("/usr/bin/rpm2cpio").exists() {
         let out = std::process::Command::new("sh")
             .arg("-c")
-            .arg(format!("rpm2cpio '{}' 2>/dev/null | cpio -t --quiet 2>/dev/null | head -1", path))
+            .arg(format!(
+                "rpm2cpio '{}' 2>/dev/null | cpio -t --quiet 2>/dev/null | head -1",
+                path
+            ))
             .output()
             .map_err(|_| "Erro ao validar pacote .rpm.".to_string())?;
 
@@ -314,7 +351,8 @@ fn inspect_rpm(path: &str) -> Result<LocalPackageInfo, String> {
                 file_size: format_file_size(path),
                 package_name: extract_filename(path),
                 version: "—".into(),
-                description: "Pacote .rpm válido. Instale 'rpm' para ver informações completas.".into(),
+                description: "Pacote .rpm válido. Instale 'rpm' para ver informações completas."
+                    .into(),
                 architecture: "—".into(),
                 dependencies: vec![],
                 package_type: "rpm".into(),
@@ -325,13 +363,11 @@ fn inspect_rpm(path: &str) -> Result<LocalPackageInfo, String> {
     }
 
     // Nenhuma ferramenta disponível
-    Err(
-        if distro_ok {
-            "Para inspecionar pacotes .rpm, instale o 'rpm' (gerenciador de pacotes RPM).\n\nComando: sudo dnf install rpm\nou: sudo zypper install rpm".into()
-        } else {
-            format!("{}\n\n⚠️ Dica: Sua distribuição não usa pacotes .rpm. Considere usar o formato nativo.", compat_msg)
-        }
-    )
+    Err(if distro_ok {
+        "Para inspecionar pacotes .rpm, instale o 'rpm' (gerenciador de pacotes RPM).\n\nComando: sudo dnf install rpm\nou: sudo zypper install rpm".into()
+    } else {
+        format!("{}\n\n⚠️ Dica: Sua distribuição não usa pacotes .rpm. Considere usar o formato nativo.", compat_msg)
+    })
 }
 
 /// Ponto de entrada: inspeciona qualquer tipo de pacote suportado
@@ -352,7 +388,13 @@ fn save_tmp_package(data: &str, file_name: &str) -> Result<String, String> {
     // Sanitiza nome do arquivo para evitar path traversal
     let safe_name: String = file_name
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     let tmp_path = format!("/tmp/solix-{}", safe_name);
     let mut file = std::fs::File::create(&tmp_path)
@@ -402,10 +444,7 @@ pub async fn install_local_package(
         // Verifica compatibilidade antes de instalar
         let info = inspect_package(path)?;
         if !info.compatible {
-            return Err(format!(
-                "Instalação bloqueada: {}",
-                info.compat_message
-            ));
+            return Err(format!("Instalação bloqueada: {}", info.compat_message));
         }
 
         // Executa a instalação usando o sistema existente de run_command
@@ -414,15 +453,19 @@ pub async fn install_local_package(
         // Se falhou com dependências, tenta corrigir automaticamente
         if !result.success && pkg_type == "deb" {
             let fix_cmd = "sudo -S apt install -f -y".to_string();
-            let fix_result = crate::install::run_command(password, "fix-dependencies", &fix_cmd).await;
+            let fix_result =
+                crate::install::run_command(password, "fix-dependencies", &fix_cmd).await;
             if fix_result.success {
                 // Tenta instalar novamente
-                return Ok(crate::install::run_command(password, &info.package_name, &install_cmd).await);
+                return Ok(
+                    crate::install::run_command(password, &info.package_name, &install_cmd).await,
+                );
             }
         }
 
         Ok(result)
-    }.await;
+    }
+    .await;
     crate::stats::set_operation_in_progress(false);
     result
 }
@@ -627,10 +670,14 @@ mod tests {
 
     #[test]
     fn test_parse_rpm_field_simple() {
-        let output = "Name        : myapp\nVersion     : 1.0\nRelease     : 1\nArchitecture: x86_64\n";
+        let output =
+            "Name        : myapp\nVersion     : 1.0\nRelease     : 1\nArchitecture: x86_64\n";
         assert_eq!(parse_rpm_field(output, "Name"), Some("myapp".into()));
         assert_eq!(parse_rpm_field(output, "Version"), Some("1.0".into()));
-        assert_eq!(parse_rpm_field(output, "Architecture"), Some("x86_64".into()));
+        assert_eq!(
+            parse_rpm_field(output, "Architecture"),
+            Some("x86_64".into())
+        );
     }
 
     #[test]
@@ -674,13 +721,22 @@ Version:   1.0
     #[test]
     fn test_parse_control_field_colon_in_value() {
         let content = "Description: foo: bar\n";
-        assert_eq!(parse_control_field(content, "Description"), Some("foo: bar"));
+        assert_eq!(
+            parse_control_field(content, "Description"),
+            Some("foo: bar")
+        );
     }
 
     #[test]
     fn test_extract_filename_with_special_chars() {
-        assert_eq!(extract_filename("/path/to/my app_1.0.deb"), "my app_1.0.deb");
-        assert_eq!(extract_filename("/downloads/firefox-128.0-1.x86_64.rpm"), "firefox-128.0-1.x86_64.rpm");
+        assert_eq!(
+            extract_filename("/path/to/my app_1.0.deb"),
+            "my app_1.0.deb"
+        );
+        assert_eq!(
+            extract_filename("/downloads/firefox-128.0-1.x86_64.rpm"),
+            "firefox-128.0-1.x86_64.rpm"
+        );
     }
 
     #[test]

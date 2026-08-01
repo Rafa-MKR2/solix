@@ -1,10 +1,9 @@
-import { showToast } from './utils.js';
 import { systemService, packageService, miscService } from './shared/services/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
 import { setupNav, setupHelpTooltips, setupLockActions, switchToPage, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, } from './ui.js';
-import { loadSystemInfo, confirmPassword, cancelPassword, showPasswordModal, cancelOperation, retryLastOperation, setupProgressListener, toolStatuses, } from './operations.js';
+import { loadSystemInfo, setupProgressListener, cancelOperation, retryLastOperation, toolStatuses } from './operations.js';
 import { handleStartBackup } from './features/disks/index.js';
-import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
+import { selectedTools, removedTools } from './features/tools/index.js';
 import { handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './features/packages/index.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './features/network/index.js';
 import { setupUpdateListener, initFooter, handleCheckUpdateClick, showUpdateBanner, } from './features/update/index.js';
@@ -19,44 +18,37 @@ document.addEventListener('DOMContentLoaded', () => {
     setupUpdateListener();
     setRetryLastOperationFn(retryLastOperation);
     loadSystemInfo();
-    document.getElementById('password-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter')
-            confirmPassword();
-    });
-    document.getElementById('password-confirm').addEventListener('click', confirmPassword);
-    document.getElementById('password-cancel').addEventListener('click', cancelPassword);
-    document.getElementById('confirm-btn-yes')?.addEventListener('click', () => {
-        document.getElementById('confirm-overlay').classList.add('hidden');
-        showPasswordModal({ type: 'update' });
-    });
-    document.getElementById('confirm-btn-no')?.addEventListener('click', () => {
-        document.getElementById('confirm-overlay').classList.add('hidden');
-    });
+    loadConnectivity();
+    loadExternalInfo();
+    loadProcesses();
+    loadHomeStats();
+    initFooter();
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', () => {
-            if (toolStatuses.length)
-                renderTools(toolStatuses);
+            if (selectedTools.size > 0 || removedTools.size > 0) {
+                import('./features/tools/render.js').then(m => m.renderTools(toolStatuses));
+            }
         });
     }
     document.getElementById('install-btn')?.addEventListener('click', () => {
-        if (selectedTools.size === 0)
-            return;
-        showPasswordModal({ type: 'install', tools: Array.from(selectedTools) });
+        if (selectedTools.size > 0) {
+            import('./features/tools/index.js').then(m => m.showInstallPasswordModal(Array.from(selectedTools)));
+        }
     });
     document.getElementById('remove-btn')?.addEventListener('click', () => {
-        if (removedTools.size === 0)
-            return;
-        showPasswordModal({ type: 'remove', tools: Array.from(removedTools) });
+        if (removedTools.size > 0) {
+            import('./features/tools/index.js').then(m => m.showRemovePasswordModal(Array.from(removedTools)));
+        }
     });
     document.getElementById('update-btn')?.addEventListener('click', () => {
-        document.getElementById('confirm-overlay').classList.remove('hidden');
+        import('./features/update/index.js').then(m => m.showUpdateConfirmDialog());
     });
     document.getElementById('zram-btn')?.addEventListener('click', () => {
-        showPasswordModal({ type: 'zram' });
+        import('./features/tools/index.js').then(m => m.showZramPasswordModal());
     });
     document.getElementById('cleanup-btn')?.addEventListener('click', () => {
-        showPasswordModal({ type: 'cleanup' });
+        import('./features/tools/index.js').then(m => m.showCleanupPasswordModal());
     });
     document.getElementById('tools-to-packages-btn')?.addEventListener('click', () => {
         switchToPage('pacotes');
@@ -83,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await miscService.openUrl('https://github.com/Rafa-MKR2/solix');
         }
-        catch (err) {
+        catch {
             window.open('https://github.com/Rafa-MKR2/solix', '_blank');
         }
     });
@@ -91,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('test-ping-btn')?.addEventListener('click', handleTestPingClick);
     document.getElementById('test-speed-btn')?.addEventListener('click', handleTestSpeedClick);
     document.getElementById('update-now-btn')?.addEventListener('click', () => {
-        showPasswordModal({ type: 'app-update' });
+        import('./features/update/index.js').then(m => m.showUpdatePasswordModal());
     });
     document.getElementById('update-later-btn')?.addEventListener('click', () => {
         document.getElementById('update-overlay')?.classList.add('hidden');
@@ -126,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         catch (e) {
             console.error('get_package_info failed:', e);
-            showToast('error', `Erro ao buscar informações de ${toolName}.`);
+            import('./utils.js').then(m => m.showToast('error', `Erro ao buscar informações de ${toolName}.`));
         }
     });
     document.getElementById('info-close')?.addEventListener('click', () => {
@@ -146,11 +138,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (arrow)
             arrow.classList.toggle('collapsed', isOpen);
     });
-    loadConnectivity();
-    loadExternalInfo();
-    loadProcesses();
-    loadHomeStats();
-    initFooter();
     document.getElementById('footer-check-link')?.addEventListener('click', handleCheckUpdateClick);
     document.getElementById('footer-update-btn')?.addEventListener('click', (e) => {
         e.preventDefault();
@@ -159,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showUpdateBanner(info);
             }
         }).catch(() => {
-            showToast('error', 'Erro ao verificar atualizações.');
+            import('./utils.js').then(m => m.showToast('error', 'Erro ao verificar atualizações.'));
         });
     });
     setInterval(pollStats, 3000);
@@ -244,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
-        showPasswordModal({ type: 'install-package' });
+        import('./features/packages/index.js').then(m => m.showInstallPackagePasswordModal());
     });
     document.getElementById('backup-start-btn')?.addEventListener('click', handleStartBackup);
     document.getElementById('backup-cancel-btn')?.addEventListener('click', () => {

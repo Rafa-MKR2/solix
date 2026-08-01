@@ -104,3 +104,12 @@ export async function handleCheckUpdateClick(): Promise<void> {
     checkLink.textContent = '🔍 Verificar atualizações';
   }
 }
+
+export function showUpdateConfirmDialog(): void {
+  const confirmOverlay = document.getElementById('confirm-overlay');
+  if (confirmOverlay) confirmOverlay.classList.remove('hidden');
+}
+
+export function showUpdatePasswordModal(): void {
+  import('../../operations.js').then(m => m.showPasswordModal({ type: 'app-update' }));
+}

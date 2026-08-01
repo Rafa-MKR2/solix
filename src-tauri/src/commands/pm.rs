@@ -9,7 +9,9 @@ pub async fn list_installed_packages() -> Result<Vec<package_manager::InstalledP
 }
 
 #[tauri::command]
-pub async fn search_repo_packages(query: String) -> Result<Vec<package_manager::RepoPackage>, String> {
+pub async fn search_repo_packages(
+    query: String,
+) -> Result<Vec<package_manager::RepoPackage>, String> {
     let pkgs = tokio::task::spawn_blocking(move || package_manager::search_repos(&query))
         .await
         .map_err(|_| "Erro ao buscar pacotes".to_string())?;
@@ -25,13 +27,23 @@ pub async fn get_package_history() -> Result<Vec<package_manager::PackageHistory
 }
 
 #[tauri::command]
-pub async fn remove_system_packages(package_names: Vec<String>, password: Option<String>) -> Result<Vec<String>, String> {
-    let pwd = password.or_else(crate::get_cached_password).ok_or("Senha não fornecida.")?;
+pub async fn remove_system_packages(
+    package_names: Vec<String>,
+    password: Option<String>,
+) -> Result<Vec<String>, String> {
+    let pwd = password
+        .or_else(crate::get_cached_password)
+        .ok_or("Senha não fornecida.")?;
     package_manager::remove_system_packages(&pwd, &package_names).await
 }
 
 #[tauri::command]
-pub async fn install_repo_packages(package_names: Vec<String>, password: Option<String>) -> Result<Vec<String>, String> {
-    let pwd = password.or_else(crate::get_cached_password).ok_or("Senha não fornecida.")?;
+pub async fn install_repo_packages(
+    package_names: Vec<String>,
+    password: Option<String>,
+) -> Result<Vec<String>, String> {
+    let pwd = password
+        .or_else(crate::get_cached_password)
+        .ok_or("Senha não fornecida.")?;
     package_manager::install_repo_packages(&pwd, &package_names).await
 }

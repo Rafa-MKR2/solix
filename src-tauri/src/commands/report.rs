@@ -10,7 +10,8 @@ pub async fn save_report_to_desktop(content: String) -> Result<String, String> {
         format!("{}/Escritorio", home),
         home.clone(),
     ];
-    let dest = candidates.into_iter()
+    let dest = candidates
+        .into_iter()
         .find(|p| std::path::Path::new(p).exists())
         .unwrap_or(home.clone());
 

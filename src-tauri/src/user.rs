@@ -2,10 +2,9 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
+use crate::util::base64_encode;
 use serde::Serialize;
 use std::path::Path;
-use crate::util::base64_encode;
 
 #[derive(Debug, Serialize)]
 pub struct UserInfo {
@@ -286,4 +285,3 @@ mod tests {
         assert_eq!(uid, "1005");
     }
 }
-

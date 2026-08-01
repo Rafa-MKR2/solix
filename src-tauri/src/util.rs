@@ -32,7 +32,9 @@ pub fn base64_decode(data: &str) -> Result<Vec<u8>, String> {
     let mut buffer = 0u32;
     let mut bits = 0;
     for ch in data.chars() {
-        if ch == '=' { break; }
+        if ch == '=' {
+            break;
+        }
         if let Some(pos) = CHARS.iter().position(|&c| c as char == ch) {
             buffer = (buffer << 6) | pos as u32;
             bits += 6;
@@ -56,16 +58,24 @@ mod tests {
     }
 
     #[test]
-    fn test_base64_encode_1_byte() { assert_eq!(base64_encode(b"M"), "TQ=="); }
+    fn test_base64_encode_1_byte() {
+        assert_eq!(base64_encode(b"M"), "TQ==");
+    }
 
     #[test]
-    fn test_base64_encode_2_bytes() { assert_eq!(base64_encode(b"Ma"), "TWE="); }
+    fn test_base64_encode_2_bytes() {
+        assert_eq!(base64_encode(b"Ma"), "TWE=");
+    }
 
     #[test]
-    fn test_base64_encode_3_bytes() { assert_eq!(base64_encode(b"Man"), "TWFu"); }
+    fn test_base64_encode_3_bytes() {
+        assert_eq!(base64_encode(b"Man"), "TWFu");
+    }
 
     #[test]
-    fn test_base64_encode_hello() { assert_eq!(base64_encode(b"Hello World!"), "SGVsbG8gV29ybGQh"); }
+    fn test_base64_encode_hello() {
+        assert_eq!(base64_encode(b"Hello World!"), "SGVsbG8gV29ybGQh");
+    }
 
     #[test]
     fn test_base64_decode_hello() {

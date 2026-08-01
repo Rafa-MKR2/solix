@@ -2,7 +2,6 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
 use serde::Serialize;
 use std::path::Path;
 
@@ -237,7 +236,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_detect_executables_multiple_nonexistent() {
-        let names = &["aaa-nonexistent-111", "bbb-nonexistent-222", "ccc-nonexistent-333"];
+        let names = &[
+            "aaa-nonexistent-111",
+            "bbb-nonexistent-222",
+            "ccc-nonexistent-333",
+        ];
         let result = detect_executables(names).await;
         assert_eq!(result.len(), 3);
         for status in &result {
@@ -263,4 +266,3 @@ mod tests {
         assert!(result.is_none());
     }
 }
-

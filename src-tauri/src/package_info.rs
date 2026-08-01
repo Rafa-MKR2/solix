@@ -2,7 +2,6 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
 use serde::Serialize;
 use std::process::Command;
 
@@ -55,7 +54,13 @@ fn find_icon_local(name: &str) -> Option<String> {
             for ext in &["png", "svg", "xpm"] {
                 let path = format!("{dir}/{sname}.{ext}");
                 if let Ok(data) = std::fs::read(&path) {
-                    let mime = if *ext == "svg" { "image/svg+xml" } else if *ext == "xpm" { "image/x-xpm" } else { "image/png" };
+                    let mime = if *ext == "svg" {
+                        "image/svg+xml"
+                    } else if *ext == "xpm" {
+                        "image/x-xpm"
+                    } else {
+                        "image/png"
+                    };
                     let b64 = base64_encode(&data);
                     return Some(format!("data:{mime};base64,{b64}"));
                 }
@@ -99,7 +104,8 @@ fn download_icon(name: &str) -> Option<String> {
 
     let status = Command::new("curl")
         .args(["-s", "-o", &cache_path, "-w", "%{http_code}", &url])
-        .output().ok()
+        .output()
+        .ok()
         .and_then(|o| {
             let code = String::from_utf8_lossy(&o.stdout);
             code.trim().parse::<u16>().ok()
@@ -177,7 +183,8 @@ fn download_icon(name: &str) -> Option<String> {
         let alt_url = format!("https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/Papirus/128x128/apps/{alt}.svg");
         let status = Command::new("curl")
             .args(["-s", "-o", &alt_cache, "-w", "%{http_code}", &alt_url])
-            .output().ok()
+            .output()
+            .ok()
             .and_then(|o| {
                 let code = String::from_utf8_lossy(&o.stdout);
                 code.trim().parse::<u16>().ok()
@@ -194,8 +201,6 @@ fn download_icon(name: &str) -> Option<String> {
     None
 }
 
-
-
 #[derive(Debug, Serialize)]
 pub struct PackageDetail {
     pub tool_name: String,
@@ -209,9 +214,27 @@ pub struct PackageDetail {
 
 fn is_installed(pm: &str, pkg: &str) -> bool {
     match pm {
-        "pacman" => Command::new("pacman").args(["-Qi", pkg]).env("LC_ALL", "C").stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false),
-        "apt" => Command::new("dpkg-query").args(["-W", "--showformat=${Status}", pkg]).output().ok().map(|o| String::from_utf8_lossy(&o.stdout).contains("installed")).unwrap_or(false),
-        "dnf" | "zypper" => Command::new("rpm").args(["-q", pkg]).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false),
+        "pacman" => Command::new("pacman")
+            .args(["-Qi", pkg])
+            .env("LC_ALL", "C")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false),
+        "apt" => Command::new("dpkg-query")
+            .args(["-W", "--showformat=${Status}", pkg])
+            .output()
+            .ok()
+            .map(|o| String::from_utf8_lossy(&o.stdout).contains("installed"))
+            .unwrap_or(false),
+        "dnf" | "zypper" => Command::new("rpm")
+            .args(["-q", pkg])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false),
         _ => false,
     }
 }
@@ -229,10 +252,17 @@ fn query_info(pm: &str, pkg: &str, installed: bool) -> (String, String, String) 
     let output = Command::new(cmd)
         .args(&args)
         .env("LC_ALL", "C")
-        .output().ok();
-    let text = output.and_then(|o| {
-        if o.status.success() { Some(String::from_utf8_lossy(&o.stdout).to_string()) } else { None }
-    }).unwrap_or_default();
+        .output()
+        .ok();
+    let text = output
+        .and_then(|o| {
+            if o.status.success() {
+                Some(String::from_utf8_lossy(&o.stdout).to_string())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_default();
 
     parse_pm_output(pm, &text)
 }
@@ -249,38 +279,52 @@ fn parse_pm_output(pm: &str, text: &str) -> (String, String, String) {
                 if let Some((key, val)) = line.split_once(':') {
                     let k = key.trim();
                     let v = val.trim();
-                    if k == "Version" { version = v.to_string(); }
-                    else if (k == "Installed Size") || (k == "Download Size" && size == "—") { size = v.to_string(); }
-                    else if k == "Description" { desc = v.to_string(); }
+                    if k == "Version" {
+                        version = v.to_string();
+                    } else if (k == "Installed Size") || (k == "Download Size" && size == "—") {
+                        size = v.to_string();
+                    } else if k == "Description" {
+                        desc = v.to_string();
+                    }
                 }
             }
-        },
+        }
         "apt" => {
             for line in text.lines() {
                 if let Some((key, val)) = line.split_once(':') {
                     let k = key.trim();
                     let v = val.trim();
-                    if k == "Version" { version = v.to_string(); }
-                    else if k == "Installed-Size" {
+                    if k == "Version" {
+                        version = v.to_string();
+                    } else if k == "Installed-Size" {
                         let kb: u64 = v.parse().unwrap_or(0);
-                        size = if kb > 1024 { format!("{:.1} MB", kb as f64 / 1024.0) } else { format!("{} kB", kb) };
+                        size = if kb > 1024 {
+                            format!("{:.1} MB", kb as f64 / 1024.0)
+                        } else {
+                            format!("{} kB", kb)
+                        };
+                    } else if k == "Description-en" || k == "Description" {
+                        desc = v.to_string();
                     }
-                    else if k == "Description-en" || k == "Description" { desc = v.to_string(); }
                 }
             }
-        },
+        }
         "dnf" | "zypper" => {
             for line in text.lines() {
                 if let Some((key, val)) = line.split_once(':') {
                     let k = key.trim();
                     let v = val.trim();
-                    if k == "Version" || k == "Versão" { version = v.to_string(); }
-                    else if k == "Size" || k == "Tamanho" { size = v.to_string(); }
-                    else if k == "Description" || k == "Descrição" { desc = v.to_string(); }
+                    if k == "Version" || k == "Versão" {
+                        version = v.to_string();
+                    } else if k == "Size" || k == "Tamanho" {
+                        size = v.to_string();
+                    } else if k == "Description" || k == "Descrição" {
+                        desc = v.to_string();
+                    }
                 }
             }
-        },
-        _ => {},
+        }
+        _ => {}
     }
 
     (version, size, desc)
@@ -288,7 +332,8 @@ fn parse_pm_output(pm: &str, text: &str) -> (String, String, String) {
 
 pub async fn get_package_info(tool_name: &str) -> Result<PackageDetail, String> {
     let package_name = install::get_package_name(tool_name).to_string();
-    let distro = distribution::detect_linux_distribution().await
+    let distro = distribution::detect_linux_distribution()
+        .await
         .ok_or_else(|| "Não foi possível detectar a distribuição".to_string())?;
     let pm = &distro.package_manager;
 
@@ -329,7 +374,10 @@ mod tests {
         assert_eq!(detail.version, "123.0");
         assert_eq!(detail.size, "50.0 MB");
         assert!(detail.installed);
-        assert_eq!(detail.icon_base64, Some("data:image/png;base64,iVBORw0KGgo=".into()));
+        assert_eq!(
+            detail.icon_base64,
+            Some("data:image/png;base64,iVBORw0KGgo=".into())
+        );
     }
 
     #[test]
@@ -575,10 +623,19 @@ Descrição       : Navegador web Firefox
             pub name: String,
             pub data: Option<String>,
         }
-        let a = IconInfo { name: "firefox".into(), data: Some("abc".into()) };
-        let b = IconInfo { name: "firefox".into(), data: Some("abc".into()) };
+        let a = IconInfo {
+            name: "firefox".into(),
+            data: Some("abc".into()),
+        };
+        let b = IconInfo {
+            name: "firefox".into(),
+            data: Some("abc".into()),
+        };
         assert_eq!(a, b);
-        let c = IconInfo { name: "firefox".into(), data: None };
+        let c = IconInfo {
+            name: "firefox".into(),
+            data: None,
+        };
         assert_ne!(a, c);
     }
 

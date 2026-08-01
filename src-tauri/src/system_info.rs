@@ -2,7 +2,6 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
@@ -16,8 +15,8 @@ pub struct DiskInfo {
     pub percent_used: f64,
     pub filesystem: String,
     pub fstype: String,
-    pub io_read: String,   // human-readable, e.g. "45.2 MB/s"
-    pub io_write: String,  // human-readable
+    pub io_read: String,  // human-readable, e.g. "45.2 MB/s"
+    pub io_write: String, // human-readable
     pub device_model: String,
 }
 
@@ -45,16 +44,17 @@ fn get_disks() -> Vec<DiskInfo> {
     let io_map = get_disk_io_map();
 
     if Path::new("/usr/bin/df").exists() {
-        if let Ok(out) = std::process::Command::new("df")
-            .args(["-hT"])
-            .output()
-        {
+        if let Ok(out) = std::process::Command::new("df").args(["-hT"]).output() {
             let stdout = String::from_utf8_lossy(&out.stdout);
             for line in stdout.lines().skip(1) {
                 let line = line.trim();
-                if line.is_empty() { continue; }
+                if line.is_empty() {
+                    continue;
+                }
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() < 7 { continue; }
+                if parts.len() < 7 {
+                    continue;
+                }
 
                 let filesystem = parts[0];
                 let fstype = parts[1].to_string();
@@ -82,8 +82,9 @@ fn get_disks() -> Vec<DiskInfo> {
                     .unwrap_or(filesystem)
                     .to_string();
 
-                let (io_read, io_write) = io_map.get(&full_name)  // try partition name first
-                    .or_else(|| io_map.get(dev_name))  // fallback to base device
+                let (io_read, io_write) = io_map
+                    .get(&full_name) // try partition name first
+                    .or_else(|| io_map.get(dev_name)) // fallback to base device
                     .cloned()
                     .unwrap_or(("—".to_string(), "—".to_string()));
 
@@ -118,8 +119,11 @@ fn get_disk_io_map() -> HashMap<String, (String, String)> {
                 if parts.len() >= 10 {
                     let name = parts[2].to_string();
                     // Skip virtual devices
-                    if name.starts_with("loop") || name.starts_with("ram") 
-                        || name.starts_with("zram") || name.starts_with("dm-") {
+                    if name.starts_with("loop")
+                        || name.starts_with("ram")
+                        || name.starts_with("zram")
+                        || name.starts_with("dm-")
+                    {
                         continue;
                     }
                     let rsect: u64 = parts.get(5).and_then(|s| s.parse().ok()).unwrap_or(0);
@@ -185,14 +189,28 @@ fn get_device_model(dev_name: &str) -> String {
 }
 
 fn is_virtual_fs(fstype: &str) -> bool {
-    matches!(fstype,
-        "tmpfs" | "devtmpfs" | "sysfs" | "proc"
-        | "cgroup" | "cgroup2" | "devpts"
-        | "securityfs" | "pstore" | "bpf"
-        | "efivarfs" | "overlay" | "hugetlbfs"
-        | "mqueue" | "debugfs" | "tracefs"
-        | "configfs" | "fusectl" | "sunrpc"
-        | "nsfs"
+    matches!(
+        fstype,
+        "tmpfs"
+            | "devtmpfs"
+            | "sysfs"
+            | "proc"
+            | "cgroup"
+            | "cgroup2"
+            | "devpts"
+            | "securityfs"
+            | "pstore"
+            | "bpf"
+            | "efivarfs"
+            | "overlay"
+            | "hugetlbfs"
+            | "mqueue"
+            | "debugfs"
+            | "tracefs"
+            | "configfs"
+            | "fusectl"
+            | "sunrpc"
+            | "nsfs"
     )
 }
 
@@ -225,7 +243,10 @@ pub fn parse_cpuinfo(content: &str) -> (String, String) {
         .unwrap_or_else(|| "Desconhecido".to_string());
 
     let cores = {
-        let count = content.lines().filter(|l| l.trim().starts_with("processor")).count();
+        let count = content
+            .lines()
+            .filter(|l| l.trim().starts_with("processor"))
+            .count();
         if count > 0 {
             format!("{} núcleos", count)
         } else {
@@ -241,10 +262,18 @@ pub fn parse_meminfo(content: &str) -> (String, String) {
 
     for line in content.lines() {
         if let Some(val) = line.strip_prefix("MemTotal:") {
-            total_kb = val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            total_kb = val
+                .split_whitespace()
+                .next()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(0);
         }
         if let Some(val) = line.strip_prefix("MemAvailable:") {
-            available_kb = val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            available_kb = val
+                .split_whitespace()
+                .next()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(0);
         }
     }
 
@@ -254,7 +283,11 @@ pub fn parse_meminfo(content: &str) -> (String, String) {
 }
 
 pub fn parse_uptime(content: &str) -> String {
-    let seconds: f64 = content.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0.0);
+    let seconds: f64 = content
+        .split_whitespace()
+        .next()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0.0);
     let hours = (seconds / 3600.0) as u64;
     let minutes = ((seconds % 3600.0) / 60.0) as u64;
     format!("{}h {}m", hours, minutes)
@@ -269,7 +302,10 @@ pub fn get_system_hardware() -> SystemHardware {
 
     let (disk_total, disk_used) = if !disks.is_empty() {
         // Use root partition for the summary
-        let root = disks.iter().find(|d| d.mount_point == "/").unwrap_or(&disks[0]);
+        let root = disks
+            .iter()
+            .find(|d| d.mount_point == "/")
+            .unwrap_or(&disks[0]);
         (root.total.clone(), root.used.clone())
     } else {
         ("—".to_string(), "—".to_string())
@@ -555,7 +591,6 @@ model name\t: AMD Ryzen 5 3600\n";
         let content = "MemTotal:       1048576 kB\nMemAvailable:    2097152 kB\n";
         let (total, used) = parse_meminfo(content);
         assert_eq!(total, "1.0 GB");
-        assert_eq!(used, "0.0 GB");  // saturating at 0
+        assert_eq!(used, "0.0 GB"); // saturating at 0
     }
 }
-

@@ -79,7 +79,10 @@ fn parse_pacman_qi(output: &str) -> std::collections::HashMap<String, (String, S
         let line = line.trim();
         if line.is_empty() {
             if !current_name.is_empty() {
-                map.insert(current_name.clone(), (current_desc.clone(), current_size.clone()));
+                map.insert(
+                    current_name.clone(),
+                    (current_desc.clone(), current_size.clone()),
+                );
                 current_name.clear();
                 current_desc = "—".to_string();
                 current_size = "—".to_string();
@@ -89,9 +92,13 @@ fn parse_pacman_qi(output: &str) -> std::collections::HashMap<String, (String, S
         if let Some((key, val)) = line.split_once(':') {
             let k = key.trim();
             let v = val.trim();
-            if k == "Name" { current_name = v.to_string(); }
-            else if k == "Description" { current_desc = v.to_string(); }
-            else if k == "Installed Size" { current_size = v.to_string(); }
+            if k == "Name" {
+                current_name = v.to_string();
+            } else if k == "Description" {
+                current_desc = v.to_string();
+            } else if k == "Installed Size" {
+                current_size = v.to_string();
+            }
         }
     }
     if !current_name.is_empty() {
@@ -115,10 +122,13 @@ pub fn list_installed() -> Vec<InstalledPackage> {
                 let mut pkgs = Vec::new();
                 for line in out.lines() {
                     let line = line.trim();
-                    if line.is_empty() { continue; }
+                    if line.is_empty() {
+                        continue;
+                    }
                     if let Some((name, version)) = line.split_once(' ') {
                         let name = name.to_string();
-                        let (desc, size) = details_map.get(&name)
+                        let (desc, size) = details_map
+                            .get(&name)
                             .map(|(d, s)| (d.clone(), s.clone()))
                             .unwrap_or(("—".to_string(), "—".to_string()));
                         pkgs.push(InstalledPackage {
@@ -131,54 +141,90 @@ pub fn list_installed() -> Vec<InstalledPackage> {
                 }
                 return pkgs;
             }
-        },
+        }
         "apt" => {
             // Single dpkg-query call with all fields
-            if let Some(out) = run_cmd(&["dpkg-query", "-W", "-f", "${Package}\t${Version}\t${Installed-Size}\t${Description}\n"]) {
+            if let Some(out) = run_cmd(&[
+                "dpkg-query",
+                "-W",
+                "-f",
+                "${Package}\t${Version}\t${Installed-Size}\t${Description}\n",
+            ]) {
                 let mut pkgs = Vec::new();
                 for line in out.lines() {
                     let line = line.trim();
-                    if line.is_empty() { continue; }
+                    if line.is_empty() {
+                        continue;
+                    }
                     let parts: Vec<&str> = line.splitn(4, '\t').collect();
                     if parts.len() >= 2 {
                         let name = parts[0].to_string();
                         let version = parts[1].to_string();
                         let size = if parts.len() >= 3 {
                             let kb: u64 = parts[2].parse().unwrap_or(0);
-                            if kb > 1024 { format!("{:.1} MB", kb as f64 / 1024.0) } else { format!("{} kB", kb) }
-                        } else { "—".to_string() };
+                            if kb > 1024 {
+                                format!("{:.1} MB", kb as f64 / 1024.0)
+                            } else {
+                                format!("{} kB", kb)
+                            }
+                        } else {
+                            "—".to_string()
+                        };
                         let desc = parts.get(3).unwrap_or(&"—").to_string();
-                        pkgs.push(InstalledPackage { name, version, size, description: desc });
+                        pkgs.push(InstalledPackage {
+                            name,
+                            version,
+                            size,
+                            description: desc,
+                        });
                     }
                 }
                 return pkgs;
             }
-        },
+        }
         "dnf" | "zypper" => {
             // Single rpm query with all fields
-            if let Some(out) = run_cmd(&["rpm", "-qa", "--queryformat", "%{NAME}\t%{VERSION}\t%{SIZE}\t%{SUMMARY}\n"]) {
+            if let Some(out) = run_cmd(&[
+                "rpm",
+                "-qa",
+                "--queryformat",
+                "%{NAME}\t%{VERSION}\t%{SIZE}\t%{SUMMARY}\n",
+            ]) {
                 let mut pkgs = Vec::new();
                 for line in out.lines() {
                     let line = line.trim();
-                    if line.is_empty() { continue; }
+                    if line.is_empty() {
+                        continue;
+                    }
                     let parts: Vec<&str> = line.splitn(4, '\t').collect();
                     if parts.len() >= 2 {
                         let name = parts[0].to_string();
                         let version = parts[1].to_string();
                         let size = if parts.len() >= 3 {
                             let bytes: u64 = parts[2].parse().unwrap_or(0);
-                            if bytes > 1_048_576 { format!("{:.1} MB", bytes as f64 / 1_048_576.0) }
-                            else if bytes > 1024 { format!("{:.0} KB", bytes as f64 / 1024.0) }
-                            else { format!("{} B", bytes) }
-                        } else { "—".to_string() };
+                            if bytes > 1_048_576 {
+                                format!("{:.1} MB", bytes as f64 / 1_048_576.0)
+                            } else if bytes > 1024 {
+                                format!("{:.0} KB", bytes as f64 / 1024.0)
+                            } else {
+                                format!("{} B", bytes)
+                            }
+                        } else {
+                            "—".to_string()
+                        };
                         let desc = parts.get(3).unwrap_or(&"—").to_string();
-                        pkgs.push(InstalledPackage { name, version, size, description: desc });
+                        pkgs.push(InstalledPackage {
+                            name,
+                            version,
+                            size,
+                            description: desc,
+                        });
                     }
                 }
                 return pkgs;
             }
-        },
-        _ => {},
+        }
+        _ => {}
     }
     vec![]
 }
@@ -190,7 +236,10 @@ fn parse_pacman_search_output(output: &str) -> Vec<RepoPackage> {
     let mut i = 0;
     while i < lines.len() {
         let line = lines[i].trim();
-        if line.is_empty() { i += 1; continue; }
+        if line.is_empty() {
+            i += 1;
+            continue;
+        }
         if let Some((repo_name, rest)) = line.split_once('/') {
             let repo = repo_name.to_string();
             if let Some((name, version)) = rest.split_once(' ') {
@@ -206,7 +255,9 @@ fn parse_pacman_search_output(output: &str) -> Vec<RepoPackage> {
                     repo,
                     description: desc.clone(),
                 });
-                if !desc.is_empty() { i += 1; }
+                if !desc.is_empty() {
+                    i += 1;
+                }
             }
         }
         i += 1;
@@ -218,7 +269,9 @@ fn parse_apt_search_output(output: &str) -> Vec<RepoPackage> {
     let mut pkgs = Vec::new();
     for line in output.lines() {
         let line = line.trim();
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
         if let Some((name, desc)) = line.split_once(" - ") {
             pkgs.push(RepoPackage {
                 name: name.to_string(),
@@ -257,7 +310,12 @@ fn parse_zypper_search_output(output: &str) -> Vec<RepoPackage> {
     let mut pkgs = Vec::new();
     for line in output.lines() {
         let line = line.trim();
-        if line.is_empty() || line.contains('|') || line.contains("---") || line.contains("Loading") || line.contains("S |") {
+        if line.is_empty()
+            || line.contains('|')
+            || line.contains("---")
+            || line.contains("Loading")
+            || line.contains("S |")
+        {
             continue;
         }
         let parts: Vec<&str> = line.split_whitespace().collect();
@@ -277,9 +335,8 @@ pub fn search_repos(query: &str) -> Vec<RepoPackage> {
     let pm = detect_pm();
 
     match pm.as_str() {
-        "pacman" => {
-            run_cmd(&["pacman", "-Ss", query]).map_or(vec![], |out| parse_pacman_search_output(&out))
-        },
+        "pacman" => run_cmd(&["pacman", "-Ss", query])
+            .map_or(vec![], |out| parse_pacman_search_output(&out)),
         "apt" => {
             if let Some(out) = run_cmd(&["apt-cache", "search", query]) {
                 let mut pkgs = parse_apt_search_output(&out);
@@ -289,8 +346,10 @@ pub fn search_repos(query: &str) -> Vec<RepoPackage> {
                     }
                 }
                 pkgs
-            } else { vec![] }
-        },
+            } else {
+                vec![]
+            }
+        }
         "dnf" => {
             if let Some(out) = run_cmd(&["dnf", "search", query]) {
                 let mut pkgs = parse_dnf_search_output(&out);
@@ -300,8 +359,10 @@ pub fn search_repos(query: &str) -> Vec<RepoPackage> {
                     }
                 }
                 pkgs
-            } else { vec![] }
-        },
+            } else {
+                vec![]
+            }
+        }
         "zypper" => {
             if let Some(out) = run_cmd(&["zypper", "search", query]) {
                 let mut pkgs = parse_zypper_search_output(&out);
@@ -311,41 +372,37 @@ pub fn search_repos(query: &str) -> Vec<RepoPackage> {
                     }
                 }
                 pkgs
-            } else { vec![] }
-        },
+            } else {
+                vec![]
+            }
+        }
         _ => vec![],
     }
 }
 
 fn get_repo_version(pm: &str, pkg: &str) -> Option<String> {
     match pm {
-        "pacman" => {
-            run_cmd(&["pacman", "-Si", pkg]).and_then(|out| {
-                out.lines()
-                    .find(|l| l.trim().starts_with("Version"))
-                    .and_then(|l| l.split_once(':'))
-                    .map(|(_, v)| v.trim().to_string())
-            })
-        },
-        "apt" => {
-            run_cmd(&["apt-cache", "show", pkg]).and_then(|out| {
-                out.lines()
-                    .find(|l| l.trim().starts_with("Version"))
-                    .and_then(|l| l.split_once(':'))
-                    .map(|(_, v)| v.trim().to_string())
-            })
-        },
-        "dnf" | "zypper" => {
-            run_cmd(&[pm, "info", pkg]).and_then(|out| {
-                out.lines()
-                    .find(|l| {
-                        let t = l.trim();
-                        t.starts_with("Version") || t.starts_with("Versão")
-                    })
-                    .and_then(|l| l.split_once(':'))
-                    .map(|(_, v)| v.trim().to_string())
-            })
-        },
+        "pacman" => run_cmd(&["pacman", "-Si", pkg]).and_then(|out| {
+            out.lines()
+                .find(|l| l.trim().starts_with("Version"))
+                .and_then(|l| l.split_once(':'))
+                .map(|(_, v)| v.trim().to_string())
+        }),
+        "apt" => run_cmd(&["apt-cache", "show", pkg]).and_then(|out| {
+            out.lines()
+                .find(|l| l.trim().starts_with("Version"))
+                .and_then(|l| l.split_once(':'))
+                .map(|(_, v)| v.trim().to_string())
+        }),
+        "dnf" | "zypper" => run_cmd(&[pm, "info", pkg]).and_then(|out| {
+            out.lines()
+                .find(|l| {
+                    let t = l.trim();
+                    t.starts_with("Version") || t.starts_with("Versão")
+                })
+                .and_then(|l| l.split_once(':'))
+                .map(|(_, v)| v.trim().to_string())
+        }),
         _ => None,
     }
 }
@@ -359,9 +416,13 @@ fn parse_pacman_history_line(line: &str) -> Option<PackageHistoryEntry> {
     let (pkg_name, pkg_ver) = rest2.rsplit_once(" (")?;
     Some(PackageHistoryEntry {
         timestamp: timestamp[..19].to_string(),
-        action: if action == "installed" { "install".into() }
-                else if action == "removed" { "remove".into() }
-                else { action.to_string() },
+        action: if action == "installed" {
+            "install".into()
+        } else if action == "removed" {
+            "remove".into()
+        } else {
+            action.to_string()
+        },
         package_name: pkg_name.to_string(),
         version: pkg_ver.to_string(),
     })
@@ -376,9 +437,13 @@ fn parse_dpkg_history_line(line: &str) -> Option<PackageHistoryEntry> {
         let version = parts.get(4).unwrap_or(&"?").to_string();
         Some(PackageHistoryEntry {
             timestamp: timestamp[..19].to_string(),
-            action: if action == "install" { "install".into() }
-                    else if action == "remove" { "remove".into() }
-                    else { action.clone() },
+            action: if action == "install" {
+                "install".into()
+            } else if action == "remove" {
+                "remove".into()
+            } else {
+                action.clone()
+            },
             package_name: pkg_name,
             version,
         })
@@ -397,21 +462,25 @@ pub fn get_history() -> Vec<PackageHistoryEntry> {
                 for line in content.lines().rev().take(100) {
                     if let Some(entry) = parse_pacman_history_line(line) {
                         entries.push(entry);
-                        if entries.len() >= 50 { break; }
+                        if entries.len() >= 50 {
+                            break;
+                        }
                     }
                 }
             }
-        },
+        }
         "apt" => {
             if let Ok(content) = std::fs::read_to_string("/var/log/dpkg.log") {
                 for line in content.lines().rev().take(100) {
                     if let Some(entry) = parse_dpkg_history_line(line) {
                         entries.push(entry);
-                        if entries.len() >= 50 { break; }
+                        if entries.len() >= 50 {
+                            break;
+                        }
                     }
                 }
             }
-        },
+        }
         "dnf" => {
             if let Some(out) = run_cmd(&["dnf", "history", "list"]) {
                 for line in out.lines().rev().take(50) {
@@ -431,8 +500,8 @@ pub fn get_history() -> Vec<PackageHistoryEntry> {
                     }
                 }
             }
-        },
-        _ => {},
+        }
+        _ => {}
     }
 
     entries
@@ -476,10 +545,10 @@ pub async fn remove_system_package(password: &str, package_name: &str) -> Result
                     } else {
                         Err(stderr)
                     }
-                },
+                }
                 Err(e) => Err(format!("Erro ao executar: {}", e)),
             }
-        },
+        }
         Err(e) => Err(format!("Erro ao iniciar: {}", e)),
     }
 }
@@ -521,20 +590,27 @@ pub async fn install_repo_package(password: &str, package_name: &str) -> Result<
                     } else {
                         Err(stderr)
                     }
-                },
+                }
                 Err(e) => Err(format!("Erro ao executar: {}", e)),
             }
-        },
+        }
         Err(e) => Err(format!("Erro ao iniciar: {}", e)),
     }
 }
 
 /// Remove multiple system packages
-pub async fn remove_system_packages(password: &str, package_names: &[String]) -> Result<Vec<String>, String> {
+pub async fn remove_system_packages(
+    password: &str,
+    package_names: &[String],
+) -> Result<Vec<String>, String> {
     let mut results = Vec::new();
     for name in package_names {
         match remove_system_package(password, name).await {
-            Ok(out) => results.push(format!("{}: ok — {}", name, out.lines().next().unwrap_or(""))),
+            Ok(out) => results.push(format!(
+                "{}: ok — {}",
+                name,
+                out.lines().next().unwrap_or("")
+            )),
             Err(e) => results.push(format!("{}: falhou — {}", name, e)),
         }
     }
@@ -542,11 +618,18 @@ pub async fn remove_system_packages(password: &str, package_names: &[String]) ->
 }
 
 /// Install multiple packages from repository
-pub async fn install_repo_packages(password: &str, package_names: &[String]) -> Result<Vec<String>, String> {
+pub async fn install_repo_packages(
+    password: &str,
+    package_names: &[String],
+) -> Result<Vec<String>, String> {
     let mut results = Vec::new();
     for name in package_names {
         match install_repo_package(password, name).await {
-            Ok(out) => results.push(format!("{}: ok — {}", name, out.lines().next().unwrap_or(""))),
+            Ok(out) => results.push(format!(
+                "{}: ok — {}",
+                name,
+                out.lines().next().unwrap_or("")
+            )),
             Err(e) => results.push(format!("{}: falhou — {}", name, e)),
         }
     }

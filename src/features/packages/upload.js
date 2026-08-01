@@ -97,3 +97,6 @@ function readFileAsBase64(file) {
         reader.readAsDataURL(file);
     });
 }
+export function showInstallPackagePasswordModal() {
+    import('../../operations.js').then(m => m.showPasswordModal({ type: 'install-package' }));
+}

@@ -2,7 +2,6 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -31,10 +30,7 @@ fn get_distribution_mappings() -> HashMap<&'static str, (&'static str, &'static 
     map
 }
 
-fn find_mapping(
-    id: &str,
-    id_like: &str,
-) -> (String, String) {
+fn find_mapping(id: &str, id_like: &str) -> (String, String) {
     let mappings = get_distribution_mappings();
 
     if let Some(&(family, pm)) = mappings.get(id) {
@@ -89,7 +85,11 @@ pub async fn detect_linux_distribution() -> Option<LinuxDistribution> {
     let os_release_content = tokio::fs::read_to_string("/etc/os-release").await.ok()?;
     let os_release = parse_os_release(&os_release_content);
 
-    let id = os_release.get("ID").cloned().unwrap_or_default().to_lowercase();
+    let id = os_release
+        .get("ID")
+        .cloned()
+        .unwrap_or_default()
+        .to_lowercase();
     let name = os_release
         .get("NAME")
         .or_else(|| os_release.get("PRETTY_NAME"))
@@ -356,4 +356,3 @@ PRETTY_NAME="Ubuntu 22.04.3 LTS"
         assert_eq!(map.get("VERSION").unwrap(), "ID=value");
     }
 }
-

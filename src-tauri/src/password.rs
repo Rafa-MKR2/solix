@@ -3,11 +3,20 @@
 use tokio::io::AsyncWriteExt;
 
 /// Envia a senha para o stdin do processo via pipe e fecha a entrada.
-pub async fn pipe_password(child: &mut tokio::process::Child, password: &str) -> Result<(), String> {
+pub async fn pipe_password(
+    child: &mut tokio::process::Child,
+    password: &str,
+) -> Result<(), String> {
     if let Some(mut stdin) = child.stdin.take() {
         let input = format!("{}\n", password);
-        stdin.write_all(input.as_bytes()).await.map_err(|e| format!("Erro ao enviar senha: {}", e))?;
-        stdin.shutdown().await.map_err(|e| format!("Erro ao fechar entrada: {}", e))?;
+        stdin
+            .write_all(input.as_bytes())
+            .await
+            .map_err(|e| format!("Erro ao enviar senha: {}", e))?;
+        stdin
+            .shutdown()
+            .await
+            .map_err(|e| format!("Erro ao fechar entrada: {}", e))?;
     }
     Ok(())
 }
@@ -25,7 +34,10 @@ pub async fn verify_password(password: &str) -> Result<(), String> {
 
     pipe_password(&mut child, password).await?;
 
-    let output = child.wait_with_output().await.map_err(|e| format!("Erro ao aguardar sudo: {}", e))?;
+    let output = child
+        .wait_with_output()
+        .await
+        .map_err(|e| format!("Erro ao aguardar sudo: {}", e))?;
 
     if output.status.success() {
         Ok(())

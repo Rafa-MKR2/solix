@@ -8,7 +8,10 @@ pub async fn kill_process(name: String) -> Result<String, String> {
     }
     let output = tokio::process::Command::new("sh")
         .arg("-c")
-        .arg(format!("pkill -f '{}' 2>/dev/null; echo done", name.replace('\'', "'\\''")))
+        .arg(format!(
+            "pkill -f '{}' 2>/dev/null; echo done",
+            name.replace('\'', "'\\''")
+        ))
         .output()
         .await
         .map_err(|e| format!("Falha ao executar: {}", e))?;

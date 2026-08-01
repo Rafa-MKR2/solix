@@ -20,7 +20,7 @@ pub struct BackupResult {
 #[allow(dead_code)]
 #[derive(Debug, Serialize)]
 pub struct BackupProgress {
-    pub stage: String,     // "start", "tar", "done", "error"
+    pub stage: String, // "start", "tar", "done", "error"
     pub message: String,
     pub percent: u8,
     pub file_path: Option<String>,
@@ -29,7 +29,11 @@ pub struct BackupProgress {
 
 /// Cria um backup da pasta source para o destino usando tar
 /// Ponto de montagem é a pasta raiz que contém a source (ex: /home)
-pub async fn create_backup(source: &str, destination: &str, _mount_point: &str) -> Result<BackupResult, String> {
+pub async fn create_backup(
+    source: &str,
+    destination: &str,
+    _mount_point: &str,
+) -> Result<BackupResult, String> {
     // Validate paths
     let source_path = std::path::Path::new(source);
     let dest_path = std::path::Path::new(destination);
@@ -57,7 +61,9 @@ pub async fn create_backup(source: &str, destination: &str, _mount_point: &str) 
         .await
         .map_err(|_| "Erro ao obter data".to_string())?;
 
-    let date_str = String::from_utf8_lossy(&date_output.stdout).trim().to_string();
+    let date_str = String::from_utf8_lossy(&date_output.stdout)
+        .trim()
+        .to_string();
     let folder_name = source_path
         .file_name()
         .map(|n| n.to_string_lossy())
@@ -70,9 +76,7 @@ pub async fn create_backup(source: &str, destination: &str, _mount_point: &str) 
 
     // Run tar: tar czf <output> <source>
     let source_parent = source_path.parent().unwrap_or(std::path::Path::new("/"));
-    let source_base = source_path
-        .file_name()
-        .unwrap_or(std::ffi::OsStr::new(""));
+    let source_base = source_path.file_name().unwrap_or(std::ffi::OsStr::new(""));
 
     let mut child = tokio::process::Command::new("tar")
         .args(["czf", &output_path.to_string_lossy()])
@@ -84,13 +88,17 @@ pub async fn create_backup(source: &str, destination: &str, _mount_point: &str) 
         .spawn()
         .map_err(|e| format!("Erro ao iniciar tar: {}", e))?;
 
-    let status = child.wait().await
+    let status = child
+        .wait()
+        .await
         .map_err(|e| format!("Erro ao aguardar tar: {}", e))?;
 
     let duration = start.elapsed().as_secs();
 
     if !status.success() {
-        let stderr = child.wait_with_output().await
+        let stderr = child
+            .wait_with_output()
+            .await
             .map(|o| String::from_utf8_lossy(&o.stderr).to_string())
             .unwrap_or_else(|_| "Erro desconhecido".to_string());
 

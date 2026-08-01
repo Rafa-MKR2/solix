@@ -2,10 +2,9 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
-use serde::Serialize;
 use crate::executable;
 use crate::util::base64_encode;
+use serde::Serialize;
 
 fn quick_icon(name: &str) -> Option<String> {
     let name_lower = name.to_lowercase();
@@ -27,7 +26,6 @@ fn quick_icon(name: &str) -> Option<String> {
     None
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct DevelopmentTool {
     pub name: String,
@@ -47,106 +45,458 @@ pub struct DevelopmentToolStatus {
 
 pub fn get_development_tools() -> Vec<DevelopmentTool> {
     vec![
-        DevelopmentTool { name: "git".into(), description: "Controle de versão distribuído".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "node".into(), description: "Runtime JavaScript".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "python3".into(), description: "Linguagem Python".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "gcc".into(), description: "Compilador C/C++".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "make".into(), description: "Automação de builds".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "java".into(), description: "Runtime Java".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "code".into(), description: "Visual Studio Code".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "gh".into(), description: "GitHub CLI".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "rust".into(), description: "Linguagem Rust".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "go".into(), description: "Linguagem Go".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "dbeaver".into(), description: "Gerenciador de bancos de dados".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "neovim".into(), description: "Editor de texto moderno".into(), category: "desenvolvimento".into() },
-        DevelopmentTool { name: "lazygit".into(), description: "Interface TUI para Git".into(), category: "desenvolvimento".into() },
+        DevelopmentTool {
+            name: "git".into(),
+            description: "Controle de versão distribuído".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "node".into(),
+            description: "Runtime JavaScript".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "python3".into(),
+            description: "Linguagem Python".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "gcc".into(),
+            description: "Compilador C/C++".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "make".into(),
+            description: "Automação de builds".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "java".into(),
+            description: "Runtime Java".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "code".into(),
+            description: "Visual Studio Code".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "gh".into(),
+            description: "GitHub CLI".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "rust".into(),
+            description: "Linguagem Rust".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "go".into(),
+            description: "Linguagem Go".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "dbeaver".into(),
+            description: "Gerenciador de bancos de dados".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "neovim".into(),
+            description: "Editor de texto moderno".into(),
+            category: "desenvolvimento".into(),
+        },
+        DevelopmentTool {
+            name: "lazygit".into(),
+            description: "Interface TUI para Git".into(),
+            category: "desenvolvimento".into(),
+        },
         // Internet
-        DevelopmentTool { name: "curl".into(), description: "Transferência de dados via CLI".into(), category: "internet".into() },
-        DevelopmentTool { name: "wget".into(), description: "Download de arquivos via CLI".into(), category: "internet".into() },
-        DevelopmentTool { name: "firefox".into(), description: "Navegador web".into(), category: "internet".into() },
-        DevelopmentTool { name: "chromium".into(), description: "Navegador open-source".into(), category: "internet".into() },
-        DevelopmentTool { name: "brave".into(), description: "Navegador com bloqueador nativo".into(), category: "internet".into() },
+        DevelopmentTool {
+            name: "curl".into(),
+            description: "Transferência de dados via CLI".into(),
+            category: "internet".into(),
+        },
+        DevelopmentTool {
+            name: "wget".into(),
+            description: "Download de arquivos via CLI".into(),
+            category: "internet".into(),
+        },
+        DevelopmentTool {
+            name: "firefox".into(),
+            description: "Navegador web".into(),
+            category: "internet".into(),
+        },
+        DevelopmentTool {
+            name: "chromium".into(),
+            description: "Navegador open-source".into(),
+            category: "internet".into(),
+        },
+        DevelopmentTool {
+            name: "brave".into(),
+            description: "Navegador com bloqueador nativo".into(),
+            category: "internet".into(),
+        },
         // Container
-        DevelopmentTool { name: "docker".into(), description: "Plataforma de containers".into(), category: "container".into() },
+        DevelopmentTool {
+            name: "docker".into(),
+            description: "Plataforma de containers".into(),
+            category: "container".into(),
+        },
         // Jogos
-        DevelopmentTool { name: "steam".into(), description: "Plataforma de jogos".into(), category: "jogos".into() },
-        DevelopmentTool { name: "lutris".into(), description: "Gerenciador de jogos".into(), category: "jogos".into() },
-        DevelopmentTool { name: "wine".into(), description: "Executar apps Windows".into(), category: "jogos".into() },
-        DevelopmentTool { name: "heroic".into(), description: "Launcher Epic/GOG".into(), category: "jogos".into() },
-        DevelopmentTool { name: "prismlauncher".into(), description: "Launcher de Minecraft".into(), category: "jogos".into() },
+        DevelopmentTool {
+            name: "steam".into(),
+            description: "Plataforma de jogos".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "lutris".into(),
+            description: "Gerenciador de jogos".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "wine".into(),
+            description: "Executar apps Windows".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "heroic".into(),
+            description: "Launcher Epic/GOG".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "prismlauncher".into(),
+            description: "Launcher de Minecraft".into(),
+            category: "jogos".into(),
+        },
         // Mídia
-        DevelopmentTool { name: "vlc".into(), description: "Reprodutor multimídia".into(), category: "midia".into() },
-        DevelopmentTool { name: "gimp".into(), description: "Editor de imagens".into(), category: "midia".into() },
-        DevelopmentTool { name: "obs-studio".into(), description: "Gravação e streaming".into(), category: "midia".into() },
-        DevelopmentTool { name: "kdenlive".into(), description: "Editor de vídeo".into(), category: "midia".into() },
-        DevelopmentTool { name: "audacity".into(), description: "Editor de áudio".into(), category: "midia".into() },
-        DevelopmentTool { name: "flameshot".into(), description: "Captura de tela".into(), category: "midia".into() },
-        DevelopmentTool { name: "inkscape".into(), description: "Editor de vetores".into(), category: "midia".into() },
-        DevelopmentTool { name: "krita".into(), description: "Pintura digital".into(), category: "midia".into() },
+        DevelopmentTool {
+            name: "vlc".into(),
+            description: "Reprodutor multimídia".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "gimp".into(),
+            description: "Editor de imagens".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "obs-studio".into(),
+            description: "Gravação e streaming".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "kdenlive".into(),
+            description: "Editor de vídeo".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "audacity".into(),
+            description: "Editor de áudio".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "flameshot".into(),
+            description: "Captura de tela".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "inkscape".into(),
+            description: "Editor de vetores".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "krita".into(),
+            description: "Pintura digital".into(),
+            category: "midia".into(),
+        },
         // Escritório
-        DevelopmentTool { name: "libreoffice".into(), description: "Suíte de escritório completa".into(), category: "escritorio".into() },
-        DevelopmentTool { name: "onlyoffice".into(), description: "Suíte compatível com Office".into(), category: "escritorio".into() },
-        DevelopmentTool { name: "obsidian".into(), description: "App de notas e conhecimento".into(), category: "escritorio".into() },
+        DevelopmentTool {
+            name: "libreoffice".into(),
+            description: "Suíte de escritório completa".into(),
+            category: "escritorio".into(),
+        },
+        DevelopmentTool {
+            name: "onlyoffice".into(),
+            description: "Suíte compatível com Office".into(),
+            category: "escritorio".into(),
+        },
+        DevelopmentTool {
+            name: "obsidian".into(),
+            description: "App de notas e conhecimento".into(),
+            category: "escritorio".into(),
+        },
         // Comunicação
-        DevelopmentTool { name: "discord".into(), description: "Chat de voz e texto".into(), category: "comunicacao".into() },
-        DevelopmentTool { name: "telegram".into(), description: "Mensageiro rápido e seguro".into(), category: "comunicacao".into() },
-        DevelopmentTool { name: "zoom".into(), description: "Videochamadas e reuniões".into(), category: "comunicacao".into() },
+        DevelopmentTool {
+            name: "discord".into(),
+            description: "Chat de voz e texto".into(),
+            category: "comunicacao".into(),
+        },
+        DevelopmentTool {
+            name: "telegram".into(),
+            description: "Mensageiro rápido e seguro".into(),
+            category: "comunicacao".into(),
+        },
+        DevelopmentTool {
+            name: "zoom".into(),
+            description: "Videochamadas e reuniões".into(),
+            category: "comunicacao".into(),
+        },
         // Utilitários
-        DevelopmentTool { name: "p7zip".into(), description: "Compactador de arquivos".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "timeshift".into(), description: "Backup e restauração do sistema".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "htop".into(), description: "Monitor de processos interativo".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "fastfetch".into(), description: "Informações do sistema".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "flatpak".into(), description: "Empacotamento universal de apps".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "gnome-tweaks".into(), description: "Ajustes avançados do GNOME".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "keepassxc".into(), description: "Gerenciador de senhas".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "gufw".into(), description: "Firewall gráfico".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "openssh".into(), description: "Servidor SSH".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "pavucontrol".into(), description: "Controle de volume por app".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "vim".into(), description: "Editor de texto no terminal".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "nano".into(), description: "Editor de texto simples".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "btop".into(), description: "Monitor de processos bonito".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "bleachbit".into(), description: "Limpeza de sistema com interface gráfica".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "stacer".into(), description: "Otimizador de sistema".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "syncthing".into(), description: "Sincronização de arquivos P2P".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "tmux".into(), description: "Multiplexador de terminal".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "unzip".into(), description: "Extrair arquivos ZIP".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "unrar".into(), description: "Extrair arquivos RAR".into(), category: "utilitarios".into() },
-        DevelopmentTool { name: "calibre".into(), description: "Gerenciador de ebooks".into(), category: "escritorio".into() },
+        DevelopmentTool {
+            name: "p7zip".into(),
+            description: "Compactador de arquivos".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "timeshift".into(),
+            description: "Backup e restauração do sistema".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "htop".into(),
+            description: "Monitor de processos interativo".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "fastfetch".into(),
+            description: "Informações do sistema".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "flatpak".into(),
+            description: "Empacotamento universal de apps".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "gnome-tweaks".into(),
+            description: "Ajustes avançados do GNOME".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "keepassxc".into(),
+            description: "Gerenciador de senhas".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "gufw".into(),
+            description: "Firewall gráfico".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "openssh".into(),
+            description: "Servidor SSH".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "pavucontrol".into(),
+            description: "Controle de volume por app".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "vim".into(),
+            description: "Editor de texto no terminal".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "nano".into(),
+            description: "Editor de texto simples".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "btop".into(),
+            description: "Monitor de processos bonito".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "bleachbit".into(),
+            description: "Limpeza de sistema com interface gráfica".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "stacer".into(),
+            description: "Otimizador de sistema".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "syncthing".into(),
+            description: "Sincronização de arquivos P2P".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "tmux".into(),
+            description: "Multiplexador de terminal".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "unzip".into(),
+            description: "Extrair arquivos ZIP".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "unrar".into(),
+            description: "Extrair arquivos RAR".into(),
+            category: "utilitarios".into(),
+        },
+        DevelopmentTool {
+            name: "calibre".into(),
+            description: "Gerenciador de ebooks".into(),
+            category: "escritorio".into(),
+        },
         // Internet
-        DevelopmentTool { name: "qbittorrent".into(), description: "Cliente de torrent".into(), category: "internet".into() },
-        DevelopmentTool { name: "thunderbird".into(), description: "Cliente de email".into(), category: "internet".into() },
-        DevelopmentTool { name: "transmission-qt".into(), description: "Cliente de torrent leve".into(), category: "internet".into() },
-        DevelopmentTool { name: "filezilla".into(), description: "Cliente FTP gráfico".into(), category: "internet".into() },
-        DevelopmentTool { name: "nextcloud-client".into(), description: "Sincronização Nextcloud".into(), category: "internet".into() },
-        DevelopmentTool { name: "signal-desktop".into(), description: "Mensageiro seguro e criptografado".into(), category: "comunicacao".into() },
-        DevelopmentTool { name: "slack-desktop".into(), description: "Comunicação empresarial".into(), category: "comunicacao".into() },
-        DevelopmentTool { name: "element-desktop".into(), description: "Cliente Matrix descentralizado".into(), category: "comunicacao".into() },
+        DevelopmentTool {
+            name: "qbittorrent".into(),
+            description: "Cliente de torrent".into(),
+            category: "internet".into(),
+        },
+        DevelopmentTool {
+            name: "thunderbird".into(),
+            description: "Cliente de email".into(),
+            category: "internet".into(),
+        },
+        DevelopmentTool {
+            name: "transmission-qt".into(),
+            description: "Cliente de torrent leve".into(),
+            category: "internet".into(),
+        },
+        DevelopmentTool {
+            name: "filezilla".into(),
+            description: "Cliente FTP gráfico".into(),
+            category: "internet".into(),
+        },
+        DevelopmentTool {
+            name: "nextcloud-client".into(),
+            description: "Sincronização Nextcloud".into(),
+            category: "internet".into(),
+        },
+        DevelopmentTool {
+            name: "signal-desktop".into(),
+            description: "Mensageiro seguro e criptografado".into(),
+            category: "comunicacao".into(),
+        },
+        DevelopmentTool {
+            name: "slack-desktop".into(),
+            description: "Comunicação empresarial".into(),
+            category: "comunicacao".into(),
+        },
+        DevelopmentTool {
+            name: "element-desktop".into(),
+            description: "Cliente Matrix descentralizado".into(),
+            category: "comunicacao".into(),
+        },
         // Container
-        DevelopmentTool { name: "docker-compose".into(), description: "Orquestração de containers".into(), category: "container".into() },
-        DevelopmentTool { name: "virtualbox".into(), description: "Máquinas virtuais".into(), category: "container".into() },
+        DevelopmentTool {
+            name: "docker-compose".into(),
+            description: "Orquestração de containers".into(),
+            category: "container".into(),
+        },
+        DevelopmentTool {
+            name: "virtualbox".into(),
+            description: "Máquinas virtuais".into(),
+            category: "container".into(),
+        },
         // Jogos
-        DevelopmentTool { name: "gamemode".into(), description: "Otimização de performance em jogos".into(), category: "jogos".into() },
-        DevelopmentTool { name: "mangohud".into(), description: "Overlay de FPS e desempenho".into(), category: "jogos".into() },
-        DevelopmentTool { name: "hydra".into(), description: "Launcher de jogos moderno".into(), category: "jogos".into() },
-        DevelopmentTool { name: "retroarch".into(), description: "Emulador multi-plataforma".into(), category: "jogos".into() },
-        DevelopmentTool { name: "dolphin-emu".into(), description: "Emulador de GameCube/Wii".into(), category: "jogos".into() },
-        DevelopmentTool { name: "pcsx2".into(), description: "Emulador de PlayStation 2".into(), category: "jogos".into() },
-        DevelopmentTool { name: "0ad".into(), description: "Estratégia em tempo real".into(), category: "jogos".into() },
-        DevelopmentTool { name: "supertuxkart".into(), description: "Jogo de kart divertido".into(), category: "jogos".into() },
+        DevelopmentTool {
+            name: "gamemode".into(),
+            description: "Otimização de performance em jogos".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "mangohud".into(),
+            description: "Overlay de FPS e desempenho".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "hydra".into(),
+            description: "Launcher de jogos moderno".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "retroarch".into(),
+            description: "Emulador multi-plataforma".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "dolphin-emu".into(),
+            description: "Emulador de GameCube/Wii".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "pcsx2".into(),
+            description: "Emulador de PlayStation 2".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "0ad".into(),
+            description: "Estratégia em tempo real".into(),
+            category: "jogos".into(),
+        },
+        DevelopmentTool {
+            name: "supertuxkart".into(),
+            description: "Jogo de kart divertido".into(),
+            category: "jogos".into(),
+        },
         // Mídia
-        DevelopmentTool { name: "blender".into(), description: "Modelagem e animação 3D".into(), category: "midia".into() },
-        DevelopmentTool { name: "handbrake".into(), description: "Conversor de vídeo".into(), category: "midia".into() },
-        DevelopmentTool { name: "mpv".into(), description: "Reprodutor multimídia leve".into(), category: "midia".into() },
-        DevelopmentTool { name: "ffmpeg".into(), description: "Processamento de áudio e vídeo".into(), category: "midia".into() },
-        DevelopmentTool { name: "spotify".into(), description: "Streaming de música".into(), category: "midia".into() },
-        DevelopmentTool { name: "shotcut".into(), description: "Editor de vídeo leve".into(), category: "midia".into() },
-        DevelopmentTool { name: "digikam".into(), description: "Gerenciador de fotos".into(), category: "midia".into() },
+        DevelopmentTool {
+            name: "blender".into(),
+            description: "Modelagem e animação 3D".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "handbrake".into(),
+            description: "Conversor de vídeo".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "mpv".into(),
+            description: "Reprodutor multimídia leve".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "ffmpeg".into(),
+            description: "Processamento de áudio e vídeo".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "spotify".into(),
+            description: "Streaming de música".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "shotcut".into(),
+            description: "Editor de vídeo leve".into(),
+            category: "midia".into(),
+        },
+        DevelopmentTool {
+            name: "digikam".into(),
+            description: "Gerenciador de fotos".into(),
+            category: "midia".into(),
+        },
         // Temas
-        DevelopmentTool { name: "arc-gtk-theme".into(), description: "Tema GTK moderno (Arc)".into(), category: "temas".into() },
-        DevelopmentTool { name: "papirus-icon-theme".into(), description: "Conjunto de ícones Papirus".into(), category: "temas".into() },
-        DevelopmentTool { name: "materia-gtk-theme".into(), description: "Tema GTK estilo Material Design".into(), category: "temas".into() },
-        DevelopmentTool { name: "gtk-theme-windows10".into(), description: "Tema Windows 10 (B00merang)".into(), category: "temas".into() },
-        DevelopmentTool { name: "fluent-gtk-theme".into(), description: "Tema Windows 11 / Fluent Design".into(), category: "temas".into() },
+        DevelopmentTool {
+            name: "arc-gtk-theme".into(),
+            description: "Tema GTK moderno (Arc)".into(),
+            category: "temas".into(),
+        },
+        DevelopmentTool {
+            name: "papirus-icon-theme".into(),
+            description: "Conjunto de ícones Papirus".into(),
+            category: "temas".into(),
+        },
+        DevelopmentTool {
+            name: "materia-gtk-theme".into(),
+            description: "Tema GTK estilo Material Design".into(),
+            category: "temas".into(),
+        },
+        DevelopmentTool {
+            name: "gtk-theme-windows10".into(),
+            description: "Tema Windows 10 (B00merang)".into(),
+            category: "temas".into(),
+        },
+        DevelopmentTool {
+            name: "fluent-gtk-theme".into(),
+            description: "Tema Windows 11 / Fluent Design".into(),
+            category: "temas".into(),
+        },
     ]
 }
 
@@ -210,7 +560,11 @@ mod tests {
     #[test]
     fn test_get_development_tools_count() {
         let tools = get_development_tools();
-        assert!(tools.len() >= 55, "Expected >= 55 tools, got {}", tools.len());
+        assert!(
+            tools.len() >= 55,
+            "Expected >= 55 tools, got {}",
+            tools.len()
+        );
     }
 
     #[test]
@@ -228,8 +582,12 @@ mod tests {
         let valid: std::collections::HashSet<&str> =
             get_category_labels().iter().map(|(c, _)| *c).collect();
         for tool in &tools {
-            assert!(valid.contains(tool.category.as_str()),
-                "Invalid category '{}' for '{}'", tool.category, tool.name);
+            assert!(
+                valid.contains(tool.category.as_str()),
+                "Invalid category '{}' for '{}'",
+                tool.category,
+                tool.name
+            );
         }
     }
 
@@ -241,8 +599,11 @@ mod tests {
     #[test]
     fn test_all_tools_have_descriptions() {
         for tool in &get_development_tools() {
-            assert!(!tool.description.is_empty(), "{} has no description", tool.name);
+            assert!(
+                !tool.description.is_empty(),
+                "{} has no description",
+                tool.name
+            );
         }
     }
 }
-

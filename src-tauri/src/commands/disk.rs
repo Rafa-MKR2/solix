@@ -10,12 +10,19 @@ pub struct DiskUsageItem {
 }
 
 fn sanitize_path(input: &str) -> String {
-    input.chars().filter(|c| c.is_alphanumeric() || *c == '/' || *c == '-' || *c == '_' || *c == '.').collect()
+    input
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '/' || *c == '-' || *c == '_' || *c == '.')
+        .collect()
 }
 
 #[tauri::command]
 pub async fn open_file_manager(path: String) -> Result<(), String> {
-    let dir = if path.is_empty() { "/".to_string() } else { path };
+    let dir = if path.is_empty() {
+        "/".to_string()
+    } else {
+        path
+    };
     tokio::process::Command::new("xdg-open")
         .arg(&dir)
         .output()
@@ -96,8 +103,14 @@ mod tests {
 
     #[test]
     fn test_sanitize_path_allows_valid() {
-        assert_eq!(sanitize_path("/usr/share/applications"), "/usr/share/applications");
-        assert_eq!(sanitize_path("/home/user/my-app_1.0.deb"), "/home/user/my-app_1.0.deb");
+        assert_eq!(
+            sanitize_path("/usr/share/applications"),
+            "/usr/share/applications"
+        );
+        assert_eq!(
+            sanitize_path("/home/user/my-app_1.0.deb"),
+            "/home/user/my-app_1.0.deb"
+        );
     }
 
     #[test]

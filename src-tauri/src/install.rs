@@ -62,59 +62,114 @@ pub struct InstallResult {
 
 fn get_command_prefixes() -> HashMap<&'static str, (&'static str, &'static str)> {
     let mut map = HashMap::new();
-    map.insert("pacman", ("sudo -S pacman -S --noconfirm", "sudo -S pacman -R --noconfirm"));
+    map.insert(
+        "pacman",
+        (
+            "sudo -S pacman -S --noconfirm",
+            "sudo -S pacman -R --noconfirm",
+        ),
+    );
     map.insert("apt", ("sudo -S apt install -y", "sudo -S apt remove -y"));
     map.insert("dnf", ("sudo -S dnf install -y", "sudo -S dnf remove -y"));
-    map.insert("zypper", ("sudo -S zypper install -y", "sudo -S zypper remove -y"));
+    map.insert(
+        "zypper",
+        ("sudo -S zypper install -y", "sudo -S zypper remove -y"),
+    );
     map
 }
 
 pub fn get_package_name(tool_name: &str) -> Cow<'static, str> {
-    static PACKAGE_MAP: std::sync::OnceLock<HashMap<&'static str, &'static str>> = std::sync::OnceLock::new();
+    static PACKAGE_MAP: std::sync::OnceLock<HashMap<&'static str, &'static str>> =
+        std::sync::OnceLock::new();
     let map = PACKAGE_MAP.get_or_init(|| {
         HashMap::from([
-            ("git", "git"), ("node", "nodejs"), ("python3", "python3"),
-            ("gcc", "gcc"), ("make", "make"), ("java", "default-jre"),
-            ("code", "code"), ("gh", "gh"), ("rust", "rust"), ("go", "go"),
-            ("dbeaver", "dbeaver"), ("curl", "curl"), ("wget", "wget"),
-            ("firefox", "firefox"), ("chromium", "chromium"), ("brave", "brave"),
-            ("docker", "docker"), ("steam", "steam"), ("lutris", "lutris"),
-            ("wine", "wine"), ("heroic", "heroic-games-launcher"),
-            ("prismlauncher", "prismlauncher"), ("vlc", "vlc"), ("gimp", "gimp"),
-            ("obs-studio", "obs-studio"), ("kdenlive", "kdenlive"),
-            ("audacity", "audacity"), ("flameshot", "flameshot"),
-            ("inkscape", "inkscape"), ("krita", "krita"),
-            ("libreoffice", "libreoffice"), ("onlyoffice", "onlyoffice"),
-            ("obsidian", "obsidian"), ("discord", "discord"),
-            ("telegram", "telegram-desktop"), ("zoom", "zoom"),
-            ("p7zip", "p7zip"), ("timeshift", "timeshift"),
-            ("vim", "vim"), ("htop", "htop"), ("fastfetch", "fastfetch"),
-            ("flatpak", "flatpak"), ("gnome-tweaks", "gnome-tweaks"),
-            ("keepassxc", "keepassxc"), ("gufw", "gufw"), ("openssh", "openssh"),
-            ("pavucontrol", "pavucontrol"), ("qbittorrent", "qbittorrent"),
+            ("git", "git"),
+            ("node", "nodejs"),
+            ("python3", "python3"),
+            ("gcc", "gcc"),
+            ("make", "make"),
+            ("java", "default-jre"),
+            ("code", "code"),
+            ("gh", "gh"),
+            ("rust", "rust"),
+            ("go", "go"),
+            ("dbeaver", "dbeaver"),
+            ("curl", "curl"),
+            ("wget", "wget"),
+            ("firefox", "firefox"),
+            ("chromium", "chromium"),
+            ("brave", "brave"),
+            ("docker", "docker"),
+            ("steam", "steam"),
+            ("lutris", "lutris"),
+            ("wine", "wine"),
+            ("heroic", "heroic-games-launcher"),
+            ("prismlauncher", "prismlauncher"),
+            ("vlc", "vlc"),
+            ("gimp", "gimp"),
+            ("obs-studio", "obs-studio"),
+            ("kdenlive", "kdenlive"),
+            ("audacity", "audacity"),
+            ("flameshot", "flameshot"),
+            ("inkscape", "inkscape"),
+            ("krita", "krita"),
+            ("libreoffice", "libreoffice"),
+            ("onlyoffice", "onlyoffice"),
+            ("obsidian", "obsidian"),
+            ("discord", "discord"),
+            ("telegram", "telegram-desktop"),
+            ("zoom", "zoom"),
+            ("p7zip", "p7zip"),
+            ("timeshift", "timeshift"),
+            ("vim", "vim"),
+            ("htop", "htop"),
+            ("fastfetch", "fastfetch"),
+            ("flatpak", "flatpak"),
+            ("gnome-tweaks", "gnome-tweaks"),
+            ("keepassxc", "keepassxc"),
+            ("gufw", "gufw"),
+            ("openssh", "openssh"),
+            ("pavucontrol", "pavucontrol"),
+            ("qbittorrent", "qbittorrent"),
             ("thunderbird", "thunderbird"),
-            ("docker-compose", "docker-compose"), ("virtualbox", "virtualbox"),
-            ("gamemode", "gamemode"), ("mangohud", "mangohud"),
-            ("hydra", "hydra"), ("blender", "blender"),
-            ("handbrake", "handbrake"), ("mpv", "mpv"), ("ffmpeg", "ffmpeg"),
+            ("docker-compose", "docker-compose"),
+            ("virtualbox", "virtualbox"),
+            ("gamemode", "gamemode"),
+            ("mangohud", "mangohud"),
+            ("hydra", "hydra"),
+            ("blender", "blender"),
+            ("handbrake", "handbrake"),
+            ("mpv", "mpv"),
+            ("ffmpeg", "ffmpeg"),
             ("arc-gtk-theme", "arc-gtk-theme"),
             ("papirus-icon-theme", "papirus-icon-theme"),
             ("materia-gtk-theme", "materia-gtk-theme"),
             ("gtk-theme-windows10", "gtk-theme-windows10"),
             ("fluent-gtk-theme", "fluent-gtk-theme"),
-            ("neovim", "neovim"), ("lazygit", "lazygit"),
-            ("transmission-qt", "transmission-qt"), ("filezilla", "filezilla"),
+            ("neovim", "neovim"),
+            ("lazygit", "lazygit"),
+            ("transmission-qt", "transmission-qt"),
+            ("filezilla", "filezilla"),
             ("nextcloud-client", "nextcloud-client"),
             ("signal-desktop", "signal-desktop"),
             ("slack-desktop", "slack-desktop"),
             ("element-desktop", "element-desktop"),
-            ("retroarch", "retroarch"), ("dolphin-emu", "dolphin-emu"),
-            ("pcsx2", "pcsx2"), ("0ad", "0ad"),
-            ("supertuxkart", "supertuxkart"), ("spotify", "spotify"),
-            ("shotcut", "shotcut"), ("digikam", "digikam"),
-            ("nano", "nano"), ("btop", "btop"), ("bleachbit", "bleachbit"),
-            ("stacer", "stacer"), ("syncthing", "syncthing"),
-            ("tmux", "tmux"), ("unzip", "unzip"), ("unrar", "unrar"),
+            ("retroarch", "retroarch"),
+            ("dolphin-emu", "dolphin-emu"),
+            ("pcsx2", "pcsx2"),
+            ("0ad", "0ad"),
+            ("supertuxkart", "supertuxkart"),
+            ("spotify", "spotify"),
+            ("shotcut", "shotcut"),
+            ("digikam", "digikam"),
+            ("nano", "nano"),
+            ("btop", "btop"),
+            ("bleachbit", "bleachbit"),
+            ("stacer", "stacer"),
+            ("syncthing", "syncthing"),
+            ("tmux", "tmux"),
+            ("unzip", "unzip"),
+            ("unrar", "unrar"),
             ("calibre", "calibre"),
         ])
     });
@@ -124,22 +179,35 @@ pub fn get_package_name(tool_name: &str) -> Cow<'static, str> {
     }
 }
 
-async fn get_distro_and_prefix() -> Result<(distribution::LinuxDistribution, (&'static str, &'static str)), String> {
+async fn get_distro_and_prefix() -> Result<
+    (
+        distribution::LinuxDistribution,
+        (&'static str, &'static str),
+    ),
+    String,
+> {
     let distro = distribution::detect_linux_distribution()
         .await
         .ok_or_else(|| "Não foi possível detectar a distribuição Linux".to_string())?;
- 
-     let prefixes = get_command_prefixes();
-     let prefix = prefixes
-         .get(distro.package_manager.as_str())
-         .ok_or_else(|| format!("Gerenciador de pacotes não suportado: {}", distro.package_manager))?;
+
+    let prefixes = get_command_prefixes();
+    let prefix = prefixes
+        .get(distro.package_manager.as_str())
+        .ok_or_else(|| {
+            format!(
+                "Gerenciador de pacotes não suportado: {}",
+                distro.package_manager
+            )
+        })?;
 
     Ok((distro, *prefix))
 }
 
 pub async fn get_install_command(tool_name: &str) -> Result<InstallCommandResult, String> {
     let tools = tool::get_development_tools();
-    let tool = tools.iter().find(|t| t.name == tool_name)
+    let tool = tools
+        .iter()
+        .find(|t| t.name == tool_name)
         .ok_or_else(|| format!("Ferramenta desconhecida: {}", tool_name))?;
     let (distro, (install_prefix, _)) = get_distro_and_prefix().await?;
     Ok(InstallCommandResult {
@@ -224,7 +292,11 @@ async fn handle_child_output(
             success: false,
             cancelled,
             output: None,
-            error: Some(if cancelled { "Operação cancelada".to_string() } else { e.to_string() }),
+            error: Some(if cancelled {
+                "Operação cancelada".to_string()
+            } else {
+                e.to_string()
+            }),
         },
     }
 }
@@ -242,7 +314,6 @@ pub async fn run_command(password: &str, tool_name: &str, command: &str) -> Inst
         },
     }
 }
-
 
 pub async fn run_command_streaming(
     app: &tauri::AppHandle,
@@ -273,25 +344,29 @@ pub async fn run_command_streaming(
 
     let stdout = match c.stdout.take() {
         Some(s) => s,
-        None => return InstallResult {
-            tool_name: tool_name.to_string(),
-            command: command.to_string(),
-            success: false,
-            cancelled: false,
-            output: None,
-            error: Some("Erro interno: stdout não disponível".to_string()),
-        },
+        None => {
+            return InstallResult {
+                tool_name: tool_name.to_string(),
+                command: command.to_string(),
+                success: false,
+                cancelled: false,
+                output: None,
+                error: Some("Erro interno: stdout não disponível".to_string()),
+            }
+        }
     };
     let stderr = match c.stderr.take() {
         Some(s) => s,
-        None => return InstallResult {
-            tool_name: tool_name.to_string(),
-            command: command.to_string(),
-            success: false,
-            cancelled: false,
-            output: None,
-            error: Some("Erro interno: stderr não disponível".to_string()),
-        },
+        None => {
+            return InstallResult {
+                tool_name: tool_name.to_string(),
+                command: command.to_string(),
+                success: false,
+                cancelled: false,
+                output: None,
+                error: Some("Erro interno: stderr não disponível".to_string()),
+            }
+        }
     };
 
     let app_clone = app.clone();
@@ -300,11 +375,14 @@ pub async fn run_command_streaming(
         let mut reader = BufReader::new(stdout).lines();
         let mut collected = Vec::new();
         while let Ok(Some(line)) = reader.next_line().await {
-            let _ = app_clone.emit("operation-output", OutputPayload {
-                tool_name: tn.clone(),
-                line: line.clone(),
-                stream: "stdout".to_string(),
-            });
+            let _ = app_clone.emit(
+                "operation-output",
+                OutputPayload {
+                    tool_name: tn.clone(),
+                    line: line.clone(),
+                    stream: "stdout".to_string(),
+                },
+            );
             collected.push(line);
         }
         collected.join("\n")
@@ -316,11 +394,14 @@ pub async fn run_command_streaming(
         let mut reader = BufReader::new(stderr).lines();
         let mut collected = Vec::new();
         while let Ok(Some(line)) = reader.next_line().await {
-            let _ = app_clone.emit("operation-output", OutputPayload {
-                tool_name: tn.clone(),
-                line: line.clone(),
-                stream: "stderr".to_string(),
-            });
+            let _ = app_clone.emit(
+                "operation-output",
+                OutputPayload {
+                    tool_name: tn.clone(),
+                    line: line.clone(),
+                    stream: "stderr".to_string(),
+                },
+            );
             collected.push(line);
         }
         collected.join("\n")
@@ -344,10 +425,20 @@ pub async fn run_command_streaming(
     };
 
     // Streaming preserves original behavior: when stderr is empty, use stdout as error output
-    let display_err = if stderr_str.is_empty() { stdout_str.clone() } else { stderr_str };
-    build_install_result(tool_name, command, cancelled, success, stdout_str, display_err)
+    let display_err = if stderr_str.is_empty() {
+        stdout_str.clone()
+    } else {
+        stderr_str
+    };
+    build_install_result(
+        tool_name,
+        command,
+        cancelled,
+        success,
+        stdout_str,
+        display_err,
+    )
 }
-
 
 /// Mata processos pacman de consulta (read-only: pacman -Q, pacman -Qu) que
 /// estejam rodando, para evitar falso positivo de lock quando uma operação de
@@ -464,7 +555,8 @@ pub async fn cancel_operation_inner() {
 
 async fn validate_tool_names(tool_names: &[String]) -> Result<(), String> {
     let tools = tool::get_development_tools();
-    let valid_names: std::collections::HashSet<&str> = tools.iter().map(|t| t.name.as_str()).collect();
+    let valid_names: std::collections::HashSet<&str> =
+        tools.iter().map(|t| t.name.as_str()).collect();
     for name in tool_names {
         if !valid_names.contains(name.as_str()) {
             return Err(format!("Ferramenta desconhecida: '{}'", name));
@@ -505,12 +597,15 @@ async fn run_tool_operation(
             }
             let package = get_package_name(tool_name);
             if let Some(app) = app {
-                let _ = app.emit("operation-progress", ProgressPayload {
-                    current: i + 1,
-                    total,
-                    tool_name: tool_name.to_string(),
-                    status: "installing".to_string(),
-                });
+                let _ = app.emit(
+                    "operation-progress",
+                    ProgressPayload {
+                        current: i + 1,
+                        total,
+                        tool_name: tool_name.to_string(),
+                        status: "installing".to_string(),
+                    },
+                );
             }
             let command = format!("{} {}", prefix, package);
             if let Some(app) = app {
@@ -520,15 +615,19 @@ async fn run_tool_operation(
             }
         }
         Ok::<Vec<InstallResult>, String>(results)
-    }.await;
+    }
+    .await;
 
     if let Some(app) = app {
-        let _ = app.emit("operation-progress", ProgressPayload {
-            current: total,
-            total,
-            tool_name: String::new(),
-            status: "done".to_string(),
-        });
+        let _ = app.emit(
+            "operation-progress",
+            ProgressPayload {
+                current: total,
+                total,
+                tool_name: String::new(),
+                status: "done".to_string(),
+            },
+        );
     }
 
     crate::stats::set_operation_in_progress(false);
@@ -557,7 +656,11 @@ async fn sync_pacman_db(password: &str) {
     let _ = child.wait().await;
 }
 
-pub async fn install_tools(tool_names: &[String], password: &str, app: Option<&tauri::AppHandle>) -> Result<Vec<InstallResult>, String> {
+pub async fn install_tools(
+    tool_names: &[String],
+    password: &str,
+    app: Option<&tauri::AppHandle>,
+) -> Result<Vec<InstallResult>, String> {
     if tool_names.len() == 1 && tool_names[0] == "__verify__" {
         password::verify_password(password).await?;
         return Ok(vec![InstallResult {
@@ -577,7 +680,11 @@ pub async fn install_tools(tool_names: &[String], password: &str, app: Option<&t
     run_tool_operation(tool_names, password, install_prefix, app).await
 }
 
-pub async fn remove_tools(tool_names: &[String], password: &str, app: Option<&tauri::AppHandle>) -> Result<Vec<InstallResult>, String> {
+pub async fn remove_tools(
+    tool_names: &[String],
+    password: &str,
+    app: Option<&tauri::AppHandle>,
+) -> Result<Vec<InstallResult>, String> {
     let (_, (_, remove_prefix)) = get_distro_and_prefix().await?;
     run_tool_operation(tool_names, password, remove_prefix, app).await
 }
@@ -592,7 +699,10 @@ fn get_update_command(pm: &str) -> &'static str {
     }
 }
 
-pub async fn update_system(password: &str, app: Option<&tauri::AppHandle>) -> Result<InstallResult, String> {
+pub async fn update_system(
+    password: &str,
+    app: Option<&tauri::AppHandle>,
+) -> Result<InstallResult, String> {
     CANCEL_FLAG.store(false, Ordering::SeqCst);
 
     crate::stats::set_operation_in_progress(true);
@@ -611,9 +721,20 @@ pub async fn update_system(password: &str, app: Option<&tauri::AppHandle>) -> Re
 
         if result.success {
             let fp = if let Some(app) = app {
-                run_command_streaming(app, password, "flatpak-update", "flatpak update -y 2>/dev/null; echo done").await
+                run_command_streaming(
+                    app,
+                    password,
+                    "flatpak-update",
+                    "flatpak update -y 2>/dev/null; echo done",
+                )
+                .await
             } else {
-                run_command(password, "flatpak-update", "flatpak update -y 2>/dev/null; echo done").await
+                run_command(
+                    password,
+                    "flatpak-update",
+                    "flatpak update -y 2>/dev/null; echo done",
+                )
+                .await
             };
             let out = result.output.unwrap_or_default();
             let fp_out = fp.output.unwrap_or_default();
@@ -621,7 +742,8 @@ pub async fn update_system(password: &str, app: Option<&tauri::AppHandle>) -> Re
         }
 
         Ok::<InstallResult, String>(result)
-    }.await;
+    }
+    .await;
 
     crate::stats::set_operation_in_progress(false);
     CANCEL_FLAG.store(false, Ordering::SeqCst);
@@ -648,19 +770,96 @@ mod tests {
 
     #[test]
     fn test_get_package_name_all_mapped() {
-        let tools = ["git", "node", "python3", "gcc", "make", "java", "code", "gh", "rust", "go",
-            "dbeaver", "neovim", "lazygit", "curl", "wget", "firefox", "chromium", "brave",
-            "docker", "steam", "lutris", "wine", "heroic", "prismlauncher", "vlc", "gimp",
-            "obs-studio", "kdenlive", "audacity", "flameshot", "inkscape", "krita", "libreoffice",
-            "onlyoffice", "obsidian", "discord", "telegram", "zoom", "p7zip", "timeshift", "vim",
-            "htop", "fastfetch", "flatpak", "gnome-tweaks", "keepassxc", "gufw", "openssh",
-            "pavucontrol", "qbittorrent", "thunderbird", "transmission-qt", "filezilla",
-            "nextcloud-client", "signal-desktop", "slack-desktop", "element-desktop",
-            "docker-compose", "virtualbox", "gamemode", "mangohud", "hydra", "retroarch",
-            "dolphin-emu", "pcsx2", "0ad", "supertuxkart", "blender", "handbrake", "mpv", "ffmpeg",
-            "spotify", "shotcut", "digikam", "nano", "btop", "bleachbit", "stacer", "syncthing",
-            "tmux", "unzip", "unrar", "calibre", "arc-gtk-theme", "papirus-icon-theme",
-            "materia-gtk-theme", "gtk-theme-windows10", "fluent-gtk-theme"];
+        let tools = [
+            "git",
+            "node",
+            "python3",
+            "gcc",
+            "make",
+            "java",
+            "code",
+            "gh",
+            "rust",
+            "go",
+            "dbeaver",
+            "neovim",
+            "lazygit",
+            "curl",
+            "wget",
+            "firefox",
+            "chromium",
+            "brave",
+            "docker",
+            "steam",
+            "lutris",
+            "wine",
+            "heroic",
+            "prismlauncher",
+            "vlc",
+            "gimp",
+            "obs-studio",
+            "kdenlive",
+            "audacity",
+            "flameshot",
+            "inkscape",
+            "krita",
+            "libreoffice",
+            "onlyoffice",
+            "obsidian",
+            "discord",
+            "telegram",
+            "zoom",
+            "p7zip",
+            "timeshift",
+            "vim",
+            "htop",
+            "fastfetch",
+            "flatpak",
+            "gnome-tweaks",
+            "keepassxc",
+            "gufw",
+            "openssh",
+            "pavucontrol",
+            "qbittorrent",
+            "thunderbird",
+            "transmission-qt",
+            "filezilla",
+            "nextcloud-client",
+            "signal-desktop",
+            "slack-desktop",
+            "element-desktop",
+            "docker-compose",
+            "virtualbox",
+            "gamemode",
+            "mangohud",
+            "hydra",
+            "retroarch",
+            "dolphin-emu",
+            "pcsx2",
+            "0ad",
+            "supertuxkart",
+            "blender",
+            "handbrake",
+            "mpv",
+            "ffmpeg",
+            "spotify",
+            "shotcut",
+            "digikam",
+            "nano",
+            "btop",
+            "bleachbit",
+            "stacer",
+            "syncthing",
+            "tmux",
+            "unzip",
+            "unrar",
+            "calibre",
+            "arc-gtk-theme",
+            "papirus-icon-theme",
+            "materia-gtk-theme",
+            "gtk-theme-windows10",
+            "fluent-gtk-theme",
+        ];
         for t in &tools {
             let result = get_package_name(t);
             assert!(!result.is_empty(), "Package name for '{}' is empty", t);
@@ -675,9 +874,15 @@ mod tests {
             if *pm == "pacman" {
                 assert!(install.contains("-S"), "{pm} install cmd missing");
             } else {
-                assert!(install.contains("install"), "{pm} install cmd missing 'install'");
+                assert!(
+                    install.contains("install"),
+                    "{pm} install cmd missing 'install'"
+                );
             }
-            assert!(remove.contains("remove") || remove.contains("-R"), "{pm} remove cmd wrong");
+            assert!(
+                remove.contains("remove") || remove.contains("-R"),
+                "{pm} remove cmd wrong"
+            );
         }
     }
 
@@ -867,7 +1072,10 @@ mod tests {
         assert_eq!(get_package_name("arc-gtk-theme"), "arc-gtk-theme");
         assert_eq!(get_package_name("papirus-icon-theme"), "papirus-icon-theme");
         assert_eq!(get_package_name("materia-gtk-theme"), "materia-gtk-theme");
-        assert_eq!(get_package_name("gtk-theme-windows10"), "gtk-theme-windows10");
+        assert_eq!(
+            get_package_name("gtk-theme-windows10"),
+            "gtk-theme-windows10"
+        );
         assert_eq!(get_package_name("fluent-gtk-theme"), "fluent-gtk-theme");
         assert_eq!(get_package_name("neovim"), "neovim");
         assert_eq!(get_package_name("lazygit"), "lazygit");
@@ -953,7 +1161,14 @@ mod tests {
 
     #[test]
     fn test_build_install_result_failure() {
-        let r = build_install_result("git", "false", false, false, "".into(), "error msg\n".into());
+        let r = build_install_result(
+            "git",
+            "false",
+            false,
+            false,
+            "".into(),
+            "error msg\n".into(),
+        );
         assert!(!r.success);
         assert_eq!(r.output, Some("error msg\n".into()));
         assert_eq!(r.error, Some("error msg\n".into()));
@@ -1001,4 +1216,3 @@ mod tests {
         assert!(r.error.is_none());
     }
 }
-

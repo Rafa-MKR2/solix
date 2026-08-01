@@ -5,7 +5,10 @@
 pub async fn create_desktop_shortcut(name: String) -> Result<String, String> {
     let home = std::env::var("HOME").map_err(|_| "HOME not found".to_string())?;
 
-    let safe_name: String = name.chars().filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_').collect();
+    let safe_name: String = name
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_')
+        .collect();
     if safe_name.is_empty() {
         return Err("Invalid tool name.".to_string());
     }
@@ -26,7 +29,8 @@ pub async fn create_desktop_shortcut(name: String) -> Result<String, String> {
         format!("{}/Escritorio", home),
         home.clone(),
     ];
-    let dest = candidates.into_iter()
+    let dest = candidates
+        .into_iter()
         .find(|p| std::path::Path::new(p).exists())
         .unwrap_or(home);
 

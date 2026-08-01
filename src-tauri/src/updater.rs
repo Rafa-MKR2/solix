@@ -59,7 +59,10 @@ pub async fn check_update() -> Result<UpdateInfo, String> {
 }
 
 pub trait HttpClient: Send + Sync {
-    fn get_json(&self, url: &str) -> impl std::future::Future<Output = Result<String, String>> + Send;
+    fn get_json(
+        &self,
+        url: &str,
+    ) -> impl std::future::Future<Output = Result<String, String>> + Send;
 }
 
 struct RealHttpClient;
@@ -87,8 +90,8 @@ pub fn default_http_client() -> impl HttpClient {
 pub async fn check_update_inner(http: &impl HttpClient) -> Result<UpdateInfo, String> {
     let response = http.get_json(GITHUB_API).await?;
 
-    let release: GithubRelease =
-        serde_json::from_str(&response).map_err(|e| format!("Resposta inválida do GitHub: {}", e))?;
+    let release: GithubRelease = serde_json::from_str(&response)
+        .map_err(|e| format!("Resposta inválida do GitHub: {}", e))?;
 
     let tag_name = release.tag_name.trim_start_matches('v').to_string();
     let current = env!("CARGO_PKG_VERSION").to_string();
@@ -98,10 +101,7 @@ pub async fn check_update_inner(http: &impl HttpClient) -> Result<UpdateInfo, St
         .iter()
         .find(|a| a.name.starts_with(BINARY_PREFIX) || a.name == BINARY_PREFIX);
 
-    let checksum_asset = release
-        .assets
-        .iter()
-        .find(|a| a.name == CHECKSUM_FILENAME);
+    let checksum_asset = release.assets.iter().find(|a| a.name == CHECKSUM_FILENAME);
 
     let (download_url, download_size) = match binary_asset {
         Some(a) => (a.browser_download_url.clone(), a.size.unwrap_or(0)),
@@ -112,9 +112,12 @@ pub async fn check_update_inner(http: &impl HttpClient) -> Result<UpdateInfo, St
         .map(|a| a.browser_download_url.clone())
         .unwrap_or_default();
 
-    let release_url = release
-        .html_url
-        .unwrap_or_else(|| format!("https://github.com/Rafa-MKR2/solix/releases/tag/{}", release.tag_name));
+    let release_url = release.html_url.unwrap_or_else(|| {
+        format!(
+            "https://github.com/Rafa-MKR2/solix/releases/tag/{}",
+            release.tag_name
+        )
+    });
 
     let release_notes = release.body.unwrap_or_default();
     let trimmed_notes = if release_notes.len() > 500 {
@@ -158,15 +161,15 @@ fn parse_semver(version: &str) -> Vec<u32> {
         .collect()
 }
 
-pub async fn download_release(
-    url: &str,
-    app: &tauri::AppHandle,
-) -> Result<PathBuf, String> {
-    let _ = app.emit("update-progress", UpdateProgress {
-        stage: "download".into(),
-        percent: 0,
-        message: "Baixando atualização...".into(),
-    });
+pub async fn download_release(url: &str, app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let _ = app.emit(
+        "update-progress",
+        UpdateProgress {
+            stage: "download".into(),
+            percent: 0,
+            message: "Baixando atualização...".into(),
+        },
+    );
 
     let client = reqwest::Client::new();
     let resp = client
@@ -202,11 +205,14 @@ pub async fn download_release(
             let pct = ((downloaded as f64 / total as f64) * 100.0) as u8;
             if pct != last_pct {
                 last_pct = pct;
-                let _ = app_clone.emit("update-progress", UpdateProgress {
-                    stage: "download".into(),
-                    percent: pct,
-                    message: format!("Baixando... {}%", pct),
-                });
+                let _ = app_clone.emit(
+                    "update-progress",
+                    UpdateProgress {
+                        stage: "download".into(),
+                        percent: pct,
+                        message: format!("Baixando... {}%", pct),
+                    },
+                );
             }
         }
     }
@@ -215,11 +221,14 @@ pub async fn download_release(
         .await
         .map_err(|e| format!("Erro ao finalizar arquivo: {}", e))?;
 
-    let _ = app.emit("update-progress", UpdateProgress {
-        stage: "download".into(),
-        percent: 100,
-        message: "Download concluído.".into(),
-    });
+    let _ = app.emit(
+        "update-progress",
+        UpdateProgress {
+            stage: "download".into(),
+            percent: 100,
+            message: "Download concluído.".into(),
+        },
+    );
 
     Ok(dest)
 }
@@ -283,11 +292,14 @@ pub async fn install_update(
     password: &str,
     app: &tauri::AppHandle,
 ) -> Result<(), String> {
-    let _ = app.emit("update-progress", UpdateProgress {
-        stage: "install".into(),
-        percent: 0,
-        message: "Instalando atualização...".into(),
-    });
+    let _ = app.emit(
+        "update-progress",
+        UpdateProgress {
+            stage: "install".into(),
+            percent: 0,
+            message: "Instalando atualização...".into(),
+        },
+    );
 
     crate::password::verify_password(password).await?;
 
@@ -301,15 +313,20 @@ pub async fn install_update(
     let result = crate::install::run_command(password, "update-install", &install_cmd).await;
 
     if !result.success {
-        let err = result.error.unwrap_or_else(|| "Erro desconhecido".to_string());
+        let err = result
+            .error
+            .unwrap_or_else(|| "Erro desconhecido".to_string());
         return Err(format!("Falha ao instalar atualização: {}", err));
     }
 
-    let _ = app.emit("update-progress", UpdateProgress {
-        stage: "install".into(),
-        percent: 100,
-        message: "Atualização instalada.".into(),
-    });
+    let _ = app.emit(
+        "update-progress",
+        UpdateProgress {
+            stage: "install".into(),
+            percent: 100,
+            message: "Atualização instalada.".into(),
+        },
+    );
 
     Ok(())
 }
@@ -329,8 +346,8 @@ pub fn restart_application() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
     use std::collections::HashMap;
+    use std::sync::Mutex;
     use tempfile::NamedTempFile;
 
     struct MockHttpClient {
@@ -485,7 +502,8 @@ mod tests {
                 "browser_download_url": "https://example.com/solix",
                 "size": 100
             }]
-        }"#.to_string();
+        }"#
+        .to_string();
         let mut responses = HashMap::new();
         responses.insert(GITHUB_API.to_string(), json);
         let http = MockHttpClient::new(responses);
@@ -608,7 +626,10 @@ mod tests {
     fn test_validate_checksum_invalid() {
         let tmp = NamedTempFile::new().unwrap();
         std::fs::write(tmp.path(), b"test data").unwrap();
-        let result = validate_checksum(tmp.path(), "0000000000000000000000000000000000000000000000000000000000000000");
+        let result = validate_checksum(
+            tmp.path(),
+            "0000000000000000000000000000000000000000000000000000000000000000",
+        );
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Checksum inválido"));
     }

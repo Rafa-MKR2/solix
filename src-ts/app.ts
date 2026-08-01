@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Rafa-MKR2
 
-import type { AppUpdateInfo, PackageDetail } from './types.js';
-import { showToast } from './utils.js';
 import { systemService, packageService, miscService } from './shared/services/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
 import {
@@ -15,16 +13,7 @@ import {
   setRetryLastOperationFn,
   loadProcesses,
 } from './ui.js';
-import {
-  loadSystemInfo,
-  confirmPassword,
-  cancelPassword,
-  showPasswordModal,
-  cancelOperation,
-  retryLastOperation,
-  setupProgressListener,
-  toolStatuses,
-} from './operations.js';
+import { loadSystemInfo, setupProgressListener, cancelOperation, retryLastOperation, toolStatuses } from './operations.js';
 import { handleShowSmartInfo, handleStartBackup } from './features/disks/index.js';
 import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
 import {
@@ -64,63 +53,68 @@ import {
 import { initDeveloperPage } from './features/developer/index.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Core setup
   setupNav();
   setupHelpTooltips();
   setupLockActions();
   setupProgressListener();
   setupUpdateListener();
+
+  // Retry handler for lock diagnosis
   setRetryLastOperationFn(retryLastOperation);
+
+  // Initial data load
   loadSystemInfo();
+  loadConnectivity();
+  loadExternalInfo();
+  loadProcesses();
+  loadHomeStats();
+  initFooter();
 
-  document.getElementById('password-input')!.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') confirmPassword();
-  });
-  document.getElementById('password-confirm')!.addEventListener('click', confirmPassword);
-  document.getElementById('password-cancel')!.addEventListener('click', cancelPassword);
-
-  document.getElementById('confirm-btn-yes')?.addEventListener('click', () => {
-    document.getElementById('confirm-overlay')!.classList.add('hidden');
-    showPasswordModal({ type: 'update' });
-  });
-  document.getElementById('confirm-btn-no')?.addEventListener('click', () => {
-    document.getElementById('confirm-overlay')!.classList.add('hidden');
-  });
-
+  // Search filter for tools
   const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
   if (searchInput) {
     searchInput.addEventListener('input', () => {
-      if (toolStatuses.length) renderTools(toolStatuses);
+      if (selectedTools.size > 0 || removedTools.size > 0) {
+        import('./features/tools/render.js').then(m => m.renderTools(toolStatuses));
+      }
     });
   }
 
+  // Tool actions - delegate to features/tools
   document.getElementById('install-btn')?.addEventListener('click', () => {
-    if (selectedTools.size === 0) return;
-    showPasswordModal({ type: 'install', tools: Array.from(selectedTools) });
+    if (selectedTools.size > 0) {
+      import('./features/tools/index.js').then(m => m.showInstallPasswordModal(Array.from(selectedTools)));
+    }
   });
   document.getElementById('remove-btn')?.addEventListener('click', () => {
-    if (removedTools.size === 0) return;
-    showPasswordModal({ type: 'remove', tools: Array.from(removedTools) });
+    if (removedTools.size > 0) {
+      import('./features/tools/index.js').then(m => m.showRemovePasswordModal(Array.from(removedTools)));
+    }
   });
+
+  // System operations - delegate to features
   document.getElementById('update-btn')?.addEventListener('click', () => {
-    document.getElementById('confirm-overlay')!.classList.remove('hidden');
+    import('./features/update/index.js').then(m => m.showUpdateConfirmDialog());
   });
   document.getElementById('zram-btn')?.addEventListener('click', () => {
-    showPasswordModal({ type: 'zram' });
+    import('./features/tools/index.js').then(m => m.showZramPasswordModal());
   });
   document.getElementById('cleanup-btn')?.addEventListener('click', () => {
-    showPasswordModal({ type: 'cleanup' });
+    import('./features/tools/index.js').then(m => m.showCleanupPasswordModal());
   });
+
+  // Navigation bridge
   document.getElementById('tools-to-packages-btn')?.addEventListener('click', () => {
     switchToPage('pacotes');
-    // Activate search tab
     const searchTab = document.querySelector<HTMLElement>('[data-pkg-tab="search"]');
     if (searchTab) searchTab.click();
-    // Focus search input after UI renders
     setTimeout(() => {
       (document.getElementById('pkg-search-input') as HTMLInputElement)?.focus();
     }, 150);
   });
 
+  // Report - delegate to features/report
   document.getElementById('report-btn')?.addEventListener('click', reportProblem);
   document.getElementById('report-overlay-close')?.addEventListener('click', hideReportModal);
   document.getElementById('report-close-btn')?.addEventListener('click', hideReportModal);
@@ -131,22 +125,25 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('report-overlay')?.addEventListener('click', (e) => {
     if (e.target === e.currentTarget) hideReportModal();
   });
+
+  // Developer page
   document.getElementById('dev-github-link')?.addEventListener('click', async (e) => {
     e.preventDefault();
     try {
       await miscService.openUrl('https://github.com/Rafa-MKR2/solix');
-    } catch (err) {
+    } catch {
       window.open('https://github.com/Rafa-MKR2/solix', '_blank');
     }
   });
-
   initDeveloperPage();
 
+  // Network tests
   document.getElementById('test-ping-btn')?.addEventListener('click', handleTestPingClick);
   document.getElementById('test-speed-btn')?.addEventListener('click', handleTestSpeedClick);
 
+  // Update actions
   document.getElementById('update-now-btn')?.addEventListener('click', () => {
-    showPasswordModal({ type: 'app-update' });
+    import('./features/update/index.js').then(m => m.showUpdatePasswordModal());
   });
   document.getElementById('update-later-btn')?.addEventListener('click', () => {
     document.getElementById('update-overlay')?.classList.add('hidden');
@@ -155,13 +152,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('update-overlay')?.classList.add('hidden');
   });
 
+  // Lock diagnosis
   document.getElementById('lock-retry-btn')?.addEventListener('click', retryLastOperation);
   document.getElementById('lock-close-btn')?.addEventListener('click', () => {
     document.getElementById('lock-diagnosis')?.classList.add('hidden');
   });
 
+  // Cancel operation
   document.getElementById('cancel-btn')?.addEventListener('click', cancelOperation);
 
+  // Tool info modal
   document.getElementById('tools-list')?.addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('.tool-info-btn');
     if (!btn) return;
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('info-overlay')!.classList.remove('hidden');
     } catch (e) {
       console.error('get_package_info failed:', e);
-      showToast('error', `Erro ao buscar informações de ${toolName}.`);
+      import('./utils.js').then(m => m.showToast('error', `Erro ao buscar informações de ${toolName}.`));
     }
   });
   document.getElementById('info-close')?.addEventListener('click', () => {
@@ -192,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('info-overlay')!.classList.add('hidden');
   });
 
+  // Output section collapse
   const outputSectionHeader = document.querySelector<HTMLElement>('#output-section .section-header');
   outputSectionHeader?.addEventListener('click', () => {
     const target = document.getElementById('output-log');
@@ -202,14 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (arrow) arrow.classList.toggle('collapsed', isOpen);
   });
 
-  loadConnectivity();
-  loadExternalInfo();
-  loadProcesses();
-  loadHomeStats();
-  initFooter();
-
+  // Footer update check
   document.getElementById('footer-check-link')?.addEventListener('click', handleCheckUpdateClick);
-
   document.getElementById('footer-update-btn')?.addEventListener('click', (e) => {
     e.preventDefault();
     systemService.checkAppUpdate().then(info => {
@@ -217,25 +212,25 @@ document.addEventListener('DOMContentLoaded', () => {
         showUpdateBanner(info);
       }
     }).catch(() => {
-      showToast('error', 'Erro ao verificar atualizações.');
+      import('./utils.js').then(m => m.showToast('error', 'Erro ao verificar atualizações.'));
     });
   });
 
+  // Intervals
   setInterval(pollStats, 3000);
   setInterval(loadConnectivity, 10000);
   setInterval(loadProcesses, 3000);
   setInterval(loadHomeStats, 30000);
 
+  // Process table
   document.querySelectorAll<HTMLElement>('#process-table th').forEach(th => {
     th.addEventListener('click', () => {
       handleProcessSortClick(th.dataset.sort || '');
     });
   });
-
   document.getElementById('process-search')?.addEventListener('input', handleProcessSearch);
 
-  // ─── Package Tabs ───
-
+  // Package tabs
   document.querySelectorAll('.pkg-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.pkg-tab').forEach(t => t.classList.remove('active'));
@@ -264,8 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('pkg-install-repo-btn')?.addEventListener('click', handleInstallRepoPackages);
 
-  // ─── Package Upload ───
-
+  // Package upload
   const pkgFileInput = document.getElementById('pkg-file-input') as HTMLInputElement | null;
   const pkgUploadArea = document.getElementById('pkg-upload-area');
 
@@ -314,10 +308,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('pkg-install-btn')?.addEventListener('click', () => {
-    showPasswordModal({ type: 'install-package' });
+    import('./features/packages/index.js').then(m => m.showInstallPackagePasswordModal());
   });
-  // ─── Backup ───
 
+  // Backup
   document.getElementById('backup-start-btn')?.addEventListener('click', handleStartBackup);
   document.getElementById('backup-cancel-btn')?.addEventListener('click', () => {
     document.getElementById('backup-overlay')?.classList.add('hidden');
@@ -326,8 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('backup-overlay')?.classList.add('hidden');
   });
 
-  // ─── SMART Health ───
-
+  // SMART
   document.getElementById('smart-close-btn')?.addEventListener('click', () => {
     document.getElementById('smart-overlay')?.classList.add('hidden');
   });
@@ -339,7 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
       (e.currentTarget as HTMLElement).classList.add('hidden');
     }
   });
-  // Click handler for smartmontools install button (inside error section)
   document.getElementById('smart-overlay')?.addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest('#smart-install-btn');
     if (!btn) return;
@@ -355,8 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     handlePkgFileSelect(null);
   });
 
-  // ─── Script Analyzer ───
-
+  // Script Analyzer
   const scriptFileInput = document.getElementById('script-file-input') as HTMLInputElement | null;
   const scriptUploadArea = document.getElementById('script-upload-area');
 
@@ -409,8 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearScriptAnalysis();
   });
 
-  // ─── Script Tabs (File / Paste) ───
-
+  // Script Tabs
   document.querySelectorAll('[data-script-tab]').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('[data-script-tab]').forEach(t => t.classList.remove('active'));
@@ -423,14 +413,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ─── Script Textarea ───
-
+  // Script Textarea
   const scriptTextarea = document.getElementById('script-textarea') as HTMLTextAreaElement | null;
   const scriptAnalyzeBtn = document.getElementById('script-analyze-btn') as HTMLButtonElement | null;
   const scriptClearTextBtn = document.getElementById('script-clear-text-btn');
 
   scriptTextarea?.addEventListener('input', () => {
-    const hasText = (scriptTextarea.value.trim().length > 0);
+    const hasText = (scriptTextarea!.value.trim().length > 0);
     if (scriptAnalyzeBtn) scriptAnalyzeBtn.disabled = !hasText;
     if (scriptClearTextBtn) scriptClearTextBtn.style.display = hasText ? '' : 'none';
   });
@@ -444,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
   scriptTextarea?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      if (scriptTextarea.value.trim()) {
+      if (scriptTextarea!.value.trim()) {
         handleAnalyzeText(scriptTextarea.value);
       }
     }
@@ -454,10 +443,6 @@ document.addEventListener('DOMContentLoaded', () => {
     clearScriptAnalysis();
   });
 
-  // ─── Drag & Drop ───
-  // HTML5 DataTransfer works because dragDropEnabled=false in tauri.conf.json
-  // (Tauri v2 default intercepts drops, so we disable it to use standard API)
-
-  // Load installed packages on initial page load
+  // Initial load
   loadInstalledPackages();
 });

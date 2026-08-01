@@ -88,3 +88,7 @@ function readFileAsBase64(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+export function showInstallPackagePasswordModal(): void {
+  import('../../operations.js').then(m => m.showPasswordModal({ type: 'install-package' }));
+}

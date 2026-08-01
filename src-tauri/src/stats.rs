@@ -2,7 +2,6 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -66,10 +65,7 @@ fn read_cpu_times() -> Option<CpuTimes> {
     if parts.len() < 5 || parts[0] != "cpu" {
         return None;
     }
-    let values: Vec<u64> = parts[1..]
-        .iter()
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let values: Vec<u64> = parts[1..].iter().filter_map(|s| s.parse().ok()).collect();
     if values.len() < 4 {
         return None;
     }
@@ -118,7 +114,10 @@ fn get_temperature() -> f64 {
         if name.starts_with("thermal_zone") {
             let type_path = entry.path().join("type");
             let type_str = std::fs::read_to_string(&type_path).unwrap_or_default();
-            if type_str.trim() == "x86_pkg_temp" || type_str.trim() == "cpu-thermal" || type_str.trim() == "acpitz" {
+            if type_str.trim() == "x86_pkg_temp"
+                || type_str.trim() == "cpu-thermal"
+                || type_str.trim() == "acpitz"
+            {
                 let temp_path = entry.path().join("temp");
                 if let Ok(temp_str) = std::fs::read_to_string(&temp_path) {
                     if let Ok(milli) = temp_str.trim().parse::<f64>() {
@@ -151,10 +150,18 @@ fn get_memory_percent() -> f64 {
 
     for line in content.lines() {
         if let Some(val) = line.strip_prefix("MemTotal:") {
-            total = val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            total = val
+                .split_whitespace()
+                .next()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(0);
         }
         if let Some(val) = line.strip_prefix("MemAvailable:") {
-            available = val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            available = val
+                .split_whitespace()
+                .next()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(0);
         }
     }
 
@@ -177,7 +184,11 @@ fn get_total_mem_kb() -> u64 {
     let content = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
     for line in content.lines() {
         if let Some(val) = line.strip_prefix("MemTotal:") {
-            return val.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(1);
+            return val
+                .split_whitespace()
+                .next()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(1);
         }
     }
     1
@@ -327,8 +338,18 @@ fn count_updates() -> (u64, String) {
 
     // Arch — com timeout de 15s
     if let Some(out) = run_cmd(&["timeout", "15", "pacman", "-Qu", "--noconfirm"]) {
-        let count = out.lines().filter(|l| !l.is_empty() && !l.contains("There is nothing to do")).count() as u64;
-        return (count, if count == 0 { "Em dia".into() } else { format!("{}", count) });
+        let count = out
+            .lines()
+            .filter(|l| !l.is_empty() && !l.contains("There is nothing to do"))
+            .count() as u64;
+        return (
+            count,
+            if count == 0 {
+                "Em dia".into()
+            } else {
+                format!("{}", count)
+            },
+        );
     }
     // Debian/Ubuntu
     if let Ok(out) = std::process::Command::new("timeout")
@@ -340,7 +361,14 @@ fn count_updates() -> (u64, String) {
             .lines()
             .filter(|l| !l.is_empty() && !l.contains("Listando") && !l.starts_with("Listing"))
             .count() as u64;
-        return (count, if count == 0 { "Em dia".into() } else { format!("{}", count) });
+        return (
+            count,
+            if count == 0 {
+                "Em dia".into()
+            } else {
+                format!("{}", count)
+            },
+        );
     }
     // Fedora — com timeout de 30s (dnf pode ser mais lento)
     if let Ok(out) = std::process::Command::new("timeout")
@@ -352,7 +380,14 @@ fn count_updates() -> (u64, String) {
             .lines()
             .filter(|l| !l.is_empty() && !l.starts_with("Last metadata"))
             .count() as u64;
-        return (count, if count == 0 { "Em dia".into() } else { format!("{}", count) });
+        return (
+            count,
+            if count == 0 {
+                "Em dia".into()
+            } else {
+                format!("{}", count)
+            },
+        );
     }
     (0, "—".to_string())
 }
@@ -387,10 +422,18 @@ fn get_swap_info() -> (String, String, f64) {
     let mut free_kb = 0u64;
     for line in content.lines() {
         if let Some(v) = line.strip_prefix("SwapTotal:") {
-            total_kb = v.split_whitespace().next().and_then(|s| s.parse().ok()).unwrap_or(0);
+            total_kb = v
+                .split_whitespace()
+                .next()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
         }
         if let Some(v) = line.strip_prefix("SwapFree:") {
-            free_kb = v.split_whitespace().next().and_then(|s| s.parse().ok()).unwrap_or(0);
+            free_kb = v
+                .split_whitespace()
+                .next()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
         }
     }
     let used_kb = total_kb.saturating_sub(free_kb);
@@ -477,7 +520,13 @@ pub fn get_processes() -> Vec<ProcessInfo> {
             0.0
         };
 
-        prev_map.insert(pid, ProcessCpuSample { total_time, system_total });
+        prev_map.insert(
+            pid,
+            ProcessCpuSample {
+                total_time,
+                system_total,
+            },
+        );
 
         let mem_pct = if total_mem_kb > 0 {
             (rss_kb as f64 / total_mem_kb as f64) * 100.0
@@ -497,7 +546,11 @@ pub fn get_processes() -> Vec<ProcessInfo> {
         });
     }
 
-    result.sort_by(|a, b| b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap_or(std::cmp::Ordering::Equal));
+    result.sort_by(|a, b| {
+        b.cpu_percent
+            .partial_cmp(&a.cpu_percent)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     result.truncate(60);
     result
 }
@@ -543,7 +596,11 @@ mod tests {
 
     #[test]
     fn test_get_system_stats_struct() {
-        let s = SystemStats { cpu_percent: 42.5, temperature: 68.0, memory_percent: 55.0 };
+        let s = SystemStats {
+            cpu_percent: 42.5,
+            temperature: 68.0,
+            memory_percent: 55.0,
+        };
         assert!((s.cpu_percent - 42.5).abs() < 0.01);
         assert!((s.temperature - 68.0).abs() < 0.01);
         assert!((s.memory_percent - 55.0).abs() < 0.01);
@@ -724,7 +781,8 @@ mod tests {
 
     #[test]
     fn test_parse_proc_stat_line_comm_with_parens() {
-        let content = "42 (foo(bar)baz) S 0 0 0 0 0 0 0 0 0 0 100 50 0 0 20 0 1 0 0 99999999 42 0 0 0";
+        let content =
+            "42 (foo(bar)baz) S 0 0 0 0 0 0 0 0 0 0 100 50 0 0 20 0 1 0 0 99999999 42 0 0 0";
         let (total_time, state, comm, rss_kb) = parse_proc_stat_line(content).unwrap();
         assert_eq!(total_time, 150);
         assert_eq!(state, 'S');
@@ -933,5 +991,3 @@ mod tests {
         assert!(pct >= 0.0 && pct <= 100.0);
     }
 }
-
-

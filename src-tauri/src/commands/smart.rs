@@ -33,7 +33,11 @@ pub struct SmartInfo {
     pub commands_used: Vec<SmartCommandInfo>,
 }
 
-async fn run_sudo_smartctl(args: &[&str], device_path: &str, password: &Option<String>) -> Result<std::process::Output, String> {
+async fn run_sudo_smartctl(
+    args: &[&str],
+    device_path: &str,
+    password: &Option<String>,
+) -> Result<std::process::Output, String> {
     let full_cmd = format!("sudo -S smartctl {} {}", args.join(" "), device_path);
     if let Some(pwd) = password {
         let mut child = tokio::process::Command::new("sh")
@@ -45,7 +49,10 @@ async fn run_sudo_smartctl(args: &[&str], device_path: &str, password: &Option<S
             .spawn()
             .map_err(|e| format!("Erro ao executar smartctl: {}", e))?;
         let _ = crate::password::pipe_password(&mut child, pwd).await;
-        let output = child.wait_with_output().await.map_err(|e| format!("Erro smartctl: {}", e))?;
+        let output = child
+            .wait_with_output()
+            .await
+            .map_err(|e| format!("Erro smartctl: {}", e))?;
         Ok(output)
     } else {
         tokio::process::Command::new("sudo")
@@ -59,7 +66,10 @@ async fn run_sudo_smartctl(args: &[&str], device_path: &str, password: &Option<S
 }
 
 #[tauri::command]
-pub async fn get_disk_smart_info(device: String, password: Option<String>) -> Result<SmartInfo, String> {
+pub async fn get_disk_smart_info(
+    device: String,
+    password: Option<String>,
+) -> Result<SmartInfo, String> {
     let pwd = password.or_else(crate::get_cached_password);
     let device_path = format!("/dev/{}", device.trim());
 
@@ -99,7 +109,9 @@ pub async fn get_disk_smart_info(device: String, password: Option<String>) -> Re
     let info_output = run_sudo_smartctl(&["-i"], &device_path, &pwd).await?;
     let info_text = String::from_utf8_lossy(&info_output.stdout);
 
-    if info_text.contains("Unknown USB bridge") || info_text.contains("device lacks SMART capability") {
+    if info_text.contains("Unknown USB bridge")
+        || info_text.contains("device lacks SMART capability")
+    {
         return Ok(SmartInfo {
             device: device.clone(),
             device_model: String::new(),
@@ -113,8 +125,14 @@ pub async fn get_disk_smart_info(device: String, password: Option<String>) -> Re
         });
     }
 
-    let device_model = info_text.lines()
-        .find(|l| l.contains("Device Model") || l.contains("Product") || l.contains("Model Number") || l.contains("Model Family"))
+    let device_model = info_text
+        .lines()
+        .find(|l| {
+            l.contains("Device Model")
+                || l.contains("Product")
+                || l.contains("Model Number")
+                || l.contains("Model Family")
+        })
         .and_then(|l| l.split(':').nth(1))
         .map(|s| s.trim().to_string())
         .unwrap_or_default();
@@ -133,30 +151,41 @@ pub async fn get_disk_smart_info(device: String, password: Option<String>) -> Re
     let attr_output = run_sudo_smartctl(&["-A"], &device_path, &pwd).await?;
     let attr_text = String::from_utf8_lossy(&attr_output.stdout);
 
-    let temperature = attr_text.lines()
-        .find(|l| l.contains("Temperature_Celsius") || l.contains("Airflow_Temperature_Cel") || l.contains("Temp") || l.contains("Temperature"))
+    let temperature = attr_text
+        .lines()
+        .find(|l| {
+            l.contains("Temperature_Celsius")
+                || l.contains("Airflow_Temperature_Cel")
+                || l.contains("Temp")
+                || l.contains("Temperature")
+        })
         .and_then(|l| {
             let parts: Vec<&str> = l.split_whitespace().collect();
             parts.get(9).map(|v| format!("{}°C", v))
         })
         .unwrap_or_default();
 
-    let power_on_hours = attr_text.lines()
-        .find(|l| l.contains("Power_On_Hours") || l.contains("Power_On_Minutes") || l.contains("Power_On"))
+    let power_on_hours = attr_text
+        .lines()
+        .find(|l| {
+            l.contains("Power_On_Hours") || l.contains("Power_On_Minutes") || l.contains("Power_On")
+        })
         .and_then(|l| {
             let parts: Vec<&str> = l.split_whitespace().collect();
             parts.get(9).map(|v| format!("{}h", v))
         })
         .unwrap_or_default();
 
-    let attributes: Vec<SmartAttribute> = attr_text.lines()
+    let attributes: Vec<SmartAttribute> = attr_text
+        .lines()
         .filter(|l| {
-            l.trim().starts_with(|c: char| c.is_ascii_digit())
-            && l.split_whitespace().count() >= 10
+            l.trim().starts_with(|c: char| c.is_ascii_digit()) && l.split_whitespace().count() >= 10
         })
         .filter_map(|l| {
             let parts: Vec<&str> = l.split_whitespace().collect();
-            if parts.len() < 10 { return None; }
+            if parts.len() < 10 {
+                return None;
+            }
 
             let id = parts[0].parse::<u8>().ok()?;
             let name = parts[1].to_string();

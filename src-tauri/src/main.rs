@@ -2,7 +2,6 @@
 // Copyright (c) 2025 Rafa-MKR2
 // GitHub: https://github.com/Rafa-MKR2
 
-
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
