@@ -265,7 +265,9 @@ async fn handle_child_output(
         *guard = Some(pid);
     }
 
-    let _ = password::pipe_password(&mut c, password).await;
+    if let Err(e) = password::pipe_password(&mut c, password).await {
+        tracing::warn!("Falha ao enviar senha via pipe: {}", e);
+    }
 
     let output = c.wait_with_output().await;
 
@@ -340,7 +342,9 @@ pub async fn run_command_streaming(
         *guard = Some(pid);
     }
 
-    let _ = password::pipe_password(&mut c, password).await;
+    if let Err(e) = password::pipe_password(&mut c, password).await {
+        tracing::warn!("Falha ao enviar senha via pipe: {}", e);
+    }
 
     let stdout = match c.stdout.take() {
         Some(s) => s,
@@ -375,14 +379,16 @@ pub async fn run_command_streaming(
         let mut reader = BufReader::new(stdout).lines();
         let mut collected = Vec::new();
         while let Ok(Some(line)) = reader.next_line().await {
-            let _ = app_clone.emit(
+            if let Err(e) = app_clone.emit(
                 "operation-output",
                 OutputPayload {
                     tool_name: tn.clone(),
                     line: line.clone(),
                     stream: "stdout".to_string(),
                 },
-            );
+            ) {
+                tracing::warn!("Falha ao emitir operation-output (stdout): {}", e);
+            }
             collected.push(line);
         }
         collected.join("\n")
@@ -394,14 +400,16 @@ pub async fn run_command_streaming(
         let mut reader = BufReader::new(stderr).lines();
         let mut collected = Vec::new();
         while let Ok(Some(line)) = reader.next_line().await {
-            let _ = app_clone.emit(
+            if let Err(e) = app_clone.emit(
                 "operation-output",
                 OutputPayload {
                     tool_name: tn.clone(),
                     line: line.clone(),
                     stream: "stderr".to_string(),
                 },
-            );
+            ) {
+                tracing::warn!("Falha ao emitir operation-output (stderr): {}", e);
+            }
             collected.push(line);
         }
         collected.join("\n")
@@ -597,7 +605,7 @@ async fn run_tool_operation(
             }
             let package = get_package_name(tool_name);
             if let Some(app) = app {
-                let _ = app.emit(
+                if let Err(e) = app.emit(
                     "operation-progress",
                     ProgressPayload {
                         current: i + 1,
@@ -605,7 +613,9 @@ async fn run_tool_operation(
                         tool_name: tool_name.to_string(),
                         status: "installing".to_string(),
                     },
-                );
+                ) {
+                    tracing::warn!("Falha ao emitir operation-progress: {}", e);
+                }
             }
             let command = format!("{} {}", prefix, package);
             if let Some(app) = app {
@@ -619,7 +629,7 @@ async fn run_tool_operation(
     .await;
 
     if let Some(app) = app {
-        let _ = app.emit(
+        if let Err(e) = app.emit(
             "operation-progress",
             ProgressPayload {
                 current: total,
@@ -627,7 +637,9 @@ async fn run_tool_operation(
                 tool_name: String::new(),
                 status: "done".to_string(),
             },
-        );
+        ) {
+            tracing::warn!("Falha ao emitir operation-progress (done): {}", e);
+        }
     }
 
     crate::stats::set_operation_in_progress(false);
@@ -651,9 +663,13 @@ async fn sync_pacman_db(password: &str) {
     };
 
     if let Some(stdin) = child.stdin.as_mut() {
-        let _ = stdin.write_all(format!("{}\n", password).as_bytes()).await;
+        if let Err(e) = stdin.write_all(format!("{}\n", password).as_bytes()).await {
+            tracing::warn!("Falha ao enviar senha para sync_pacman_db: {}", e);
+        }
     }
-    let _ = child.wait().await;
+    if let Err(e) = child.wait().await {
+        tracing::warn!("Falha ao aguardar sync_pacman_db: {}", e);
+    }
 }
 
 pub async fn install_tools(
