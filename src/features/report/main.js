@@ -1,6 +1,16 @@
 import { showToast } from '../../utils.js';
 import { systemService, miscService } from '../../shared/services/index.js';
 import { showReportModal, hideReportModal } from './modal.js';
+const DEFAULT_REPORT_EMAIL = 'rafaeldocarmo.dev@gmail.com';
+const REPORT_EMAIL_STORAGE_KEY = 'solix_report_email';
+function getReportEmail() {
+    try {
+        return localStorage.getItem(REPORT_EMAIL_STORAGE_KEY) || DEFAULT_REPORT_EMAIL;
+    }
+    catch {
+        return DEFAULT_REPORT_EMAIL;
+    }
+}
 let lastReportText = '';
 let lastIssueUrl = '';
 export async function reportProblem() {
@@ -123,14 +133,15 @@ export async function handleEmailReport() {
         '\n\n---\n\n' +
         'Descreva seu problema acima.\n' +
         'Obrigado por ajudar a melhorar o Solix!');
-    const mailto = `mailto:rafaeldocarmo.dev@gmail.com?subject=${subject}&body=${body}`;
+    const email = getReportEmail();
+    const mailto = `mailto:${email}?subject=${subject}&body=${body}`;
     try {
         await miscService.openUrl(mailto);
         hideReportModal();
-        showToast('success', '📧 Cliente de email aberto! Envie o relatório para o desenvolvedor.');
+        showToast('success', `📧 Cliente de email aberto! Envie o relatório para ${email}`);
     }
     catch (e) {
         console.error('open_url mailto failed:', e);
-        showToast('error', 'Erro ao abrir cliente de email. Copie o relatório e envie manualmente para rafaeldocarmo.dev@gmail.com');
+        showToast('error', `Erro ao abrir cliente de email. Copie o relatório e envie manualmente para ${email}`);
     }
 }
