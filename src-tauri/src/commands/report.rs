@@ -13,7 +13,10 @@ pub async fn save_report_to_desktop(content: String) -> Result<String, String> {
     let dest = candidates
         .into_iter()
         .find(|p| std::path::Path::new(p).exists())
-        .unwrap_or(home.clone());
+        .unwrap_or_else(|| {
+            tracing::warn!("Nenhum diretório Desktop encontrado, usando HOME como fallback");
+            home.clone()
+        });
 
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

@@ -32,7 +32,10 @@ pub async fn create_desktop_shortcut(name: String) -> Result<String, String> {
     let dest = candidates
         .into_iter()
         .find(|p| std::path::Path::new(p).exists())
-        .unwrap_or(home);
+        .unwrap_or_else(|| {
+            tracing::warn!("Nenhum diretório Desktop encontrado, usando HOME como fallback");
+            home
+        });
 
     let desktop_path = format!("{}/{}.desktop", dest, safe_name);
 
