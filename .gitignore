@@ -5,6 +5,7 @@ src-tauri/target/
 node_modules/
 dist/
 coverage/
+solix-docs/
 
 # Environment
 .env

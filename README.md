@@ -121,19 +121,25 @@ Funcionalidades:
 
 ### 🧪 Testes Unitários
 
-**65 testes** cobrindo 9 dos 10 módulos do backend Rust:
+**442 testes** cobrindo todos os módulos do backend Rust:
 
 | Módulo | Testes | O que cobre |
 |--------|--------|-------------|
-| `tool.rs` | 10 | Base64, validação de 55+ ferramentas, categorias |
-| `install.rs` | 6 | Mapeamento de pacotes, comandos multi-distro |
-| `distribution.rs` | 14 | Parse de os-release, detecção de distros |
-| `system_info.rs` | 12 | Parse de CPU/Memória/Discos |
-| `network.rs` | 7 | Formatação de velocidade, conectividade |
-| `user.rs` | 6 | Parse de passwd, info do usuário |
-| `stats.rs` | 5 | Mapeamento de UID, estados de processo |
-| `system_ops.rs` | 3 | Informações de bateria |
-| `executable.rs` | 2 | Status de executáveis |
+| `distribution.rs` | 14+ | Parse de os-release, fallback ID_LIKE, remoção de aspas |
+| `tool.rs` | 10+ | Nomes únicos, categorias válidas, descrições, contagem mínima |
+| `install.rs` | 15+ | Mapeamento de 80+ pacotes, validação, structs |
+| `system_info.rs` | 12+ | Parse CPU/Memória/Disco, structs, valores vazios |
+| `lib.rs` | 10+ | Sanitize path, structs SmartInfo/ReportInfo, cache senha |
+| `updater.rs` | 40+ | check_update (mock HTTP), semver, parse/validate checksum, truncamento notes, serialização |
+| `password.rs` | 5+ | pipe_password (stdin real, vazia, multilinha), verify_password, sem stdin |
+| `backup.rs` | 25+ | format_bytes, structs, serialização, create_backup real (tar.gz, erros, nome) |
+| `network.rs` | 7+ | Formatação velocidade, conectividade |
+| `user.rs` | 6+ | Parse passwd, info usuário |
+| `stats.rs` | 5+ | Mapeamento UID, estados processo |
+| `system_ops.rs` | 27+ | Bateria, serialização BatteryInfo, caminhos de erro ZRAM/cleanup |
+| `executable.rs` | 2+ | Status executáveis |
+
+> 📖 Cobertura detalhada: [`solix-docs/testing/coverage.md`](../solix-docs/testing/coverage.md)
 
 ---
 
@@ -258,14 +264,38 @@ A barra lateral organiza o aplicativo em 5 páginas:
 
 ```
 solix/
-├── src/                        # Frontend (HTML/CSS/JS)
+├── src/                        # Frontend compilado (HTML/CSS/JS)
 │   ├── index.html              # Estrutura com páginas e modais
 │   ├── style.css               # Tema escuro responsivo
-│   └── app.js                  # Lógica do frontend
+│   └── app.js                  # Lógica do frontend (compilado de src-ts/)
+├── src-ts/                     # Frontend TypeScript (source)
+│   ├── app.ts                  # Bootstrap + delegação (~100 linhas)
+│   ├── features/               # Organizado por funcionalidade
+│   │   ├── home/               # Dashboard: gauges, stats tempo real
+│   │   ├── disks/              # Discos, S.M.A.R.T., backup
+│   │   ├── tools/              # Catálogo de ferramentas (seleção/render)
+│   │   ├── packages/           # Pacotes: instalados, repositório, upload, histórico
+│   │   ├── network/            # Conectividade, ping, speed test
+│   │   ├── script/             # Analisador de scripts
+│   │   ├── update/             # Auto-update (banner + progress)
+│   │   ├── report/             # Relatórios do sistema
+│   │   └── developer/          # Roadmap, links GitHub
+│   └── shared/                 # Código reutilizável
+│       ├── components/         # Modal, Card, Gauge, ProgressBar, Badge, Toast, Table
+│       ├── dialogs/            # PasswordDialog, UpdateDialog, BackupDialog, ReportDialog, ConfirmDialog
+│       ├── services/           # 8 services: system, package, network, disk, process, backup, script, misc
+│       ├── utils/              # tauri, escape, dom, toast
+│       └── types/              # Interfaces compartilhadas
 ├── src-tauri/                  # Backend Rust (Tauri v2)
 │   ├── src/
 │   │   ├── main.rs             # Ponto de entrada
-│   │   ├── lib.rs              # Comandos Tauri + módulos
+│   │   ├── lib.rs              # Orquestrador puro (~150 linhas, 25 comandos Tauri)
+│   │   ├── commands/           # Comandos extraídos
+│   │   │   ├── disk.rs         # analyze_disk_usage, partition_table
+│   │   │   ├── smart.rs        # S.M.A.R.T. health
+│   │   │   ├── report.rs       # Relatórios
+│   │   │   ├── process.rs      # Kill, lock, comandos simples
+│   │   │   └── desktop.rs      # Atalhos .desktop
 │   │   ├── distribution.rs     # Detecção de distribuição Linux
 │   │   ├── executable.rs       # Scan de executáveis no PATH
 │   │   ├── install.rs          # Instalação/remoção de pacotes
@@ -274,16 +304,34 @@ solix/
 │   │   ├── stats.rs            # CPU, memória, temperatura, processos
 │   │   ├── system_info.rs      # Hardware: CPU, RAM, discos, GPU
 │   │   ├── system_ops.rs       # ZRAM, limpeza, bateria
-│   │   ├── tool.rs             # Catálogo de 55+ ferramentas
-│   │   └── user.rs             # Informações do usuário
+│   │   ├── tool.rs             # Catálogo de 80+ ferramentas
+│   │   ├── user.rs             # Informações do usuário
+│   │   ├── updater.rs          # Auto-update custom (download, SHA256, install, restart)
+│   │   ├── password.rs         # Cache sudo base64 com expiração
+│   │   ├── package_installer.rs # Instala .deb/.rpm locais
+│   │   ├── package_manager.rs  # Abstração multi-distro (pacman/apt/dnf/zypper)
+│   │   ├── backup.rs           # Backup de discos
+│   │   ├── script_analyzer.rs  # Análise de scripts
+│   │   └── util.rs             # Utilitários diversos
 │   ├── tauri.conf.json         # Configuração do Tauri
 │   └── Cargo.toml              # Dependências Rust
-├── dist.sh                     # Script de distribuição
-├── install.sh                  # Instalação sistema-wide
-├── quick-install.sh            # Instalação rápida
+├── dist.sh                     # Script de distribuição (gera binário + assets + SHA256)
+├── install.sh                  # Instalação sistema-wide (build from source)
+├── quick-install.sh            # Instalação rápida (download binário pré-compilado)
 ├── solix.desktop               # Atalho de menu
 └── README.md                   # Este arquivo
 ```
+
+### Arquitetura em Resumo
+
+| Camada | Padrão |
+|--------|--------|
+| **Frontend** | Feature-based (`features/`) + Shared (`shared/`) |
+| **Comunicação** | UI → `shared/services/` → Tauri commands (nunca `invoke` direto) |
+| **Backend** | Command-based (`commands/`) + Domain modules |
+| **Estado** | `shared/auth.ts` para auth, features gerenciam próprio estado |
+| **Diálogos** | `shared/dialogs/` — reutilizáveis, tipados |
+| **Componentes** | `shared/components/` — base visual consistente |
 
 ### Rodar Testes
 
