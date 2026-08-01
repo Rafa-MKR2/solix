@@ -1,6 +1,6 @@
 [package]
 name = "solix"
-version = "2.2.0"
+version = "2.2.1"
 description = "Configure seu Linux de forma simples e rápida"
 authors = ["Rafael do Carmo Costa"]
 edition = "2021"
