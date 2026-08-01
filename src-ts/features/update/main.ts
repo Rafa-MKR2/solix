@@ -4,6 +4,7 @@ import { getInvoke, showToast } from '../../utils.js';
 import { systemService } from '../../shared/services/index.js';
 import { passwordVerified, setPasswordVerified } from '../../shared/auth.js';
 import { showPasswordModal } from '../../operations.js';
+import type { UpdateProgress } from '../../shared/types/index.js';
 import {
   showUpdateBanner,
   showUpdateProgress,
@@ -15,11 +16,11 @@ import {
 export function setupUpdateListener(): void {
   const invoke = getInvoke();
   if (!invoke) return;
-  const tauri = (window as any).__TAURI_INTERNALS__;
+  const tauri = window.__TAURI_INTERNALS__;
   if (!tauri?.transformCallback) return;
 
-  const handler = tauri.transformCallback((event: any) => {
-    const { stage, percent, message } = event.payload || event;
+  const handler = tauri.transformCallback<UpdateProgress>((event) => {
+    const { stage, percent, message } = event.payload ?? ({} as UpdateProgress);
     showUpdateProgress(stage, percent, message);
     if (stage === 'restart') {
       setTimeout(() => hideUpdateModal(), 1000);

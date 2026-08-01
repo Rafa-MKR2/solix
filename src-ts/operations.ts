@@ -3,6 +3,8 @@
 import type {
   DevelopmentToolStatus,
   InstallResult,
+  OperationOutputPayload,
+  OperationProgressPayload,
   PendingAction,
 } from './types.js';
 import { passwordVerified, setPasswordVerified } from './shared/auth.js';
@@ -34,10 +36,11 @@ export { setPendingAction };
 export function setupProgressListener(): void {
   const invoke = getInvoke();
   if (!invoke) return;
-  const tauri = (window as any).__TAURI_INTERNALS__;
+  const tauri = window.__TAURI_INTERNALS__;
   if (!tauri?.transformCallback) return;
-  const handler = tauri.transformCallback((event: any) => {
-    const { current, total, tool_name, status } = event.payload || event;
+  const handler = tauri.transformCallback<OperationProgressPayload>((event) => {
+    const { current, total, tool_name, status } =
+      event.payload ?? ({} as OperationProgressPayload);
     const area = document.getElementById('progress-area');
     const fill = document.getElementById('progress-bar-fill') as HTMLElement | null;
     const text = document.getElementById('progress-text');
@@ -57,8 +60,8 @@ export function setupProgressListener(): void {
     handler,
   }).catch(() => {});
 
-  const outHandler = tauri.transformCallback((event: any) => {
-    const { line } = event.payload || event;
+  const outHandler = tauri.transformCallback<OperationOutputPayload>((event) => {
+    const { line } = event.payload ?? ({} as OperationOutputPayload);
     const log = document.getElementById('output-log');
     if (!log || !line) return;
     log.textContent += line + '\n';

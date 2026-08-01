@@ -269,8 +269,30 @@ export interface PendingAction {
 
 export type InvokeFn = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
 
+/** Payload emitted by the "operation-progress" event. */
+export interface OperationProgressPayload {
+  current: number;
+  total: number;
+  tool_name?: string | null;
+  status?: string | null;
+}
+
+/** Payload emitted by the "operation-output" event. */
+export interface OperationOutputPayload {
+  line: string;
+}
+
+/** Shape of the event object delivered to a `transformCallback` handler. */
+export interface TauriEvent<T> {
+  event: string;
+  id: number;
+  payload: T;
+}
+
+/** Tauri v1-style internal bindings (no bundler, so `@tauri-apps/api` is not importable). */
 export interface TauriInternals {
   invoke: InvokeFn;
+  transformCallback: <T>(callback: (event: TauriEvent<T>) => void) => number;
 }
 
 declare global {

@@ -11,7 +11,7 @@ export function setupUpdateListener() {
     if (!tauri?.transformCallback)
         return;
     const handler = tauri.transformCallback((event) => {
-        const { stage, percent, message } = event.payload || event;
+        const { stage, percent, message } = event.payload ?? {};
         showUpdateProgress(stage, percent, message);
         if (stage === 'restart') {
             setTimeout(() => hideUpdateModal(), 1000);

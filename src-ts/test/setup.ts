@@ -107,9 +107,6 @@ vi.mock('@tauri-apps/api/event', () => ({
   once: vi.fn().mockResolvedValue(() => {}),
   emit: vi.fn(),
 }));
-
-declare global {
-  interface Window {
-    __TAURI_INTERNALS__?: unknown;
-  }
-}
+// Note: Window.__TAURI_INTERNALS__ is typed globally in shared/types/index.ts
+// (TauriInternals); the mock above only defines the runtime value via
+// Object.defineProperty, so no local declare global is needed here.

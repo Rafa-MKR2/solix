@@ -23,7 +23,7 @@ export function setupProgressListener() {
     if (!tauri?.transformCallback)
         return;
     const handler = tauri.transformCallback((event) => {
-        const { current, total, tool_name, status } = event.payload || event;
+        const { current, total, tool_name, status } = event.payload ?? {};
         const area = document.getElementById('progress-area');
         const fill = document.getElementById('progress-bar-fill');
         const text = document.getElementById('progress-text');
@@ -44,7 +44,7 @@ export function setupProgressListener() {
         handler,
     }).catch(() => { });
     const outHandler = tauri.transformCallback((event) => {
-        const { line } = event.payload || event;
+        const { line } = event.payload ?? {};
         const log = document.getElementById('output-log');
         if (!log || !line)
             return;
