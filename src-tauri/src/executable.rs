@@ -148,7 +148,7 @@ mod tests {
             available: true,
             executable: Some("/usr/bin/curl".into()),
         };
-        let json = serde_json::to_string(&s).expect("serialization failed");
+        let json = serde_json::to_string(&s).unwrap();
         assert!(json.contains("\"name\":\"curl\""));
         assert!(json.contains("\"available\":true"));
         assert!(json.contains("\"executable\":\"/usr/bin/curl\""));
