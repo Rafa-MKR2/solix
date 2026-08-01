@@ -3,22 +3,24 @@
 // GitHub: https://github.com/Rafa-MKR2
 mod backup;
 mod commands;
-mod distribution;
-mod executable;
-mod install;
-mod network;
-mod package_info;
-mod package_installer;
-mod package_manager;
-mod password;
-mod script_analyzer;
-mod stats;
-mod system_info;
-mod system_ops;
-mod tool;
-mod updater;
-mod user;
-mod util;
+// Módulos de domínio são públicos para permitir testes de integração
+// em `tests/` (src-tauri/tests) e reuso programático do crate.
+pub mod distribution;
+pub mod executable;
+pub mod install;
+pub mod network;
+pub mod package_info;
+pub mod package_installer;
+pub mod package_manager;
+pub mod password;
+pub mod script_analyzer;
+pub mod stats;
+pub mod system_info;
+pub mod system_ops;
+pub mod tool;
+pub mod updater;
+pub mod user;
+pub mod util;
 
 use std::sync::Mutex;
 
