@@ -119,38 +119,32 @@ fn extract_filename(path: &str) -> String {
 
 /// Extrai o conteúdo do arquivo `control` de um pacote .deb usando `ar` + `tar` via pipe
 fn extract_deb_control(path: &str) -> Result<String, String> {
-    // Tenta control.tar.gz (formato clássico)
-    let out = std::process::Command::new("sh")
-        .arg("-c")
-        .arg(format!(
-            "ar p '{}' control.tar.gz 2>/dev/null | tar xz -O ./control 2>/dev/null",
-            path
-        ))
-        .output()
-        .map_err(|_| {
-            "Erro ao extrair pacote. Verifique se 'ar' está instalado (binutils).".to_string()
-        })?;
+    // Formatos de compressão do control.tar: .gz (clássico), .xz (mais recente)
+    // e .zst (Zstandard — Ubuntu 24.04+, Debian 13+). Tenta todos em ordem.
+    let candidates: &[(&str, &str)] = &[
+        ("control.tar.gz", "xz"),
+        ("control.tar.xz", "xJ"),
+        ("control.tar.zst", "--zstd"),
+    ];
 
-    if !out.status.success() || out.stdout.is_empty() {
-        // Tenta control.tar.xz (debs mais recentes)
+    for (archive, tar_flag) in candidates {
         let out = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "ar p '{}' control.tar.xz 2>/dev/null | tar xJ -O ./control 2>/dev/null",
-                path
+                "ar p '{}' {} 2>/dev/null | tar {} -O ./control 2>/dev/null",
+                path, archive, tar_flag
             ))
             .output()
-            .map_err(|_| "Erro ao extrair pacote.".to_string())?;
+            .map_err(|_| {
+                "Erro ao extrair pacote. Verifique se 'ar' está instalado (binutils).".to_string()
+            })?;
 
-        if out.stdout.is_empty() {
-            return Err(
-                "Não foi possível ler o pacote .deb. O arquivo pode estar corrompido.".into(),
-            );
+        if out.status.success() && !out.stdout.is_empty() {
+            return Ok(String::from_utf8_lossy(&out.stdout).to_string());
         }
-        return Ok(String::from_utf8_lossy(&out.stdout).to_string());
     }
 
-    Ok(String::from_utf8_lossy(&out.stdout).to_string())
+    Err("Não foi possível ler o pacote .deb. O arquivo pode estar corrompido ou usar um formato de compressão não suportado (tente .gz, .xz ou .zst).".into())
 }
 
 /// Extrai o valor de um campo do arquivo de controle .deb

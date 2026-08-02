@@ -69,7 +69,27 @@ function setupNativeFileDrop() {
     invoke('plugin:event|listen', { event: 'tauri://drag-leave', target: { kind: 'Any' }, handler: dragLeave }).catch(() => { });
     invoke('plugin:event|listen', { event: 'tauri://drag-drop', target: { kind: 'Any' }, handler: dragDrop }).catch(() => { });
 }
+function forwardFrontendErrors() {
+    const invoke = getInvoke();
+    if (!invoke)
+        return;
+    const report = (label, msg) => {
+        invoke('log_frontend_error', { message: `[${label}] ${msg}` }).catch(() => { });
+    };
+    const origError = console.error;
+    console.error = (...args) => {
+        origError.apply(console, args);
+        report('console.error', args.map(String).join(' '));
+    };
+    window.addEventListener('error', (e) => {
+        report('window.onerror', e.message + (e.filename ? ` @${e.filename}:${e.lineno}` : ''));
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+        report('unhandledrejection', String(e.reason));
+    });
+}
 document.addEventListener('DOMContentLoaded', () => {
+    forwardFrontendErrors();
     setupNav();
     setupHelpTooltips();
     setupLockActions();

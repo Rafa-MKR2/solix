@@ -80,6 +80,7 @@ pub fn run() {
             commands::info::get_home_stats,
             commands::info::get_app_version,
             commands::misc::open_url,
+            commands::misc::log_frontend_error,
             commands::updater::check_app_update,
             commands::updater::install_update,
             commands::install::check_pm_lock,

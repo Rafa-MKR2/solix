@@ -125,8 +125,33 @@ function setupNativeFileDrop(): void {
   invoke('plugin:event|listen', { event: 'tauri://drag-drop', target: { kind: 'Any' }, handler: dragDrop }).catch(() => {});
 }
 
+/**
+ * Encaminha erros do frontend (console.error/window.onerror) para o log do
+ * Rust via comando `log_frontend_error`. Sem isto, erros do webview ficam
+ * invisíveis no stdout (/tmp/solix-app.log só mostraria a inicialização).
+ */
+function forwardFrontendErrors(): void {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  const report = (label: string, msg: string): void => {
+    invoke('log_frontend_error', { message: `[${label}] ${msg}` }).catch(() => {});
+  };
+  const origError = console.error;
+  console.error = (...args: unknown[]) => {
+    origError.apply(console, args);
+    report('console.error', args.map(String).join(' '));
+  };
+  window.addEventListener('error', (e) => {
+    report('window.onerror', e.message + (e.filename ? ` @${e.filename}:${e.lineno}` : ''));
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    report('unhandledrejection', String(e.reason));
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Core setup
+  forwardFrontendErrors();
   setupNav();
   setupHelpTooltips();
   setupLockActions();

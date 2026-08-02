@@ -9,3 +9,11 @@ pub async fn open_url(url: String) -> Result<(), String> {
         .map_err(|e| format!("Erro ao abrir URL: {}", e))?;
     Ok(())
 }
+
+/// Registra erros do frontend (console.error/window.onerror) no log do Rust
+/// (tracing). Erros do webview não vão para stdout por padrão — este hook
+/// garante que falhas (ex.: upload) apareçam em /tmp/solix-app.log.
+#[tauri::command]
+pub fn log_frontend_error(message: String) {
+    tracing::warn!("[frontend] {}", message);
+}
