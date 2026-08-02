@@ -81,10 +81,22 @@ export const packageService = {
             throw new Error('Tauri not available');
         return invoke('inspect_package_data', { data, fileName });
     },
+    async inspectLocalPackage(path) {
+        const invoke = cmd();
+        if (!invoke)
+            throw new Error('Tauri not available');
+        return invoke('inspect_local_package', { path });
+    },
     async installPackageData(data, fileName) {
         const invoke = cmd();
         if (!invoke)
             throw new Error('Tauri not available');
         return invoke('install_package_data', { data, fileName });
+    },
+    async installLocalPackage(path) {
+        const invoke = cmd();
+        if (!invoke)
+            throw new Error('Tauri not available');
+        return invoke('install_local_package', { path });
     },
 };

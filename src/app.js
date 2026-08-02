@@ -1,21 +1,81 @@
 import { packageService, miscService } from './shared/services/index.js';
+import { getInvoke } from './shared/utils/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
 import { setupNav, setupHelpTooltips, setupLockActions, switchToPage, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, } from './ui.js';
 import { loadSystemInfo, setupProgressListener, cancelOperation, retryLastOperation, toolStatuses, confirmPassword, cancelPassword } from './operations.js';
 import { handleStartBackup } from './features/disks/index.js';
 import { selectedTools, removedTools } from './features/tools/index.js';
-import { handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './features/packages/index.js';
+import { handlePkgFileSelect, handlePkgPath, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './features/packages/index.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './features/network/index.js';
 import { setupUpdateListener, initFooter, handleCheckUpdateClick, } from './features/update/index.js';
 import { reportProblem, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, hideReportModal, } from './features/report/index.js';
-import { handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './features/script/index.js';
+import { handleScriptDrop, handleScriptPath, handleAnalyzeText, clearScriptAnalysis, } from './features/script/index.js';
 import { initDeveloperPage } from './features/developer/index.js';
+import { resolveDropTarget } from './features/upload/routing.js';
+async function openFileDialog(filters) {
+    const invoke = getInvoke();
+    if (!invoke)
+        return null;
+    try {
+        const result = await invoke('plugin:dialog|open', {
+            options: { multiple: false, directory: false, filters },
+        });
+        if (!result)
+            return null;
+        return Array.isArray(result) ? (result[0] ?? null) : result;
+    }
+    catch (e) {
+        console.error('dialog open failed:', e);
+        return null;
+    }
+}
+function setupNativeFileDrop() {
+    const invoke = getInvoke();
+    const tauri = window.__TAURI_INTERNALS__;
+    if (!invoke || !tauri?.transformCallback)
+        return;
+    const activePageId = () => document.querySelector('.page.active')?.id ?? null;
+    const dragEnter = tauri.transformCallback((event) => {
+        const { position } = event.payload ?? {};
+        const dpr = window.devicePixelRatio || 1;
+        const el = position ? document.elementFromPoint(position.x / dpr, position.y / dpr) : null;
+        const area = resolveDropTarget(el, null);
+        document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
+        if (area === 'script')
+            document.getElementById('script-upload-area')?.classList.add('drag-over');
+        if (area === 'pkg')
+            document.getElementById('pkg-upload-area')?.classList.add('drag-over');
+    });
+    const dragLeave = tauri.transformCallback(() => {
+        document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
+    });
+    const dragDrop = tauri.transformCallback((event) => {
+        const { paths, position } = event.payload ?? {};
+        const file = paths?.[0];
+        document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
+        if (!file)
+            return;
+        const dpr = window.devicePixelRatio || 1;
+        const el = position ? document.elementFromPoint(position.x / dpr, position.y / dpr) : null;
+        const area = resolveDropTarget(el, activePageId());
+        if (area === 'script') {
+            handleScriptPath(file);
+        }
+        else if (area === 'pkg') {
+            handlePkgPath(file);
+        }
+    });
+    invoke('plugin:event|listen', { event: 'tauri://drag-enter', target: { kind: 'Any' }, handler: dragEnter }).catch(() => { });
+    invoke('plugin:event|listen', { event: 'tauri://drag-leave', target: { kind: 'Any' }, handler: dragLeave }).catch(() => { });
+    invoke('plugin:event|listen', { event: 'tauri://drag-drop', target: { kind: 'Any' }, handler: dragDrop }).catch(() => { });
+}
 document.addEventListener('DOMContentLoaded', () => {
     setupNav();
     setupHelpTooltips();
     setupLockActions();
     setupProgressListener();
     setupUpdateListener();
+    setupNativeFileDrop();
     setRetryLastOperationFn(retryLastOperation);
     loadSystemInfo();
     loadConnectivity();
@@ -192,8 +252,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = pkgFileInput.files?.[0] || null;
         handlePkgFileSelect(file);
     });
-    pkgUploadArea?.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'INPUT') {
+    pkgUploadArea?.addEventListener('click', async (e) => {
+        if (e.target.tagName === 'INPUT')
+            return;
+        const invoke = getInvoke();
+        if (invoke) {
+            const path = await openFileDialog([{ name: 'Pacotes', extensions: ['deb', 'rpm'] }]);
+            if (path)
+                handlePkgPath(path);
+        }
+        else {
             pkgFileInput?.click();
         }
     });
@@ -273,8 +341,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = scriptFileInput.files?.[0] || null;
         handleScriptDrop(file);
     });
-    scriptUploadArea?.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'INPUT') {
+    scriptUploadArea?.addEventListener('click', async (e) => {
+        if (e.target.tagName === 'INPUT')
+            return;
+        const invoke = getInvoke();
+        if (invoke) {
+            const path = await openFileDialog([{ name: 'Scripts', extensions: ['sh', 'bash', 'py', 'py3'] }]);
+            if (path)
+                handleScriptPath(path);
+        }
+        else {
             scriptFileInput?.click();
         }
     });

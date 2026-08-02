@@ -6,4 +6,10 @@ export const scriptService = {
             throw new Error('Tauri not available');
         return invoke('analyze_script', { content });
     },
+    async analyzeScriptFile(path) {
+        const invoke = getInvoke();
+        if (!invoke)
+            throw new Error('Tauri not available');
+        return invoke('analyze_script_file', { path });
+    },
 };

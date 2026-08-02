@@ -1,6 +1,10 @@
 import { packageService } from '../../shared/services/index.js';
-export const pendingPkg = { data: null, fileName: null };
-export async function handlePkgFileSelect(file) {
+export const pendingPkg = {
+    data: null,
+    fileName: null,
+    path: null,
+};
+async function analyzeAndRender(fileName, analyze) {
     const infoCard = document.getElementById('pkg-info');
     const nameEl = document.getElementById('pkg-name');
     const versionEl = document.getElementById('pkg-version');
@@ -11,13 +15,6 @@ export async function handlePkgFileSelect(file) {
     const compatEl = document.getElementById('pkg-compat');
     const installBtn = document.getElementById('pkg-install-btn');
     const typeEl = document.getElementById('pkg-type');
-    pendingPkg.data = null;
-    pendingPkg.fileName = null;
-    if (!file) {
-        if (infoCard)
-            infoCard.classList.add('hidden');
-        return;
-    }
     if (installBtn) {
         installBtn.disabled = true;
         installBtn.textContent = '⏳ Analisando...';
@@ -25,7 +22,7 @@ export async function handlePkgFileSelect(file) {
     if (infoCard)
         infoCard.classList.remove('hidden');
     if (nameEl)
-        nameEl.textContent = file.name;
+        nameEl.textContent = fileName;
     if (versionEl)
         versionEl.textContent = 'Analisando...';
     if (sizeEl)
@@ -39,14 +36,14 @@ export async function handlePkgFileSelect(file) {
     if (compatEl)
         compatEl.className = 'pkg-compat';
     if (typeEl)
-        typeEl.textContent = file.name.endsWith('.deb') ? '📦' : '📀';
+        typeEl.textContent = fileName.endsWith('.deb') ? '📦' : '📀';
     try {
-        const base64 = await readFileAsBase64(file);
-        const info = await packageService.inspectPackageData(base64, file.name);
-        pendingPkg.data = base64;
-        pendingPkg.fileName = file.name;
+        pendingPkg.data = null;
+        pendingPkg.path = null;
+        pendingPkg.fileName = fileName;
+        const info = await analyze();
         if (nameEl)
-            nameEl.textContent = info.package_name || file.name;
+            nameEl.textContent = info.package_name || fileName;
         if (versionEl)
             versionEl.textContent = info.version;
         if (sizeEl)
@@ -72,7 +69,10 @@ export async function handlePkgFileSelect(file) {
         }
     }
     catch (e) {
-        console.error('inspect_package_data failed:', e);
+        console.error('inspect package failed:', e);
+        pendingPkg.data = null;
+        pendingPkg.fileName = null;
+        pendingPkg.path = null;
         if (versionEl)
             versionEl.textContent = '❌ Erro';
         if (compatEl) {
@@ -84,6 +84,31 @@ export async function handlePkgFileSelect(file) {
             installBtn.textContent = '⬇️ Instalar Pacote';
         }
     }
+}
+export async function handlePkgFileSelect(file) {
+    const infoCard = document.getElementById('pkg-info');
+    if (!file) {
+        pendingPkg.data = null;
+        pendingPkg.fileName = null;
+        pendingPkg.path = null;
+        if (infoCard)
+            infoCard.classList.add('hidden');
+        return;
+    }
+    await analyzeAndRender(file.name, async () => {
+        const base64 = await readFileAsBase64(file);
+        const info = await packageService.inspectPackageData(base64, file.name);
+        pendingPkg.data = base64;
+        return info;
+    });
+}
+export async function handlePkgPath(path) {
+    const fileName = path.split('/').pop() || path;
+    await analyzeAndRender(fileName, async () => {
+        const info = await packageService.inspectLocalPackage(path);
+        pendingPkg.path = path;
+        return info;
+    });
 }
 function readFileAsBase64(file) {
     return new Promise((resolve, reject) => {

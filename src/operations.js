@@ -225,7 +225,12 @@ async function executePending() {
             result = await packageService.removeTools(pendingAction.tools);
         }
         else if (isInstallPkg) {
-            result = await packageService.installPackageData(pendingPkg.data, pendingPkg.fileName);
+            if (pendingPkg.path) {
+                result = await packageService.installLocalPackage(pendingPkg.path);
+            }
+            else {
+                result = await packageService.installPackageData(pendingPkg.data, pendingPkg.fileName);
+            }
         }
         if (outputLog) {
             if (Array.isArray(result)) {
@@ -315,6 +320,7 @@ async function executePending() {
             }
             pendingPkg.data = null;
             pendingPkg.fileName = null;
+            pendingPkg.path = null;
         }
     }
 }

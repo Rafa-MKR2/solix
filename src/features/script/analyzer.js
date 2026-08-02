@@ -1,20 +1,16 @@
 import { showToast } from '../../utils.js';
 import { scriptService } from '../../shared/services/index.js';
 import { renderScriptAnalysis } from './renderer.js';
-export async function handleScriptDrop(file) {
+async function analyzeAndRender(fileName, analyze) {
     const resultEl = document.getElementById('script-result');
     if (!resultEl)
         return;
-    if (!file) {
-        resultEl.classList.add('hidden');
-        return;
-    }
     const fileInfo = document.getElementById('script-file-info');
     const fileLabel = document.getElementById('script-file-label');
     if (fileInfo)
         fileInfo.classList.remove('hidden');
     if (fileLabel)
-        fileLabel.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        fileLabel.textContent = fileName;
     const summaryEl = document.getElementById('script-summary');
     const commandsEl = document.getElementById('script-commands');
     if (summaryEl)
@@ -23,8 +19,7 @@ export async function handleScriptDrop(file) {
         commandsEl.innerHTML = '';
     resultEl.classList.remove('hidden');
     try {
-        const text = await readFileAsText(file);
-        const analysis = await scriptService.analyzeScript(text);
+        const analysis = await analyze();
         renderScriptAnalysis(analysis);
     }
     catch (e) {
@@ -32,6 +27,24 @@ export async function handleScriptDrop(file) {
         if (summaryEl)
             summaryEl.innerHTML = `<div class="script-loading" style="color:#e88">❌ Erro ao analisar script: ${e}</div>`;
     }
+}
+export async function handleScriptDrop(file) {
+    const resultEl = document.getElementById('script-result');
+    if (!resultEl)
+        return;
+    if (!file) {
+        resultEl.classList.add('hidden');
+        return;
+    }
+    const label = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+    await analyzeAndRender(label, async () => {
+        const text = await readFileAsText(file);
+        return scriptService.analyzeScript(text);
+    });
+}
+export async function handleScriptPath(path) {
+    const fileName = path.split('/').pop() || path;
+    await analyzeAndRender(fileName, () => scriptService.analyzeScriptFile(path));
 }
 export async function handleAnalyzeText(text) {
     const resultEl = document.getElementById('script-result');

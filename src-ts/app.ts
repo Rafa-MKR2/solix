@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Rafa-MKR2
 
 import { packageService, miscService } from './shared/services/index.js';
+import { getInvoke } from './shared/utils/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
 import {
   setupNav,
@@ -18,6 +19,7 @@ import { handleShowSmartInfo, handleStartBackup } from './features/disks/index.j
 import { renderTools, selectedTools, removedTools } from './features/tools/index.js';
 import {
   handlePkgFileSelect,
+  handlePkgPath,
   loadInstalledPackages,
   handleRemovePackages,
   handleSearchRepoPackages,
@@ -45,10 +47,83 @@ import {
 } from './features/report/index.js';
 import {
   handleScriptDrop,
+  handleScriptPath,
   handleAnalyzeText,
   clearScriptAnalysis,
 } from './features/script/index.js';
 import { initDeveloperPage } from './features/developer/index.js';
+import { resolveDropTarget } from './features/upload/routing.js';
+
+/**
+ * Abre o diálogo nativo de seleção de arquivo (tauri-plugin-dialog).
+ * Retorna o caminho absoluto do arquivo escolhido, ou null se cancelado/
+ * indisponível. Usado no lugar do <input type="file">, que no WebKitGTK
+ * (Tauri/Linux) não dispara o evento `change` de forma confiável.
+ */
+async function openFileDialog(filters: { name: string; extensions: string[] }[]): Promise<string | null> {
+  const invoke = getInvoke();
+  if (!invoke) return null;
+  try {
+    const result = await invoke<string | string[] | null>('plugin:dialog|open', {
+      options: { multiple: false, directory: false, filters },
+    });
+    if (!result) return null;
+    return Array.isArray(result) ? (result[0] ?? null) : result;
+  } catch (e) {
+    console.error('dialog open failed:', e);
+    return null;
+  }
+}
+
+/**
+ * Escuta o evento nativo `tauri://drag-drop` (habilitado via dragDropEnabled).
+ * No Linux/WebKitGTK o HTML5 `drop`/`dataTransfer.files` não recebe arquivos
+ * do gerenciador de arquivos; o evento nativo entrega os paths reais.
+ * O roteamento para a área correta usa a posição do drop.
+ */
+function setupNativeFileDrop(): void {
+  const invoke = getInvoke();
+  const tauri = window.__TAURI_INTERNALS__;
+  if (!invoke || !tauri?.transformCallback) return;
+
+  const activePageId = (): string | null => document.querySelector<HTMLElement>('.page.active')?.id ?? null;
+
+  const dragEnter = tauri.transformCallback<{ position: { x: number; y: number } }>((event) => {
+    const { position } = event.payload ?? ({} as { position: { x: number; y: number } });
+    const dpr = window.devicePixelRatio || 1;
+    const el = position ? document.elementFromPoint(position.x / dpr, position.y / dpr) : null;
+    // Highlight apenas quando o cursor está SOBRE a área (sem fallback de página)
+    const area = resolveDropTarget(el, null);
+    document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
+    if (area === 'script') document.getElementById('script-upload-area')?.classList.add('drag-over');
+    if (area === 'pkg') document.getElementById('pkg-upload-area')?.classList.add('drag-over');
+  });
+
+  const dragLeave = tauri.transformCallback(() => {
+    document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
+  });
+
+  const dragDrop = tauri.transformCallback<{ paths: string[]; position: { x: number; y: number } }>((event) => {
+    const { paths, position } = event.payload ?? ({} as { paths: string[]; position: { x: number; y: number } });
+    const file = paths?.[0];
+    document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
+    if (!file) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const el = position ? document.elementFromPoint(position.x / dpr, position.y / dpr) : null;
+    const area = resolveDropTarget(el, activePageId());
+
+    if (area === 'script') {
+      handleScriptPath(file);
+    } else if (area === 'pkg') {
+      handlePkgPath(file);
+    }
+  });
+
+  invoke('plugin:event|listen', { event: 'tauri://drag-enter', target: { kind: 'Any' }, handler: dragEnter }).catch(() => {});
+  invoke('plugin:event|listen', { event: 'tauri://drag-leave', target: { kind: 'Any' }, handler: dragLeave }).catch(() => {});
+  invoke('plugin:event|listen', { event: 'tauri://drag-drop', target: { kind: 'Any' }, handler: dragDrop }).catch(() => {});
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   // Core setup
@@ -57,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupLockActions();
   setupProgressListener();
   setupUpdateListener();
+  setupNativeFileDrop();
 
   // Retry handler for lock diagnosis
   setRetryLastOperationFn(retryLastOperation);
@@ -268,8 +344,14 @@ document.addEventListener('DOMContentLoaded', () => {
     handlePkgFileSelect(file);
   });
 
-  pkgUploadArea?.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).tagName !== 'INPUT') {
+  pkgUploadArea?.addEventListener('click', async (e) => {
+    if ((e.target as HTMLElement).tagName === 'INPUT') return;
+    const invoke = getInvoke();
+    if (invoke) {
+      const path = await openFileDialog([{ name: 'Pacotes', extensions: ['deb', 'rpm'] }]);
+      if (path) handlePkgPath(path);
+    } else {
+      // Fallback: navegador (dev) — usa o input escondido
       pkgFileInput?.click();
     }
   });
@@ -356,8 +438,14 @@ document.addEventListener('DOMContentLoaded', () => {
     handleScriptDrop(file);
   });
 
-  scriptUploadArea?.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).tagName !== 'INPUT') {
+  scriptUploadArea?.addEventListener('click', async (e) => {
+    if ((e.target as HTMLElement).tagName === 'INPUT') return;
+    const invoke = getInvoke();
+    if (invoke) {
+      const path = await openFileDialog([{ name: 'Scripts', extensions: ['sh', 'bash', 'py', 'py3'] }]);
+      if (path) handleScriptPath(path);
+    } else {
+      // Fallback: navegador (dev) — usa o input escondido
       scriptFileInput?.click();
     }
   });

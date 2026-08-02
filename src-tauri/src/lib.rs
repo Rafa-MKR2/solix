@@ -57,6 +57,7 @@ pub fn run() {
     tracing::info!("Iniciando Solix v{}", env!("CARGO_PKG_VERSION"));
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             commands::info::get_system_info,
             commands::install::get_install_command,
@@ -99,6 +100,7 @@ pub fn run() {
             commands::pm::install_repo_packages,
             commands::backup::create_backup,
             commands::script::analyze_script,
+            commands::script::analyze_script_file,
             commands::report::save_report_to_desktop,
             commands::desktop::create_desktop_shortcut,
             commands::smart::get_disk_smart_info,

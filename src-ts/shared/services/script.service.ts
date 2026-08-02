@@ -9,4 +9,10 @@ export const scriptService = {
     if (!invoke) throw new Error('Tauri not available');
     return invoke<ScriptAnalysis>('analyze_script', { content });
   },
+
+  async analyzeScriptFile(path: string): Promise<ScriptAnalysis> {
+    const invoke = getInvoke();
+    if (!invoke) throw new Error('Tauri not available');
+    return invoke<ScriptAnalysis>('analyze_script_file', { path });
+  },
 };
