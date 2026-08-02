@@ -121,12 +121,12 @@ Funcionalidades:
 
 ### 🧪 Testes Unitários
 
-**433 testes unitários** + **20 testes de integração** (453 no total) cobrindo todos os módulos do backend Rust:
+**436 testes unitários** + **20 testes de integração** (456 no total) cobrindo todos os módulos do backend Rust:
 
 | Módulo | Testes | O que cobre |
 |--------|--------|-------------|
 | `package_manager.rs` | 49 | Lista instalados (pacman/apt/rpm), repositórios, histórico |
-| `updater.rs` | 41 | check_update (mock HTTP), semver, parse/validate checksum, truncamento notes, serialização |
+| `updater.rs` | 44 | check_update (mock HTTP), semver, parse/validate checksum, truncamento notes, serialização |
 | `stats.rs` | 37 | CPU/memória/temperatura, processos, mapeamento UID |
 | `network.rs` | 32 | Formatação velocidade, conectividade |
 | `distribution.rs` | 32 | Parse de os-release, fallback ID_LIKE, remoção de aspas |
@@ -220,15 +220,31 @@ sudo zypper install \
 ```
 </details>
 
-### Instalação Rápida
+### Instalação Rápida (recomendado)
+
+Baixe e instale a **versão mais recente pré-compilada** com um único comando (como root):
+
+```bash
+curl -sSL https://github.com/Rafa-MKR2/solix/releases/latest/download/quick-install.sh | sudo bash
+```
+
+Para instalar uma **versão específica**, troque `latest` pela versão desejada:
+
+```bash
+curl -sSL https://github.com/Rafa-MKR2/solix/releases/download/v2.2.2/quick-install.sh | sudo bash
+```
+
+O script baixa o binário pré-compilado e os assets, instala em `/opt/solix` e cria o atalho de menu. Depois de instalado, procure por **Solix** no menu de aplicativos ou execute `solix` no terminal.
+
+### Instalação a partir do código-fonte
+
+Compila o Solix na sua máquina (requer Rust + dependências do Tauri listadas acima):
 
 ```bash
 git clone https://github.com/Rafa-MKR2/solix.git
 cd solix
 sudo ./install.sh
 ```
-
-Depois de instalado, procure por **Solix** no menu de aplicativos ou execute `solix` no terminal.
 
 ### Apenas Build (sem instalar)
 
@@ -353,7 +369,7 @@ solix/
 
 ```bash
 cd src-tauri
-cargo test        # 433 unitários + 20 integração
+cargo test        # 436 unitários + 20 integração
 ```
 
 ### Adicionar uma Nova Ferramenta
