@@ -173,6 +173,17 @@ export async function showPasswordModal(action: PendingAction): Promise<void> {
 async function executePending(): Promise<void> {
   if (!pendingAction || isOperating) return;
   isOperating = true;
+  if (pendingAction.type === 'app-update-prompt') {
+    // Senha confirmada → mostrar o popup antigo de update (info view) para o
+    // usuário decidir. Nenhuma operação roda aqui, então não há page-switch,
+    // output-section nem botão cancelar. O download só começa ao clicar em
+    // "Atualizar" dentro do popup (tipo 'app-update').
+    isOperating = false;
+    pendingAction = null;
+    const { showPendingUpdate } = await import('./features/update/index.js');
+    showPendingUpdate();
+    return;
+  }
   switchToPage('sistema');
   const outputLog = document.getElementById('output-log');
   const outputSection = document.getElementById('output-section');

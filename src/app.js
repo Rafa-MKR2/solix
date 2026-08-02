@@ -1,4 +1,4 @@
-import { systemService, packageService, miscService } from './shared/services/index.js';
+import { packageService, miscService } from './shared/services/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
 import { setupNav, setupHelpTooltips, setupLockActions, switchToPage, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, } from './ui.js';
 import { loadSystemInfo, setupProgressListener, cancelOperation, retryLastOperation, toolStatuses, confirmPassword, cancelPassword } from './operations.js';
@@ -6,7 +6,7 @@ import { handleStartBackup } from './features/disks/index.js';
 import { selectedTools, removedTools } from './features/tools/index.js';
 import { handlePkgFileSelect, loadInstalledPackages, handleRemovePackages, handleSearchRepoPackages, handleInstallRepoPackages, loadPackageHistory, } from './features/packages/index.js';
 import { loadConnectivity, loadExternalInfo, handleTestPingClick, handleTestSpeedClick, } from './features/network/index.js';
-import { setupUpdateListener, initFooter, handleCheckUpdateClick, showUpdateBanner, } from './features/update/index.js';
+import { setupUpdateListener, initFooter, handleCheckUpdateClick, } from './features/update/index.js';
 import { reportProblem, handleCopyReport, handleOpenIssue, handleSaveReport, handleEmailReport, hideReportModal, } from './features/report/index.js';
 import { handleScriptDrop, handleAnalyzeText, clearScriptAnalysis, } from './features/script/index.js';
 import { initDeveloperPage } from './features/developer/index.js';
@@ -147,13 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('footer-check-link')?.addEventListener('click', handleCheckUpdateClick);
     document.getElementById('footer-update-btn')?.addEventListener('click', (e) => {
         e.preventDefault();
-        systemService.checkAppUpdate().then(info => {
-            if (info.update_available) {
-                showUpdateBanner(info);
-            }
-        }).catch(() => {
-            import('./utils.js').then(m => m.showToast('error', 'Erro ao verificar atualizações.'));
-        });
+        import('./features/update/index.js').then(m => m.startUpdateWithPassword());
     });
     setInterval(pollStats, 3000);
     setInterval(loadConnectivity, 10000);

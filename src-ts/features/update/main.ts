@@ -4,7 +4,7 @@ import { getInvoke, showToast } from '../../utils.js';
 import { systemService } from '../../shared/services/index.js';
 import { passwordVerified, setPasswordVerified } from '../../shared/auth.js';
 import { showPasswordModal } from '../../operations.js';
-import type { UpdateProgress } from '../../shared/types/index.js';
+import type { AppUpdateInfo, UpdateProgress } from '../../shared/types/index.js';
 import {
   showUpdateBanner,
   showUpdateProgress,
@@ -12,6 +12,10 @@ import {
 } from './banner.js';
 
 // ─── App Update ───
+
+// Latest update info discovered — shown only after the user confirms the password
+// (the popup no longer opens automatically on startup).
+let pendingUpdateInfo: AppUpdateInfo | null = null;
 
 export function setupUpdateListener(): void {
   const invoke = getInvoke();
@@ -78,6 +82,7 @@ async function checkForAppUpdate(): Promise<void> {
     if (checkLink) { checkLink.textContent = '🔍 Verificar atualizações'; checkLink.classList.remove('checking'); }
 
     if (info.update_available) {
+      pendingUpdateInfo = info;
       const footerVersion = document.getElementById('footer-version');
       if (footerVersion) footerVersion.textContent = `Solix v${info.current_version}`;
 
@@ -88,7 +93,8 @@ async function checkForAppUpdate(): Promise<void> {
         updateText.classList.remove('hidden');
         updateText.textContent = `v${info.latest_version} disponível!`;
       }
-      showUpdateBanner(info);
+      // Popup não abre mais automaticamente — fica aguardando a senha
+      // (showPendingUpdate() é chamado após confirmPassword).
     }
   } catch (e) {
     console.error('checkForAppUpdate failed:', e);
@@ -113,4 +119,17 @@ export function showUpdateConfirmDialog(): void {
 
 export function showUpdatePasswordModal(): void {
   import('../../operations.js').then(m => m.showPasswordModal({ type: 'app-update' }));
+}
+
+/**
+ * Footer "Atualizar" → pede a senha PRIMEIRO. Só depois de confirmada
+ * a senha o popup antigo de update é exibido (showPendingUpdate).
+ */
+export function startUpdateWithPassword(): void {
+  import('../../operations.js').then(m => m.showPasswordModal({ type: 'app-update-prompt' }));
+}
+
+/** Shows the stored update popup — called after the password is confirmed. */
+export function showPendingUpdate(): void {
+  if (pendingUpdateInfo) showUpdateBanner(pendingUpdateInfo);
 }

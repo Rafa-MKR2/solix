@@ -3,6 +3,7 @@ import { systemService } from '../../shared/services/index.js';
 import { passwordVerified, setPasswordVerified } from '../../shared/auth.js';
 import { showPasswordModal } from '../../operations.js';
 import { showUpdateBanner, showUpdateProgress, hideUpdateModal, } from './banner.js';
+let pendingUpdateInfo = null;
 export function setupUpdateListener() {
     const invoke = getInvoke();
     if (!invoke)
@@ -71,6 +72,7 @@ async function checkForAppUpdate() {
             checkLink.classList.remove('checking');
         }
         if (info.update_available) {
+            pendingUpdateInfo = info;
             const footerVersion = document.getElementById('footer-version');
             if (footerVersion)
                 footerVersion.textContent = `Solix v${info.current_version}`;
@@ -82,7 +84,6 @@ async function checkForAppUpdate() {
                 updateText.classList.remove('hidden');
                 updateText.textContent = `v${info.latest_version} disponível!`;
             }
-            showUpdateBanner(info);
         }
     }
     catch (e) {
@@ -110,4 +111,11 @@ export function showUpdateConfirmDialog() {
 }
 export function showUpdatePasswordModal() {
     import('../../operations.js').then(m => m.showPasswordModal({ type: 'app-update' }));
+}
+export function startUpdateWithPassword() {
+    import('../../operations.js').then(m => m.showPasswordModal({ type: 'app-update-prompt' }));
+}
+export function showPendingUpdate() {
+    if (pendingUpdateInfo)
+        showUpdateBanner(pendingUpdateInfo);
 }

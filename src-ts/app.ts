@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Rafa-MKR2
 
-import { systemService, packageService, miscService } from './shared/services/index.js';
+import { packageService, miscService } from './shared/services/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
 import {
   setupNav,
@@ -32,10 +32,8 @@ import {
 } from './features/network/index.js';
 import {
   setupUpdateListener,
-  handleAppUpdate,
   initFooter,
   handleCheckUpdateClick,
-  showUpdateBanner,
 } from './features/update/index.js';
 import {
   reportProblem,
@@ -214,13 +212,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('footer-check-link')?.addEventListener('click', handleCheckUpdateClick);
   document.getElementById('footer-update-btn')?.addEventListener('click', (e) => {
     e.preventDefault();
-    systemService.checkAppUpdate().then(info => {
-      if (info.update_available) {
-        showUpdateBanner(info);
-      }
-    }).catch(() => {
-      import('./utils.js').then(m => m.showToast('error', 'Erro ao verificar atualizações.'));
-    });
+    // Senha primeiro; o popup antigo de update só aparece após confirmar a senha
+    import('./features/update/index.js').then(m => m.startUpdateWithPassword());
   });
 
   // Intervals

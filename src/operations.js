@@ -160,6 +160,13 @@ async function executePending() {
     if (!pendingAction || isOperating)
         return;
     isOperating = true;
+    if (pendingAction.type === 'app-update-prompt') {
+        isOperating = false;
+        pendingAction = null;
+        const { showPendingUpdate } = await import('./features/update/index.js');
+        showPendingUpdate();
+        return;
+    }
     switchToPage('sistema');
     const outputLog = document.getElementById('output-log');
     const outputSection = document.getElementById('output-section');

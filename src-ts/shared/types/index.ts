@@ -260,7 +260,7 @@ export interface SmartInfo {
   commands_used: { command: string; description: string }[];
 }
 
-export type PendingActionType = 'install' | 'remove' | 'update' | 'zram' | 'cleanup' | 'install-package' | 'app-update' | 'backup';
+export type PendingActionType = 'install' | 'remove' | 'update' | 'zram' | 'cleanup' | 'install-package' | 'app-update' | 'app-update-prompt' | 'backup';
 
 export interface PendingAction {
   type: PendingActionType;
