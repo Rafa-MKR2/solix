@@ -163,7 +163,7 @@ src-ts/
 ```
 src-tauri/src/
 ├── main.rs                     # Entry point
-├── lib.rs                      # Orquestrador (~150 linhas) - registra 25 comandos
+├── lib.rs                      # Orquestrador (~150 linhas) - registra 46 comandos
 ├── commands/                   # Tauri command handlers (16 arquivos)
 │   ├── disk.rs                 # analyze_disk_usage, get_partition_table
 │   ├── smart.rs                # get_disk_smart_info
@@ -375,7 +375,7 @@ pub fn pipe_password(password: &str, cmd: &mut Command) -> Result<Output, String
 |--------|---------|-----------|
 | Rust | `cargo test` | 460 testes (440 unitários + 20 integração) |
 | TypeScript | `npx tsc` | Type checking (0 erros) |
-| Frontend | *Futuro* | Vitest + mocks Tauri (meta: ≥50%) |
+| Frontend | ✅ `npx vitest run` | 279 testes em 36 arquivos (cobertura ~60%) |
 
 **Princípio:** Testes Rust **nunca** usam rede — HTTP mockado via structs injetadas.
 

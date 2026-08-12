@@ -14,13 +14,19 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      include: ['src-ts/**/*.ts'],
       exclude: [
         'src-ts/test/**',
+        'src-ts/**/*.test.ts',
         'src-ts/**/*.d.ts',
         'src-ts/animations.ts',
         'src-ts/app.ts',
         'src-ts/utils.ts',
         'src-ts/types.ts',
+        // Arquivos legados aguardando remoção (roadmap: médio prazo) —
+        // não fazem parte da arquitetura features/ + shared/.
+        'src-ts/ui.ts',
+        'src-ts/operations.ts',
       ],
     },
   },

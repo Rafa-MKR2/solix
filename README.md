@@ -323,7 +323,7 @@ solix/
 ├── src-tauri/                  # Backend Rust (Tauri v2)
 │   ├── src/
 │   │   ├── main.rs             # Ponto de entrada
-│   │   ├── lib.rs              # Orquestrador puro (~150 linhas, 25 comandos Tauri)
+│   │   ├── lib.rs              # Orquestrador puro (~150 linhas, 46 comandos Tauri)
 │   │   ├── commands/           # Comandos extraídos
 │   │   │   ├── disk.rs         # analyze_disk_usage, partition_table
 │   │   │   ├── smart.rs        # S.M.A.R.T. health

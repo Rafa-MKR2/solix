@@ -1,8 +1,20 @@
 import { vi } from 'vitest';
 
+// jsdom não implementa requestAnimationFrame nativamente em todas as
+// versões — polyfill baseado em setTimeout para componentes que usam rAF
+// (Modal, Dialog, Toast, velocímetro).
+if (typeof globalThis.requestAnimationFrame !== 'function') {
+  globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => setTimeout(() => cb(Date.now()), 16) as unknown as number;
+  globalThis.cancelAnimationFrame = (id: number) => clearTimeout(id);
+}
+
 global.HTMLElement.prototype.scrollIntoView = vi.fn();
 global.HTMLElement.prototype.focus = vi.fn();
-global.HTMLElement.prototype.click = vi.fn();
+// click() deve disparar um evento de clique real para os testes de interação
+// (botões de modal, diálogos, tabelas, etc.).
+global.HTMLElement.prototype.click = function (this: HTMLElement) {
+  this.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+};
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

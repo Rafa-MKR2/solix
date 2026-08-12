@@ -130,19 +130,12 @@ export function alert(
     onConfirm: () => {},
     onCancel: onClose,
   });
-  // Override to show only OK button
-  const originalShow = dialog.show.bind(dialog);
-  dialog.show = () => {
-    originalShow();
-    // Hide cancel button after dialog is created
-    setTimeout(() => {
-      const dialogEl = (dialog as any).dialog;
-      if (dialogEl) {
-        const cancelBtn = dialogEl.querySelector('[data-action="cancel"]');
-        if (cancelBtn) (cancelBtn as HTMLElement).style.display = 'none';
-      }
-    }, 0);
-  };
   dialog.show();
+  // Hide cancel button (Dialog's constructor already appended the element to the DOM)
+  const dialogEl = (dialog as any).dialog?.dialog;
+  if (dialogEl) {
+    const cancelBtn = dialogEl.querySelector('[data-action="cancel"]');
+    if (cancelBtn) (cancelBtn as HTMLElement).style.display = 'none';
+  }
   return dialog;
 }

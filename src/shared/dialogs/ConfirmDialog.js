@@ -92,18 +92,12 @@ export function alert(message, onClose, options = {}) {
         onConfirm: () => { },
         onCancel: onClose,
     });
-    const originalShow = dialog.show.bind(dialog);
-    dialog.show = () => {
-        originalShow();
-        setTimeout(() => {
-            const dialogEl = dialog.dialog;
-            if (dialogEl) {
-                const cancelBtn = dialogEl.querySelector('[data-action="cancel"]');
-                if (cancelBtn)
-                    cancelBtn.style.display = 'none';
-            }
-        }, 0);
-    };
     dialog.show();
+    const dialogEl = dialog.dialog?.dialog;
+    if (dialogEl) {
+        const cancelBtn = dialogEl.querySelector('[data-action="cancel"]');
+        if (cancelBtn)
+            cancelBtn.style.display = 'none';
+    }
     return dialog;
 }
