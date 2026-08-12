@@ -194,6 +194,7 @@ pub async fn cleanup_system(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::password::sudo_accepts_any_password;
 
     #[test]
     fn test_battery_info_present() {
@@ -401,6 +402,11 @@ mod tests {
 
     #[test]
     fn test_enable_zram_wrong_password() {
+        // CI (runner com sudo NOPASSWD): a senha errada não é rejeitada — pular.
+        if sudo_accepts_any_password() {
+            eprintln!("pulando: sudo aceita comandos sem senha neste ambiente");
+            return;
+        }
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             let result = enable_zram("wrong-password", None).await;
@@ -410,6 +416,11 @@ mod tests {
 
     #[test]
     fn test_cleanup_system_wrong_password() {
+        // CI (runner com sudo NOPASSWD): a senha errada não é rejeitada — pular.
+        if sudo_accepts_any_password() {
+            eprintln!("pulando: sudo aceita comandos sem senha neste ambiente");
+            return;
+        }
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             let result = cleanup_system("wrong-password", None).await;

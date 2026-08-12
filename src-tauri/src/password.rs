@@ -47,6 +47,18 @@ pub async fn verify_password(password: &str) -> Result<(), String> {
     }
 }
 
+/// Deteta se o sudo aceita comandos sem pedir senha (NOPASSWD), comum em
+/// runners de CI. Nesses ambientes, uma senha errada não é rejeitada, então
+/// os testes de "senha errada" devem ser pulados.
+#[cfg(test)]
+pub(crate) fn sudo_accepts_any_password() -> bool {
+    std::process::Command::new("sudo")
+        .args(["-n", "true"])
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,6 +144,11 @@ mod tests {
 
     #[test]
     fn test_verify_password_wrong_password_errors() {
+        // CI (runner com sudo NOPASSWD): a senha errada não é rejeitada — pular.
+        if sudo_accepts_any_password() {
+            eprintln!("pulando: sudo aceita comandos sem senha neste ambiente");
+            return;
+        }
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             // An invalid password must never be accepted. If sudo is missing,
