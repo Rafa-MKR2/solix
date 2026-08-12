@@ -7,3 +7,4 @@ export { createProgressBar, updateProgressBar, createIndeterminateProgressBar, t
 export { createBadge, createStatusBadge, createCountBadge, type BadgeOptions, type BadgeVariant, type BadgeSize } from './Badge.js';
 export { showToast, removeToast, updateToast, showSuccess, showError, showWarning, showInfo, showLoading, dismissAllToasts, type ToastOptions, type ToastType } from './Toast.js';
 export { createTable, type TableOptions, type Column } from './Table.js';
+export { createTooltipTrigger, showTooltip, hideTooltip, initTooltips, type TooltipOptions, type TooltipPosition } from './Tooltip.js';

@@ -5,3 +5,4 @@ export { createProgressBar, updateProgressBar, createIndeterminateProgressBar } 
 export { createBadge, createStatusBadge, createCountBadge } from './Badge.js';
 export { showToast, removeToast, updateToast, showSuccess, showError, showWarning, showInfo, showLoading, dismissAllToasts } from './Toast.js';
 export { createTable } from './Table.js';
+export { createTooltipTrigger, showTooltip, hideTooltip, initTooltips } from './Tooltip.js';

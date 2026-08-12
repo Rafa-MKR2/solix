@@ -1,7 +1,8 @@
 import { packageService, miscService } from './shared/services/index.js';
 import { getInvoke } from './shared/utils/index.js';
+import { initTooltips } from './shared/components/index.js';
 import { loadHomeStats, pollStats } from './features/home/index.js';
-import { setupNav, setupHelpTooltips, setupLockActions, switchToPage, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, } from './ui.js';
+import { setupNav, setupLockActions, switchToPage, handleProcessSortClick, handleProcessSearch, setRetryLastOperationFn, loadProcesses, } from './ui.js';
 import { loadSystemInfo, setupProgressListener, cancelOperation, retryLastOperation, toolStatuses, confirmPassword, cancelPassword } from './operations.js';
 import { handleStartBackup } from './features/disks/index.js';
 import { selectedTools, removedTools } from './features/tools/index.js';
@@ -91,7 +92,7 @@ function forwardFrontendErrors() {
 document.addEventListener('DOMContentLoaded', () => {
     forwardFrontendErrors();
     setupNav();
-    setupHelpTooltips();
+    initTooltips();
     setupLockActions();
     setupProgressListener();
     setupUpdateListener();
