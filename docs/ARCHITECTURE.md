@@ -373,7 +373,7 @@ pub fn pipe_password(password: &str, cmd: &mut Command) -> Result<Output, String
 
 | Camada | Comando | Cobertura |
 |--------|---------|-----------|
-| Rust | `cargo test` | 442 testes (parse, structs, sanitização, catálogo, updater, senha, backup) |
+| Rust | `cargo test` | 460 testes (440 unitários + 20 integração) |
 | TypeScript | `npx tsc` | Type checking (0 erros) |
 | Frontend | *Futuro* | Vitest + mocks Tauri (meta: ≥50%) |
 

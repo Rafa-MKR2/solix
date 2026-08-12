@@ -121,7 +121,7 @@ Funcionalidades:
 
 ### 🧪 Testes Unitários
 
-**436 testes unitários** + **20 testes de integração** (456 no total) cobrindo todos os módulos do backend Rust:
+**440 testes unitários** + **20 testes de integração** (460 no total) cobrindo todos os módulos do backend Rust:
 
 | Módulo | Testes | O que cobre |
 |--------|--------|-------------|
@@ -143,6 +143,9 @@ Funcionalidades:
 | `tool.rs` | 5 | Nomes únicos, categorias válidas, descrições, contagem mínima |
 | `password.rs` | 5 | pipe_password (stdin real, vazia, multilinha), verify_password, sem stdin |
 | `lib.rs` | 4 | Cache senha, structs |
+| `commands/disk.rs` | 6 | analyze_disk_usage, get_partition_table, open_file_manager |
+| `commands/script.rs` | 4 | analyze_script, analyze_script_file (Latin-1) |
+| `commands/smart.rs` | 3 | get_disk_smart_info |
 
 Testes de integração (`src-tauri/tests/`, 20):
 
