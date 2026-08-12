@@ -21,7 +21,7 @@
 
 | Módulo | Responsabilidade |
 |--------|-----------------|
-| `lib.rs` | Orquestrador puro (~150 linhas), registra ~25 comandos Tauri |
+| `lib.rs` | Orquestrador puro (~168 linhas), registra 46 comandos Tauri |
 | `commands/` | Comandos Tauri extraídos por domínio |
 | `commands/disk.rs` | `analyze_disk_usage`, `get_partition_table` |
 | `commands/smart.rs` | S.M.A.R.T. health info |
@@ -106,7 +106,7 @@
 | **Código** | 🇬🇧 Inglês (variáveis, funções, comentários) |
 | **Estilo Rust** | `cargo clippy` — zero warnings |
 | **Estilo TS** | `npx tsc` sem erros de tipo |
-| **Testes** | 433+ testes unitários + 20 testes de integração Rust, sem dependência de rede |
+| **Testes** | 440 testes unitários + 20 testes de integração Rust, sem dependência de rede |
 | **Arquitetura Frontend** | Feature-based (`features/`) + Shared (`shared/`) |
 | **Comunicação Tauri** | UI **nunca** chama `invoke()` direto — sempre via `shared/services/` |
 | **Estado auth** | Centralizado em `shared/auth.ts` (`passwordVerified`) |
